@@ -2304,7 +2304,7 @@ async function m19Tests(){
   // ---- 6/7. no empty rooms + decorations
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-rooms'});
-    const r=await G(page,(V191)=>{const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let rooms=0,empty=0,decos=0,badDeco=[];const kinds=new Set();const ex=[];
+    const r=await G(page,(V191)=>{const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));if(__game.bosses)Object.values(__game.bosses).forEach(b=>mob.add(b.ch)); /* M1.10: a boss fills its arena */let rooms=0,empty=0,decos=0,badDeco=[];const kinds=new Set();const ex=[];
       for(let sd=1;sd<=60;sd++)for(const f of [2,3,4,5,6,8,10,13,20]){const d=__game.genMap(sd,f),m=d.map,RR=__game.genRooms(sd,f);
         for(const R of RR){rooms++;let has=false,free=0;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){const c=m[y][x];if(mob.has(c)||/[1-8N]/.test(c))has=true;if(c==='.')free++;}if(!free)has=true; /* a room packed with keys/coins/hearts is not empty */
           if(V191&&!has&&R.start){let clear=false;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){if(m[y][x]!=='.')continue;let ok=true;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i];if(/[DL]/.test(q)||((i===0)!==(j===0)&&/[FkXYNpP]/.test(q)))ok=false;}if(ok)clear=true;}if(!clear)has=true;} /* M1.9.1: a tiny start room ringed by doors may stay bare (you start in it) */

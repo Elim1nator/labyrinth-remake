@@ -1,4 +1,4 @@
-# Controls and features (M1.8)
+# Controls and features (M1.9)
 
 ## Keyboard and mouse
 
@@ -8,8 +8,10 @@
 | Turn | Mouse (click the game to lock the pointer), or ← → |
 | Run | Shift |
 | Throw a balloon | Space, Ctrl or left click |
-| Use (doors, slot machine) | E or Enter |
+| Use (doors, slot machine, shop) | E or Enter |
 | Use the held item | Q or right click |
+| Switch balloon type | R (Shift+R for the previous type), 1–4 (Water, Red, Green, Yellow), or the mouse wheel |
+| Switch backpack slot | F, or tap a slot of the item bar |
 | Full-screen map | M or Tab |
 | Hide / show minimap | Shift+M (saved) |
 | Pause menu | P or Esc |
@@ -28,6 +30,8 @@ pauses the game and clears held inputs; one click resumes.
 | Throw | A or RT |
 | Use | X |
 | Item | Y |
+| Switch balloon type | LB |
+| Switch backpack slot | RB |
 | Map | Back / View |
 | Pause | Start |
 | Recentre | R3 (click the right stick) |
@@ -39,7 +43,9 @@ On-screen prompts switch to gamepad buttons when a pad is in use.
 
 - Floating stick on the left half (appears where your thumb lands; push far to run).
 - Drag on the right half to look; double-tap there to recentre.
-- Buttons: THROW, USE (shown only when something usable is in front), ITEM, MAP and pause.
+- Buttons: THROW, USE (shown only when something usable is in front), ITEM, BALL (shown once
+  you own more than one balloon type), MAP and pause.
+- Tap a slot of the item bar to pick it (Backpack).
 - Tap the minimap to open the full map.
 - Portrait shows a "turn your phone sideways" screen and pauses.
 - Starting from the title requests fullscreen once.
@@ -51,28 +57,48 @@ RESUME, SOUND (on/off), LOOK SPEED (50%–200%, ◄ ► arrows), INVERT Y. Setti
 
 ## Map
 
-A corner minimap (colour-coded keys, doors, exit, mobs, items) and a full-screen map
+A corner minimap (colour-coded keys, doors, exit, mobs, items, pits) and a full-screen map
 (M / Tab / Back / MAP button / tap the minimap).
 
 ## Items and pickups
 
-- **Coins** (from the floor and from popped mobs), **hearts**, **gold keys** that open locked doors.
-- **Power-ups** (one held in the item bar, use with Q / Y / ITEM): SPEED SNEAKERS,
-  SHIELD BUBBLE, TRIPLE BALLOON, FREEZE POP, COIN MAGNET, GIANT BALLOON. Details in
-  [BALANCE.md](BALANCE.md).
+- **Coins** (from the floor, popped mobs and coin bags), **hearts**, **gold keys** that open locked doors.
+- **Power-ups** (held in the item bar, use with Q / Y / ITEM): SPEED SNEAKERS, SHIELD BUBBLE,
+  TRIPLE BALLOON, FREEZE POP, COIN MAGNET, GIANT BALLOON. Once used they last the rest of the
+  floor and show as a HUD icon row. The Backpack (a shop item) adds a second slot, switched
+  with F / RB / a tap on the bar. Details in [BALANCE.md](BALANCE.md).
+- **Balloon types:** Water balloons are the default. Red, Green and Yellow are bought from the
+  shop and switched with R / 1–4 / mouse wheel / LB / BALL.
 - **Vaults** (from level 4): a second locked room with a spare key and a heart.
+
+## Shop (Old Murkle)
+
+Appears every even floor from floor 2 (never the tutorial). Talk to him with E / X / USE / a
+tap. The shop is modal and pauses the game. He sells permanent balloon types and a Backpack,
+plus two one-use power-ups per floor (see [BALANCE.md](BALANCE.md)). While it is open the
+panel covers the top-left HUD.
 
 ## Slot machine
 
 Found on floor 3 and on about 45% of other floors from floor 2 (never the tutorial). Use it
-with E / X / USE. In-game coins only: spins cost 5, 10 and 15 coins, at most 3 per floor. The
-odds are printed on the machine (see [BALANCE.md](BALANCE.md)).
+with E / X / USE. In-game coins only: a spin costs 3 coins, with no per-floor limit. The odds
+are printed on the machine (see [BALANCE.md](BALANCE.md)).
+
+## Pits, secret rooms and Rattlebone
+
+- **Pits** from floor 3 (max 6): falling in is fatal. They show dark on the floor and on both
+  maps. Ground mobs path around them; flyers cross over.
+- **Secret rooms** on every generated floor: a cracked wall opens after 3 balloon hits and
+  hides a coin bag or a power-up, usually with a mob.
+- **Rattlebone** from floor 6: at 0 HP it becomes a bone pile, rattles at 3 s and reforms at
+  4.5 s unless you smash the pile with a balloon.
+- **Hazewisp** drifts through fences and closed doors, and flies over pits.
 
 ## Floors, score and high scores
 
 - Floor 1 is a hand-built tutorial; floors 2+ are procedurally generated, and floors are
   endless (up to 10,000). Every floor start is auto-saved (`labyrinthRemake.save.v1`) and the
-  title offers CONTINUE.
+  title offers CONTINUE. Permanent shop purchases are saved with the run.
 - Death ends the run and shows the score, then name entry: type on a keyboard, use the d-pad
   letters plus A/B on a gamepad, or tap the box on touch. The name box always starts empty.
 - The HIGH SCORES page (also on the title) uses the same-origin API

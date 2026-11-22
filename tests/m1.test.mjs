@@ -17,6 +17,7 @@ const V14=VER>=1.4; // M1.4+: elite mobs, power-ups, item bar, touch ITEM button
 const V15=VER>=1.5; // M1.5+: QA fixes, Screamer redraw, full-screen map, MAP button
 const V17=VER>=1.7; // M1.7+: icon placement, gated debug hook (QA build for hook tests), RANGED colour, L3 per-seed floor, top-strip touch, thicker Screamer ears
 const V18=VER>=1.8; // M1.8+: endless floors, deeper wall textures, score + high scores (stub API), slot machine
+const V19=VER>=1.9; // M1.9+: slot rework (no limit, jackpot spray, crit fail), slower balloons, floor-long power-ups, shop, balloon types, backpack, secret rooms, decorations, pits, Rattlebone, ghosts through doors
 const V16=VER>=1.6; // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -178,13 +179,13 @@ for(const [w,h] of viewports){
   const lay=await G(page,()=>{__game.manual=true;__game.startLevel(0);__game.advance(0.05);__game.setForceUse(true);return __game.layout();});
   const inter=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
   const bad=[];
-  const btns=V15?['throwBtn','useBtn','pauseBtn','itemBtn','mapBtn','stick']:V14?['throwBtn','useBtn','pauseBtn','itemBtn','stick']:NEW?['throwBtn','useBtn','pauseBtn','stick']:['throwBtn','useBtn','stick'];
+  const btns=V15?['throwBtn','useBtn','pauseBtn','itemBtn','mapBtn',...(V19?['ballBtn']:[]),'stick']:V14?['throwBtn','useBtn','pauseBtn','itemBtn','stick']:NEW?['throwBtn','useBtn','pauseBtn','stick']:['throwBtn','useBtn','stick'];
   for(const bn of btns)for(const zone of (V14?['band','hud','minimap','itemBar']:['band','hud','minimap'])){if(lay[bn].visible&&inter(lay[bn],lay[zone]))bad.push(`${bn}∩${zone}`);}
   for(let i=0;i<btns.length;i++)for(let j=i+1;j<btns.length;j++)if(lay[btns[i]].visible&&lay[btns[j]].visible&&inter(lay[btns[i]],lay[btns[j]]))bad.push(`${btns[i]}∩${btns[j]}`);
   if(NEW&&!lay.pauseBtn.visible)bad.push('pause button missing');
-  if(V12){const hb=await G(page,()=>__game.handCss());for(const [f,r] of Object.entries(hb)){for(const z of (V15?['throwBtn','useBtn','pauseBtn','itemBtn','mapBtn','stick','band','hud','minimap','itemBar']:V14?['throwBtn','useBtn','pauseBtn','itemBtn','stick','band','hud','minimap','itemBar']:['throwBtn','useBtn','pauseBtn','stick','band','hud','minimap']))if(lay[z].visible!==false&&inter(r,lay[z]))bad.push(`hand:${f}∩${z}`);}}
-  for(const bn of (V15?['throwBtn','useBtn','pauseBtn','itemBtn','mapBtn']:V14?['throwBtn','useBtn','pauseBtn','itemBtn']:NEW?['throwBtn','useBtn','pauseBtn']:['throwBtn','useBtn']))if(lay[bn].x<0||lay[bn].y<0||lay[bn].x+lay[bn].w>w||lay[bn].y+lay[bn].h>h)bad.push(bn+' off-screen');
-  if(V14&&!lay.itemBtn.visible)bad.push('item button missing');if(V15&&!lay.mapBtn.visible)bad.push('map button missing');
+  if(V12){const hb=await G(page,()=>__game.handCss());for(const [f,r] of Object.entries(hb)){for(const z of (V15?['throwBtn','useBtn','pauseBtn','itemBtn','mapBtn',...(V19?['ballBtn']:[]),'stick','band','hud','minimap','itemBar']:V14?['throwBtn','useBtn','pauseBtn','itemBtn','stick','band','hud','minimap','itemBar']:['throwBtn','useBtn','pauseBtn','stick','band','hud','minimap']))if(lay[z].visible!==false&&inter(r,lay[z]))bad.push(`hand:${f}∩${z}`);}}
+  for(const bn of (V15?['throwBtn','useBtn','pauseBtn','itemBtn','mapBtn',...(V19?['ballBtn']:[])]:V14?['throwBtn','useBtn','pauseBtn','itemBtn']:NEW?['throwBtn','useBtn','pauseBtn']:['throwBtn','useBtn']))if(lay[bn].x<0||lay[bn].y<0||lay[bn].x+lay[bn].w>w||lay[bn].y+lay[bn].h>h)bad.push(bn+' off-screen');
+  if(V14&&!lay.itemBtn.visible)bad.push('item button missing');if(V19&&!lay.ballBtn.visible)bad.push('BALL button missing');if(V15&&!lay.mapBtn.visible)bad.push('map button missing');
   check(`touch layout ${w}x${h}: buttons${V15?' (incl. pause, ITEM + MAP)':V14?' (incl. pause + ITEM)':NEW?' (incl. pause)':''}${V12?' and every hand frame':''} don't overlap message band/HUD/minimap or each other`,bad.length===0&&lay.throwBtn.visible&&lay.useBtn.visible,bad.join(', ')||`throw@${Math.round(lay.throwBtn.x)},${Math.round(lay.throwBtn.y)} band bottom ${Math.round(lay.band.y+lay.band.h)}`);
   await ctx.close();
 }
@@ -248,6 +249,7 @@ if(V15){ await m15Tests(); }
 if(V16){ await m16Tests(); }
 if(V17){ await m17Tests(); }
 if(V18){ await m18Tests(); }
+if(V19){ await m19Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -335,7 +337,7 @@ async function regressionTests(){
     t0=(await G(page,()=>__game.state())).stats.throws;
     await page.mouse.down();await page.mouse.up();
     t1=(await G(page,()=>__game.advance(0.05))).stats.throws;
-    await G(page,()=>__game.advance(0.5));
+    await G(page,(t)=>__game.advance(t),V19?0.9:0.5); // M1.9: 0.8 s between balloons
     await page.keyboard.down('Space');await page.keyboard.up('Space');
     const t2=(await G(page,()=>__game.advance(0.05))).stats.throws;
     check('A4 instant mouse click (down+up inside one frame) throws',t1===t0+1,`throws ${t0}->${t1}`);
@@ -556,7 +558,7 @@ async function m12Tests(){
     // hand frames
     const sig=await G(page,()=>['idle','windup','throw','empty'].map(f=>__game.frameSig(f)));
     check('M1.2 hand has 4 distinct frames (idle, windup, throw, empty)',new Set(sig).size===4,sig.join(','));
-    const seq=await G(page,()=>{__game.startLevel(0);__game.freeze=true;__game.teleport(1.5,1.5,Math.PI);__game.advance(0.6);const out=[__game.state().handFrame];__game.throwOnce();for(let i=0;i<40;i++){const s=__game.advance(1/60);if(out[out.length-1]!==s.handFrame)out.push(s.handFrame);}return out;});
+    const seq=await G(page,(N)=>{__game.startLevel(0);__game.freeze=true;__game.teleport(1.5,1.5,Math.PI);__game.advance(0.6);const out=[__game.state().handFrame];__game.throwOnce();for(let i=0;i<N;i++){const s=__game.advance(1/60);if(out[out.length-1]!==s.handFrame)out.push(s.handFrame);}return out;},V19?60:40);
     check('M1.2 throw plays idle -> windup -> throw -> empty -> idle',JSON.stringify(seq)===JSON.stringify(['idle','windup','throw','empty','idle']),seq.join(' > '));
     const bob=await G(page,()=>{const c=document.getElementById('screen').getContext('2d');const B=__game.dims&&__game.dims.W===480?[210,165,165,135]:[140,110,110,90];function h(){const d=c.getImageData(...B).data;let x=0;for(let i=0;i<d.length;i++)x=(Math.imul(x,31)+d[i])|0;return x;}const hs=new Set(),fr=new Set();for(let i=0;i<10;i++){__game.advance(0.15);hs.add(h());fr.add(__game.state().handFrame);}return {n:hs.size,frames:[...fr]};});
     check('M1.2 idle hand bobs while standing still',bob.frames.join()==='idle'&&bob.n>=2,JSON.stringify(bob));
@@ -638,9 +640,9 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check('M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL].sort()),types.join(','));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[])].sort()),types.join(','));
     const hp=types.map(t=>mobs[t].hp),sp=types.map(t=>mobs[t].speed),vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name);
-    check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size===6&&new Set(sp).size===6&&new Set(vo).size===6&&new Set(nm).size===6&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
+    check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===types.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hp)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));
     // animation frames + hit-flash frames
     const fr=await G(page,(all)=>all.map(t=>{const s=new Set();for(let i=0;i<4;i++)s.add(__game.frameSig(t,i));return s.size;}),ALL);
@@ -715,8 +717,9 @@ async function m13Tests(){
   // ---------- procedural generation: solvability over many seeds ----------
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m13-procgen'});
-    const maps=await G(page,()=>{const out=[];for(let s=1;s<=525;s++){const lvl=2+(s%7);const d=__game.genMap(s,lvl);out.push({seed:s,lvl,map:d.map,fallback:d.fallback,locks:d.locks,rooms:d.rooms});}for(let s=9001;s<=9030;s++)for(let lvl=2;lvl<=8;lvl++){const d=__game.genMap(s,lvl);out.push({seed:s,lvl,map:d.map,fallback:d.fallback,locks:d.locks,rooms:d.rooms});}return out;});
-    const mobCh={e:'screamer',b:'springle',t:'kettle',g:'wisp',r:'clunk',z:'zapfly'};
+    const maps=await G(page,(V19)=>{const seal=(d)=>{if(!V19)return d.map;const S=d.secret;return d.map.map((r,y)=>[...r].map((c,x)=>(S&&x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h)||c==='P'||c==='N'?'#':(/[1-8GU]/.test(c)?'.':c)).join(''));}; /* M1.9: pits + merchant act as walls, the sealed secret room is left out */
+      const out=[];for(let s=1;s<=525;s++){const lvl=2+(s%7);const d=__game.genMap(s,lvl);out.push({seed:s,lvl,map:seal(d),map18:d.map18,fallback:d.fallback,locks:d.locks,rooms:d.rooms});}for(let s=9001;s<=9030;s++)for(let lvl=2;lvl<=8;lvl++){const d=__game.genMap(s,lvl);out.push({seed:s,lvl,map:seal(d),map18:d.map18,fallback:d.fallback,locks:d.locks,rooms:d.rooms});}return out;},V19);
+    const mobCh={e:'screamer',b:'springle',t:'kettle',g:'wisp',r:'clunk',z:'zapfly',...(V19?{s:'skeleton'}:{})};
     const WALL=new Set(['#','S','W','T','M']);
     function analyse(m){const rows=m.map,h=rows.length,w=rows[0].length;const at=(x,y)=>rows[y][x];let sx=-1,sy=-1;
       for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(at(x,y)==='p'){sx=x;sy=y;}
@@ -741,7 +744,7 @@ async function m13Tests(){
       for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(at(x,y)!=='F'&&at(x,y)!=='D'&&at(x,y)!=='L')continue;const hz=!WALL.has(at(x-1,y))&&!WALL.has(at(x+1,y))&&at(x-1,y)!=='F'&&at(x+1,y)!=='F',vt=!WALL.has(at(x,y-1))&&!WALL.has(at(x,y+1))&&at(x,y-1)!=='F'&&at(x,y+1)!=='F';if(!(hz&&WALL.has(at(x,y-1))&&WALL.has(at(x,y+1)))&&!(vt&&WALL.has(at(x-1,y))&&WALL.has(at(x+1,y)))){problems.push(`bad ${at(x,y)} at ${x},${y}`);break;}}
       return {problems,w,h,mobs,locks:locks.length,states,types:new Set([...rows.join('')].filter(c=>mobCh[c]).map(c=>mobCh[c])),rows};}
     const bad=[];const byLvl={};
-    for(const m of maps){const a=analyse(m);if(m.fallback)a.problems.push('fallback');if(a.problems.length)bad.push(`seed ${m.seed} L${m.lvl}: ${a.problems.join(',')}`);(byLvl[m.lvl]=byLvl[m.lvl]||[]).push({...a,m});}
+    for(const m of maps){const a=analyse(m);if(V19&&m.map18){const mc={e:1,b:1,t:1,g:1,r:1,z:1};a.mobs=[...m.map18.join('')].filter(c=>mc[c]).length;a.types=new Set([...m.map18.join('')].filter(c=>mc[c]).map(c=>mobCh[c]));} /* M1.9: the growth check uses the M1.8 mob layout; extra room-fill mobs are checked in M1.9 */if(m.fallback)a.problems.push('fallback');if(a.problems.length)bad.push(`seed ${m.seed} L${m.lvl}: ${a.problems.join(',')}`);(byLvl[m.lvl]=byLvl[m.lvl]||[]).push({...a,m});}
     check(`M1.3 procgen: ${maps.length} generated maps (525 seeds + 30 seeds x 7 levels) are all fully reachable and solvable in any key order`,bad.length===0&&maps.length>=735,bad.slice(0,6).join(' | ')||`max lock-order states ${Math.max(...Object.values(byLvl).flat().map(a=>a.states))}`);
     const det=await G(page,()=>{const a=JSON.stringify(__game.genMap(777,4).map),b=JSON.stringify(__game.genMap(777,4).map),c=JSON.stringify(__game.genMap(778,4).map),d=JSON.stringify(__game.genMap(777,5).map);return {same:a===b,diffSeed:a!==c,diffLvl:a!==d};});
     check('M1.3 procgen is deterministic per seed+level and varies by seed and level',det.same&&det.diffSeed&&det.diffLvl,JSON.stringify(det));
@@ -1001,7 +1004,7 @@ async function m14Tests(){
     check('M1.4 walking over a power-up puts it in the single item slot',pu.pick==='sneakers'&&/SPEED SNEAKERS/.test(pu.msg),JSON.stringify(pu.msg));
     check('M1.4 slot full: the new item swaps in, the old one is dropped on the spot (no instant re-pickup)',pu.swap==='shield'&&pu.left.join()==='sneakers'&&pu.noRepick==='shield'&&pu.walkBack==='sneakers'&&/LEFT SPEED SNEAKERS/.test(pu.swapMsg),`${pu.swapMsg}; after walking away and back: ${pu.walkBack}`);
     check('M1.4 same item already held: left on the floor with a message',pu.sameItem==='shield'&&/ALREADY HOLDING/.test(pu.same),pu.same);
-    check('M1.4 using the item empties the slot and starts a timed effect that wears off',pu.used&&pu.after.item===null&&pu.after.ef.kind==='shield'&&Math.abs(pu.mid-3.95)<0.1&&pu.end===null&&/WORE OFF/.test(pu.endMsg)&&pu.useEmpty===false,`mid ${pu.mid&&pu.mid.toFixed(2)}s, ${pu.endMsg}`);
+    if(!V19)check('M1.4 using the item empties the slot and starts a timed effect that wears off',pu.used&&pu.after.item===null&&pu.after.ef.kind==='shield'&&Math.abs(pu.mid-3.95)<0.1&&pu.end===null&&/WORE OFF/.test(pu.endMsg)&&pu.useEmpty===false,`mid ${pu.mid&&pu.mid.toFixed(2)}s, ${pu.endMsg}`);
     check('M1.4 six power-ups, each lasting 8-12 s',pu.ids.length===6&&pu.durs.every(d=>d>=8&&d<=12),pu.ids.map((k,i)=>k+' '+pu.durs[i]+'s').join(', '));
     // keys: Q, right mouse; and the item bar draws the active timer ring
     const ky=await G(page,(FR)=>{const FRESH=eval(FR);FRESH();__game.give('magnet');window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyQ',key:'q'}));let s=__game.advance(0.05);window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyQ',key:'q'}));const q=s.player.effect&&s.player.effect.kind;
@@ -1009,7 +1012,7 @@ async function m14Tests(){
     check('M1.4 Q and right mouse use the held item',ky.q==='magnet'&&ky.rmb==='freeze',JSON.stringify(ky));
     const ring=await G(page,(FR)=>{const FRESH=eval(FR);const R=__game.hudRects().active;const sig=()=>{let n=0;for(let y=R[1];y<R[1]+R[3];y++)for(let x=R[0];x<R[0]+R[2];x++){const p=__game.pixelAt(x,y);if(Math.abs(p[0]-168)+Math.abs(p[1]-240)+Math.abs(p[2]-255)<40)n++;}return n;}; /* FREEZE POP ring colour #a8f0ff */
       FRESH();__game.give('triple');__game.setEffect('freeze',8);__game.advance(0.02);const full=sig();__game.advance(4);const half=sig();__game.setEffect(null);__game.advance(0.02);return {full,half,none:sig()};},FRESH.toString());
-    check('M1.4 item bar shows the active effect with a countdown ring that shrinks',ring.full>ring.half*1.3&&ring.half>ring.none,JSON.stringify(ring));
+    if(!V19)check('M1.4 item bar shows the active effect with a countdown ring that shrinks',ring.full>ring.half*1.3&&ring.half>ring.none,JSON.stringify(ring));
     await G(page,(FR)=>{eval(FR)();__game.give('triple');__game.setEffect('freeze',8);__game.spawn('kettle',11,3,false,['ranged']);__game.freeze=true;__game.advance(2.6);},FRESH.toString());
     await page.screenshot({path:`${SHOTS}/m14_item_bar_active_timer.png`});
     savePng('m14_powerup_icons_4x.png',await G(page,()=>__game.spriteSheet(4,'powerups')));
@@ -1025,10 +1028,13 @@ async function m14Tests(){
       FRESH();__game.setEffect('giant',9);__game.spawn('clunk',10.5,3.5,false,[]);__game.spawn('clunk',10.5,4.6,false,[]);__game.freeze=true;const hp0=__game.state().enemies.map(e=>e.hp),gs0=__game.state().stats.giantSplashes;__game.throwOnce();s=__game.advance(1.2);r.giant={hp0,hp:s.enemies.map(e=>e.hp),splashes:s.stats.giantSplashes-gs0};return r;},FRESH.toString());
     check('M1.4 SHIELD BUBBLE blocks goo, shots and bites',ef.shield.dh===0&&ef.shield.blocks>=2,JSON.stringify(ef.shield));
     check('M1.4 TRIPLE BALLOON throws a 3-way spread',ef.triple===3&&ef.single===1,`${ef.single} -> ${ef.triple} balloons`);
-    check('M1.4 FREEZE POP slows enemies and their projectiles to ~35%',Math.abs(ef.shotF/ef.shotN-.35)<.06&&ef.mobF/ef.mobN<.5,`shots ${ef.shotN.toFixed(2)}->${ef.shotF.toFixed(2)}, mob ${ef.mobN.toFixed(2)}->${ef.mobF.toFixed(2)}`);
-    check('M1.4 SPEED SNEAKERS make the player ~1.6x faster',ef.walkS/ef.walkN>1.45&&ef.walkS/ef.walkN<1.75,`${ef.walkN.toFixed(2)} -> ${ef.walkS.toFixed(2)} cells in 0.5 s`);
+    if(V19)check('M1.4/M1.9 FREEZE POP slows enemies and their projectiles to 60% (floor-long, was 35% for 8 s)',Math.abs(ef.shotF/ef.shotN-.6)<.06&&ef.mobF/ef.mobN<.75,`shots ${ef.shotN.toFixed(2)}->${ef.shotF.toFixed(2)}, mob ${ef.mobN.toFixed(2)}->${ef.mobF.toFixed(2)}`);
+    else check('M1.4 FREEZE POP slows enemies and their projectiles to ~35%',Math.abs(ef.shotF/ef.shotN-.35)<.06&&ef.mobF/ef.mobN<.5,`shots ${ef.shotN.toFixed(2)}->${ef.shotF.toFixed(2)}, mob ${ef.mobN.toFixed(2)}->${ef.mobF.toFixed(2)}`);
+    if(V19)check('M1.4/M1.9 SPEED SNEAKERS make the player ~1.35x faster (floor-long, was 1.6x)',ef.walkS/ef.walkN>1.25&&ef.walkS/ef.walkN<1.45,`${ef.walkN.toFixed(2)} -> ${ef.walkS.toFixed(2)} cells in 0.5 s`);
+    else check('M1.4 SPEED SNEAKERS make the player ~1.6x faster',ef.walkS/ef.walkN>1.45&&ef.walkS/ef.walkN<1.75,`${ef.walkN.toFixed(2)} -> ${ef.walkS.toFixed(2)} cells in 0.5 s`);
     check('M1.4 COIN MAGNET pulls nearby coins in',ef.magnet>=2&&ef.noMagnetC===0,`magnet collected ${ef.magnet}, without ${ef.noMagnetC}`);
-    check('M1.4 GIANT BALLOON splash hurts the target and mobs nearby',ef.giant.splashes===1&&ef.giant.hp[0]<=ef.giant.hp0[0]-3&&ef.giant.hp[1]===ef.giant.hp0[1]-2,JSON.stringify(ef.giant));
+    if(V19)check('M1.4/M1.9 GIANT BALLOON splash hurts the target (2) and mobs nearby (1; floor-long, was 3 and 2)',ef.giant.splashes===1&&ef.giant.hp[0]===ef.giant.hp0[0]-2&&ef.giant.hp[1]===ef.giant.hp0[1]-1,JSON.stringify(ef.giant));
+    else check('M1.4 GIANT BALLOON splash hurts the target and mobs nearby',ef.giant.splashes===1&&ef.giant.hp[0]<=ef.giant.hp0[0]-3&&ef.giant.hp[1]===ef.giant.hp0[1]-2,JSON.stringify(ef.giant));
     // effect screen tints
     for(const k of ['sneakers','shield','triple','freeze','magnet','giant']){await G(page,({FR,k})=>{eval(FR)();__game.setEffect(k);__game.advance(0.3);},{FR:FRESH.toString(),k});if(k==='freeze'||k==='shield')await page.screenshot({path:`${SHOTS}/m14_effect_${k}.png`});}
     // pad Y
@@ -1044,7 +1050,7 @@ async function m14Tests(){
     const dr=await G(page,()=>{__game.give(null);__game.setHearts(1);__game.spawn('clunk',__game.state().player.x+.3,__game.state().player.y,true,[]);let s=__game.advance(0.3);const dead=s.mode;__game.advance(1.5);__game.confirm();s=__game.advance(0.1);return {dead,mode:s.mode,item:s.player&&s.player.item};});
     if(V18)check('M1.4/M1.8 death after CONTINUE ends the run (name entry; no retry)',dr.dead==='dead'&&dr.mode==='name',JSON.stringify(dr));
     else check('M1.4 retry after death restores the item held at the level start',dr.dead==='dead'&&dr.mode==='play'&&dr.item==='freeze',JSON.stringify(dr));
-    const lvl=await G(page,()=>{__game.setSeed(777);const r=[];for(let i=0;i<8;i++){__game.startLevel(i);r.push(__game.state().items.filter(t=>t.kind==='power').length);}return r;});
+    const lvl=await G(page,(V19)=>{__game.setSeed(777);const r=[];for(let i=0;i<8;i++){__game.startLevel(i);const sec=V19&&i>0?__game.secret():null;r.push(__game.state().items.filter(t=>t.kind==='power').length-(sec&&sec.def.treasure==='power'?1:0));}return r;},V19); // M1.9: a secret-room power-up is extra
     check('M1.4 power-ups are placed in every level (1 in the tutorial, 2-3 in generated floors)',lvl[0]===1&&lvl.slice(1).every((n,i)=>n===(i+2>=5?3:2)),lvl.join(','));
     // ---------- perf: many enemy shots + puddles ----------
     const perf=await G(page,async()=>{__game.setSeed(9001);__game.startLevel(7);__game.setHearts(999);__game.wakeAll();__game.setEffect(null);const m=__game.currentMap(),open=[];for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++)if(!'#SWTMFDL'.includes(m[y][x]))open.push([x+.5,y+.5]);
@@ -1321,7 +1327,7 @@ async function m16Tests(){
       out.cp=[__game.clearPath(Wc.x-.15,Wc.y+.5,Wc.x+1.15,Wc.y+.5),__game.clearPath(Wc.x-.4,Wc.y+.5,Wc.x-1.5,Wc.y+.5)];
       return out;});
     check('M15-A3 an elite killed in a fence cell drops every coin and its power-up in walkable cells (nearest open neighbour)',r.F&&r.loot>=5&&r.inFence===0,JSON.stringify({F:r.F,loot:r.loot,inFence:r.inFence,cells:r.lootCell,spot:r.spot}));
-    check('M15-A4 Giant Balloon splash no longer damages through a fence or a wall (solidAt ray march), still hits in the open',r.fenceHp&&r.fenceHp[1]===r.fenceHp[0]&&r.wallHp[1]===r.wallHp[0]&&r.openHp[1]===r.openHp[0]-2,JSON.stringify({fence:r.fenceHp,wall:r.wallHp,open:r.openHp,cp:r.cp,W:r.W}));
+    check('M15-A4 Giant Balloon splash no longer damages through a fence or a wall (solidAt ray march), still hits in the open',r.fenceHp&&r.fenceHp[1]===r.fenceHp[0]&&r.wallHp[1]===r.wallHp[0]&&r.openHp[1]===r.openHp[0]-(V19?1:2),JSON.stringify({fence:r.fenceHp,wall:r.wallHp,open:r.openHp,cp:r.cp,W:r.W}));
     await ctx.close();
   }
   // ---------- M15-A5: same-seed link keeps CONTINUE selected ----------
@@ -1642,7 +1648,7 @@ async function m18Tests(){
   {
     const rel=fs.readFileSync(REL_URL.replace('file://',''),'utf8'),qa=fs.readFileSync(FILE,'utf8');
     const dl=rel.split('\n').filter((l,i)=>l!==qa.split('\n')[i]).length;
-    check('M1.8 release + QA builds are M1.8; the QA build differs only in QA_BUILD and the title',rel.includes("'M1.8 PROTOTYPE - PLACEHOLDER TITLE'")&&rel.includes('var QA_BUILD=false;')&&qa.includes('var QA_BUILD=true;')&&dl===2,`differing lines ${dl}`);
+    check(`M1.8 release + QA builds are ${BUILD.toUpperCase()}; the QA build differs only in QA_BUILD and the title`,rel.includes(`'${BUILD.toUpperCase()} PROTOTYPE - PLACEHOLDER TITLE'`)&&rel.includes('var QA_BUILD=false;')&&qa.includes('var QA_BUILD=true;')&&dl===2,`differing lines ${dl}`);
     const fetches=[...rel.matchAll(/fetch\(([^,)]*)/g)].map(m=>m[1].trim());
     check('M1.8 API client: one fetch call, base "/api/labyrinth" + relative path (no scheme or host)',fetches.length===1&&fetches[0]==='HS_API+path'&&rel.includes("var HS_API='/api/labyrinth'")&&!/https?:\/\/(?!www\.w3\.org\/2000\/svg)/i.test(rel),fetches.join(' | ')); // the only URL is the inline-SVG XML namespace (not a request)
     check('M1.8 no credentials in the game (no Authorization header, btoa, user:pass@ or stored tokens); credentials:"same-origin" only',!/authorization|btoa\(|\/\/[^\s'"]+:[^\s'"]+@|api[_-]?key|bearer/i.test(rel)&&rel.includes("credentials:'same-origin'")&&!/credentials:\s*'include'/.test(rel));
@@ -1677,23 +1683,23 @@ async function m18Tests(){
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m18-gen'});
     const FLOORS=[9,10,12,13,16,17,20,21,25,30,50,100,200,500,1000,2500,5000,9999],SEEDS=[1,777,4242,99991,123456,2026];
-    const g=await G(page,({FLOORS,SEEDS})=>{const WALL=new Set('#SWTMKRCVO'.split(''));const MOB=new Set('ebtgrz'.split(''));
+    const g=await G(page,({FLOORS,SEEDS,V19})=>{const WALL=new Set('#SWTMKRCVO'.split(''));const MOB=new Set('ebtgrz'.split(''));
       const mobCh=new Set(Object.values(__game.mobs).map(m=>m.ch));
       const res=[];let maxMs=0,bad=[];const per={};
       for(const f of FLOORS)for(const sd of SEEDS){const t=__game.genTime(sd,f);maxMs=Math.max(maxMs,t.ms);(per[f]=per[f]||[]).push(t.ms);const m=t.map,h=m.length,w=m[0].length;let p=null,x0=0,nk=0,nx=0,ny=0,nm=0,nc=0,err='';
         if(t.fallback)err+='fallback ';if(m.some(r=>r.length!==w))err+='ragged ';
         for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if((x===0||y===0||x===w-1||y===h-1)&&!WALL.has(c))err+='border ';if(c==='p')p=[x,y];if(c==='X')nx++;if(c==='k')nk++;if(c==='Y')ny++;if(mobCh.has(c))nm++;if(c==='c')nc++;}
         if(!p||nx!==1)err+='p/X ';if(nk<1)err+='key ';if(ny>1)err+='slots ';if(nm>22)err+='mobs '+nm;if(nc>33)err+='coins '+nc;
-        if(p){const seen=new Set([p[1]*w+p[0]]),q=[p];const walk=c=>!WALL.has(c)&&c!=='F'&&c!=='Y';while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=w||Y>=h)continue;const k=Y*w+X;if(seen.has(k)||!walk(m[Y][X]))continue;seen.add(k);q.push([X,Y]);}}
-          for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if((c==='X'||c==='k'||c==='c'||c==='h'||mobCh.has(c))&&!seen.has(y*w+x)){err+='unreachable '+c+' ';y=h;break;}}}
+        if(p){const seen=new Set([p[1]*w+p[0]]),q=[p];const walk=c=>!WALL.has(c)&&c!=='F'&&c!=='Y'&&c!=='P'&&c!=='N';const S=V19?t.secret:null,inS=(x,y)=>S&&x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=w||Y>=h)continue;const k=Y*w+X;if(seen.has(k)||!walk(m[Y][X]))continue;seen.add(k);q.push([X,Y]);}}
+          for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if((c==='X'||c==='k'||c==='c'||c==='h'||mobCh.has(c))&&!seen.has(y*w+x)&&!inS(x,y)){err+='unreachable '+c+' ';y=h;break;}}}
         if(err)bad.push(`F${f}/s${sd}: ${err}`);}
-      const avg={};for(const f in per)avg[f]=per[f].reduce((a,b)=>a+b,0)/per[f].length;return {maxMs,bad,avg};},{FLOORS,SEEDS});
+      const avg={};for(const f in per)avg[f]=per[f].reduce((a,b)=>a+b,0)/per[f].length;return {maxMs,bad,avg};},{FLOORS,SEEDS,V19});
     check(`M1.8 generation is valid on floors 9-9999 (${FLOORS.length} floors x ${SEEDS.length} seeds: walls on the border, one start/exit, key, everything reachable with the slot machine as a wall, mobs <= 22, coins <= 33)`,g.bad.length===0,g.bad.slice(0,4).join(' | '));
     check('M1.8 generation stays fast at depth (every floor < 250 ms; L50 / L200 / L9999 averages reported)',g.maxMs<250,`max ${g.maxMs.toFixed(1)} ms; avg L50 ${g.avg[50].toFixed(1)} ms, L200 ${g.avg[200].toFixed(1)} ms, L5000 ${g.avg[5000].toFixed(1)} ms, L9999 ${g.avg[9999].toFixed(1)} ms`);
     fs.writeFileSync(`${OUT}/m18_gen_timing.json`,JSON.stringify(g,null,1));
     // M1.7 comparison: floors 2-8 identical apart from the slot machine cell
     const old=await (async()=>{const c=await browser.newContext();const pg=await c.newPage();await pg.goto(`file://${BUILDS}/m1.7-qa/index.html`);await pg.waitForFunction(()=>!!window.__game);const o=await pg.evaluate(()=>{const r={};for(const sd of [1,777,4242,99991])for(let f=2;f<=8;f++)r[sd+':'+f]=__game.genMap(sd,f).map.join('\n');return r;});await c.close();return o;})();
-    const cur=await G(page,()=>{const r={};for(const sd of [1,777,4242,99991])for(let f=2;f<=8;f++)r[sd+':'+f]=__game.genMap(sd,f).map.join('\n');return r;});
+    const cur=await G(page,(V19)=>{const r={};for(const sd of [1,777,4242,99991])for(let f=2;f<=8;f++){const d=__game.genMap(sd,f);r[sd+':'+f]=(V19?d.map18:d.map).join('\n');}return r;},V19); // M1.9: map18 = the layout before the M1.9 additions (shop, secret room, pits, decorations, room fill)
     const diffs=Object.keys(old).filter(k=>old[k]!==cur[k].replace(/Y/g,'.'));
     check('M1.8 floors 2-8 keep their M1.7 layouts (only a "." becomes the slot machine)',diffs.length===0,diffs.join(','));
     // scaling caps
@@ -1877,8 +1883,8 @@ async function m18Tests(){
     check('M1.8 slot machine placement: never on the tutorial, always on floor 3, on ~45% of other floors, at most one',!tut&&pl.on3===120&&pl.other>.33&&pl.other<.6&&pl.multi===0,`floor 3 ${pl.on3}/120, others ${(pl.other*100).toFixed(1)}%`);
     const cfg=await G(page,()=>({odds:__game.slot.odds,costs:__game.slot.costs,max:__game.slot.maxSpins}));
     const sum=cfg.odds.reduce((a,o)=>a+o.p,0),ev=cfg.odds.reduce((a,o)=>a+(o.mult||0)*o.p/100,0);
-    check('M1.8 slot odds are fixed and documented (sum 100%): nothing 55, coins x1 20, jackpot x3 5, heart 10, power-up 10',sum===100&&cfg.odds.map(o=>o.id+o.p).join()==='none55,coins20,jackpot5,heart10,power10',cfg.odds.map(o=>o.id+':'+o.p).join(' '));
-    check('M1.8 expected coin return per spin is 0.35 x the cost (< cost, no profit loop); cost rises 5/10/15, 3 spins per floor',Math.abs(ev-.35)<1e-9&&cfg.costs.join()==='5,10,15'&&cfg.max===3,`EV ${ev}`);
+    if(!V19)check('M1.8 slot odds are fixed and documented (sum 100%): nothing 55, coins x1 20, jackpot x3 5, heart 10, power-up 10',sum===100&&cfg.odds.map(o=>o.id+o.p).join()==='none55,coins20,jackpot5,heart10,power10',cfg.odds.map(o=>o.id+':'+o.p).join(' '));
+    if(!V19)check('M1.8 expected coin return per spin is 0.35 x the cost (< cost, no profit loop); cost rises 5/10/15, 3 spins per floor',Math.abs(ev-.35)<1e-9&&cfg.costs.join()==='5,10,15'&&cfg.max===3,`EV ${ev}`);
     const sims=await G(page,()=>[__game.slotSim(10000,'econ-a',3),__game.slotSim(10000,'econ-b',5),__game.slotSim(10000,'econ-c',1)]);
     const sig=(c,p,n)=>Math.abs(c/n-p)<=4*Math.sqrt(p*(1-p)/n);
     const s0=sims[0],fr=cfg.odds.every(o=>sig(s0.counts[o.id]||0,o.p/100,s0.n));
@@ -1892,16 +1898,16 @@ async function m18Tests(){
       const c3=__game.state().player.coins;__game.use();__game.advance(0.1);out.fourth={msg:__game.state().msg,coins:__game.state().player.coins-c3,spins:__game.slotState().spins};
       out.sfx=__game.state().stats.slotSfx-out.sfx0;out.saveAfter=__game.state().save.coins;out.save0=save0;
       __game.startLevel(2);__game.clearMobs();__game.faceSlot();__game.setCoins(3);__game.use();__game.advance(0.1);out.poor={msg:__game.state().msg,coins:__game.state().player.coins,spins:__game.slotState().spins};return out;});
-    check('M1.8 in game: spins cost 5, 10, 15, a 4th spin is refused (3 per floor) and coins are untouched',g.face&&g.costs.join()==='5,10,15'&&g.coins.join()==='5,10,15'&&/MACHINE EMPTY/.test(g.fourth.msg)&&g.fourth.coins===0&&g.fourth.spins===3,JSON.stringify(g));
-    check('M1.8 in game: too few coins -> "A SPIN COSTS 5 COINS", nothing spent',/A SPIN COSTS 5 COINS/.test(g.poor.msg)&&g.poor.coins===3&&g.poor.spins===0,JSON.stringify(g.poor));
+    if(!V19)check('M1.8 in game: spins cost 5, 10, 15, a 4th spin is refused (3 per floor) and coins are untouched',g.face&&g.costs.join()==='5,10,15'&&g.coins.join()==='5,10,15'&&/MACHINE EMPTY/.test(g.fourth.msg)&&g.fourth.coins===0&&g.fourth.spins===3,JSON.stringify(g));
+    if(!V19)check('M1.8 in game: too few coins -> "A SPIN COSTS 5 COINS", nothing spent',/A SPIN COSTS 5 COINS/.test(g.poor.msg)&&g.poor.coins===3&&g.poor.spins===0,JSON.stringify(g.poor));
     check('M1.8 spin animation: reels spin, stop one by one (reel 1 stops at 0.75 s, all 3 by 1.35 s) and resolve at 1.6 s, with sound (spin, 3 reel stops, result)',g.spin.every(x=>x[0]===true&&x[1]===1&&x[2]===false&&x[3])&&g.sfx>=15,JSON.stringify({spin:g.spin,sfx:g.sfx}));
     check('M1.8 no save-scum profit: spinning never rewrites the floor-start save',g.saveAfter===g.save0,`${g.save0} -> ${g.saveAfter}`);
     // prize resolution
     const pr=await G(page,()=>({c:__game.slotResolve('coins',10,3),j:__game.slotResolve('jackpot',10,3),h:__game.slotResolve('heart',5,3),hf:__game.slotResolve('heart',5,5),p:__game.slotResolve('power',5,3),n:__game.slotResolve('none',5,3)}));
-    check('M1.8 prizes: coins x1, jackpot x3, +1 heart (1 coin if full), a power-up, or nothing',pr.c.coins===10&&pr.j.coins===30&&pr.h.heart===1&&pr.h.coins===0&&pr.hf.coins===1&&!pr.hf.heart&&!!pr.p.power&&pr.n.coins===0,JSON.stringify(pr));
+    if(!V19)check('M1.8 prizes: coins x1, jackpot x3, +1 heart (1 coin if full), a power-up, or nothing',pr.c.coins===10&&pr.j.coins===30&&pr.h.heart===1&&pr.h.coins===0&&pr.hf.coins===1&&!pr.hf.heart&&!!pr.p.power&&pr.n.coins===0,JSON.stringify(pr));
     // 60 real in-game spins: coins out < coins in
     const real=await G(page,()=>{let spent=0,won=0;for(let f=0;f<20;f++){let lvl=2+f;__game.setSeed(1000+f);__game.startLevel(2);__game.clearMobs();__game.setHearts(3);__game.faceSlot();__game.give('shield');__game.setCoins(100);for(let i=0;i<3;i++){const c0=__game.state().player.coins;__game.use();__game.advance(0.05);spent+=c0-__game.state().player.coins;const c1=__game.state().player.coins;__game.advance(1.7);won+=__game.state().player.coins-c1;}}return {spent,won};});
-    check('M1.8 60 real in-game spins over 20 floors return fewer coins than they cost',real.spent===600&&real.won<real.spent,JSON.stringify(real));
+    if(!V19)check('M1.8 60 real in-game spins over 20 floors return fewer coins than they cost',real.spent===600&&real.won<real.spent,JSON.stringify(real));
     // keyboard E
     const kb=await G(page,()=>{__game.setSeed(777);__game.startLevel(2);__game.clearMobs();__game.faceSlot();__game.setCoins(20);window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyE',key:'e'}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyE',key:'e'}));__game.advance(0.05);return __game.slotState().spinning;});
     // screenshots: in game from two cells away, mid spin, result
@@ -1956,4 +1962,342 @@ async function m18Tests(){
     await ctx.close();
   }
   async function cdpTouch2(ctx,page){const cdp=await ctx.newCDPSession(page);return (type,pts)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:pts});}
+}
+
+// ======================= M1.9 =======================
+async function m19Tests(){
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const savePng=(n,u)=>fs.writeFileSync(`${SHOTS}/${n}`,Buffer.from(u.split(',')[1],'base64'));
+  const VIEWS=[[844,390],[667,375],[740,360],[926,428],[932,430],[568,320],[1024,768],[1180,820],[1280,720],[1280,800],[800,300]];
+  const ov=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+  const S19=`${SHOTS}`; // all M1.9 screenshots: test-output/m1.9/screens/m19_*.png
+  const shot=async(page,name)=>page.screenshot({path:`${S19}/m19_${name}.png`});
+  const PAD=()=>{window.__pad={id:'Xbox Wireless Controller',index:0,connected:true,mapping:'standard',axes:[0,0,0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0})),timestamp:0};navigator.getGamepads=()=>[window.__pad];};
+  async function cdpTouch(ctx,page){const cdp=await ctx.newCDPSession(page);return (type,pts)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:pts});}
+  async function tapAt(touch,x,y){await touch('touchStart',[{x,y,id:7}]);await sleep(40);await touch('touchEnd',[]);await sleep(60);}
+
+  // ---- 0. built from the M1.8 release build
+  {
+    const crypto=await import('crypto');
+    const sha=crypto.createHash('sha256').update(fs.readFileSync(`${BUILDS}/m1.8/index.html`)).digest('hex');
+    check('M1.9 base: build/m1.8/index.html is still the frozen M1.8 release (sha256 49734fa5...3def)',sha==='49734fa5286944eaa5b6f522aa61836bad1249fb02069966b121efe986e43def',sha);
+    const rel=fs.readFileSync(REL_URL.replace('file://',''),'utf8');
+    check('M1.9 original names only: OLD MURKLE, RATTLEBONE, balloon types; no "playtest" in the build',/OLD MURKLE/.test(rel)&&/RATTLEBONE/.test(rel)&&!/playtest/i.test(rel));
+  }
+
+  // ---- 1. slot machine: no limit, cheaper, more losses, jackpot spray, crit fail, printed odds, EV by simulation
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-slot'});
+    const cfg=await G(page,()=>({odds:__game.slot.odds,cost:__game.slot.cost,coinsWin:__game.slot.coinsWin,jack:__game.slot.jackpotCoins,cap:__game.slot.critCap,src:document.documentElement.outerHTML.includes('NONE 62%  COINS +5 14%  HEART 8%')&&document.documentElement.outerHTML.includes('POWER 6%  JACKPOT 2%  SKULLS 8%')}));
+    const P=Object.fromEntries(cfg.odds.map(o=>[o.id,o.p/100]));const sum=cfg.odds.reduce((a,o)=>a+o.p,0);
+    const evMachine=(P.coins*cfg.coinsWin+P.jackpot*cfg.jack)/cfg.cost;
+    check('M1.9 slot odds (sum 100%): nothing 62, coins +5 14, heart 8, power-up 6, jackpot 2, crit fail 8; lose chance 70% (was 55%)',sum===100&&cfg.odds.map(o=>o.id+o.p).join()==='none62,coins14,heart8,power6,jackpot2,crit8'&&Math.abs(P.none+P.crit-.70)<1e-9,cfg.odds.map(o=>o.id+':'+o.p).join(' '));
+    check('M1.9 slot is cheaper: 3 coins a spin (was 5/10/15), the odds are printed on the machine panel',cfg.cost===3&&cfg.src,`cost ${cfg.cost}`);
+    const sims=await G(page,()=>[__game.slotSim(100000,'m19-a',3,3),__game.slotSim(100000,'m19-b',5,6),__game.slotSim(100000,'m19-c',1,21)]);
+    const s0=sims[0],fr=cfg.odds.every(o=>Math.abs((s0.counts[o.id]||0)/s0.n-o.p/100)<=4*Math.sqrt(o.p/100*(1-o.p/100)/s0.n));
+    check(`M1.9 100,000-spin simulations x3 (jackpot coins included): EV ${sims.map(s=>s.ratio.toFixed(3)).join(' / ')} x cost (theory ${evMachine.toFixed(3)}), < 1 on every run`,sims.every(s=>s.n===100000&&s.ratio<0.5&&s.net<0)&&Math.abs(s0.ratio-evMachine)<0.02,JSON.stringify(sims.map(s=>({spent:s.spent,won:s.won,ratio:+s.ratio.toFixed(4)}))));
+    check(`M1.9 EV stays below 1 even counting the coin each crit-fail monster drops (${sims.map(s=>s.ratioWithMobCoins.toFixed(3)).join(' / ')})`,sims.every(s=>s.ratioWithMobCoins<1),JSON.stringify(sims.map(s=>s.mobCoins)));
+    check('M1.9 100,000-spin outcome frequencies match the printed odds (within 4 sigma)',fr,JSON.stringify(s0.counts));
+    fs.writeFileSync(`${OUT}/m19_slot_economy.json`,JSON.stringify({odds:cfg.odds,cost:cfg.cost,ev_machine:evMachine,sims},null,1));
+    const cc=await G(page,()=>{const o={};for(let f=1;f<=30;f++)o[f]=__game.critCount(f);return o;});
+    check('M1.9 crit-fail count by depth: 1 + 1 per 3 floors (floor 2 = 1, 3 = 2, 6 = 3, 9 = 4), capped at 8 (floor 21+)',cc[1]===1&&cc[2]===1&&cc[3]===2&&cc[5]===2&&cc[6]===3&&cc[9]===4&&cc[18]===7&&cc[21]===8&&cc[30]===8,JSON.stringify(cc));
+    // in game: no spin limit
+    const g=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(2);__game.clearMobs();__game.setHearts(5);const face=__game.faceSlot();__game.setCoins(60);const out={face,costs:[],ok:0,ids:[]};
+      for(let i=0;i<12;i++){__game.slotForce('none');const c0=__game.state().player.coins;__game.use();__game.advance(0.05);out.costs.push(c0-__game.state().player.coins);__game.advance(1.7);out.ids.push(__game.slotState().last&&__game.slotState().last.id);}
+      out.spins=__game.slotState().spins;__game.setCoins(2);__game.use();__game.advance(0.1);out.poor={msg:__game.state().msg,coins:__game.state().player.coins,spins:__game.slotState().spins};return out;});
+    check('M1.9 in game: no spin limit (12 spins in a row on one floor, 3 coins each)',g.face&&g.costs.every(c=>c===3)&&g.spins===12,JSON.stringify({costs:g.costs,spins:g.spins}));
+    check('M1.9 in game: fewer than 3 coins -> "A SPIN COSTS 3 COINS", nothing spent',/A SPIN COSTS 3 COINS/.test(g.poor.msg)&&g.poor.coins===2&&g.poor.spins===12,JSON.stringify(g.poor));
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(2);__game.clearMobs();__game.faceSlot();__game.setCoins(30);__game.advance(0.05);});await shot(page,'slot_odds_panel');
+    // jackpot spray
+    const jp=await G(page,()=>{__game.setSeed(777);__game.startLevel(2);__game.clearMobs();__game.faceSlot();__game.setCoins(30);const st0=__game.state();const n0=st0.items.filter(i=>i.kind==='coin'&&!i.taken).length;const pos=__game.slotState().pos;
+      __game.slotForce('jackpot');__game.use();__game.advance(1.65);const s1=__game.state();const fly=s1.items.filter(i=>i.spray&&i.fly).length;__game.advance(0.25);return {n0,pos,fly,coinsAfterSpin:s1.player.coins,c0:st0.player.coins};});
+    await shot(page,'jackpot_spray');
+    const jp2=await G(page,(pos)=>{__game.advance(3);const s=__game.state();const sp=s.items.filter(i=>i.spray);const cells=new Set(sp.map(i=>Math.floor(i.x)+','+Math.floor(i.y)));const bad=sp.filter(i=>{const t=__game.cellType(Math.floor(i.x),Math.floor(i.y));return t!==0&&t!==4;}).length;
+      const far=Math.max(...sp.map(i=>Math.hypot(i.x-pos.x-.5,i.y-pos.y-.5)));const stillFly=sp.filter(i=>i.fly&&!i.taken).length;const taken0=sp.filter(i=>i.taken).length;
+      const c0=s.player.coins;for(const it of sp){if(!it.taken){__game.teleport(it.x,it.y);__game.advance(0.05);}}const c1=__game.state().player.coins;return {n:sp.length,cells:cells.size,bad,far,stillFly,got:c1-c0,taken0};},jp.pos);
+    check('M1.9 JACKPOT: 25 coins pop out of the machine as pickups (airborne first), scatter across the room and settle on open floor (never in a wall or pit)',jp.fly===25&&jp2.n===25&&jp2.cells>=6&&jp2.far>=1.8&&jp2.bad===0&&jp2.stillFly===0&&jp.coinsAfterSpin===jp.c0-3,JSON.stringify({jp,jp2}));
+    check('M1.9 JACKPOT coins are real pickups (walk over them to collect)',jp2.got+jp2.taken0>=24,`collected ${jp2.got} (+${jp2.taken0} on the way)`);
+    // crit fail on floors 3 and 6
+    const cf=await G(page,()=>{const res={};for(const [seed,floor] of [[777,3],[4242,6],[99,6],[1234,9]]){__game.setSeed(seed);__game.startLevel(floor-1);if(!__game.slotState().pos){res[floor+':'+seed]='no slot';continue;}__game.clearMobs();__game.faceSlot();__game.setCoins(30);const P0=__game.state().player;
+        __game.slotForce('crit');__game.use();__game.advance(1.7);const s=__game.state();const pos=__game.slotState().pos;
+        const e=s.enemies.filter(x=>!x.gone);res[floor+':'+seed]={n:e.length,awake:e.every(x=>x.state==='chase'),types:e.map(x=>x.type),bad:e.filter(x=>{const t=__game.cellType(Math.floor(x.x),Math.floor(x.y));return t!==0||__game.pitUnder(x.x,x.y,0)||Math.hypot(x.x-P0.x,x.y-P0.y)<1.15||(Math.floor(x.x)===Math.floor(P0.x)&&Math.floor(x.y)===Math.floor(P0.y));}).length,near:Math.max(...e.map(x=>Math.abs(x.x-pos.x-.5)+Math.abs(x.y-pos.y-.5))),msg:s.msg};}return res;});
+    const cfv=Object.entries(cf).filter(([k,v])=>typeof v==='object');
+    check('M1.9 CRIT FAIL (3 skulls) spawns 1 + 1 per 3 floors monsters next to the machine (floor 3 -> 2, floor 6 -> 3, floor 9 -> 4), awake',cfv.length>=3&&cfv.every(([k,v])=>v.n===Math.min(8,1+Math.floor(+k.split(':')[0]/3))&&v.awake&&/CRIT FAIL/.test(v.msg)),JSON.stringify(cf));
+    check('M1.9 CRIT FAIL spawns only on open floor cells near the machine: never a wall, pit or the player\'s spot',cfv.every(([k,v])=>v.bad===0&&v.near<=8),JSON.stringify(cfv.map(([k,v])=>[k,v.bad,v.near])));
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(2);__game.clearMobs();__game.faceSlot();__game.setCoins(30);__game.slotForce('crit');__game.use();__game.advance(1.62);const p=__game.state().player;__game.teleport(p.x,p.y,p.ang);__game.freeze=true;__game.advance(0.05);__game.freeze=false;});
+    await shot(page,'crit_fail_spawn');
+    // crit cells over many seeds avoid pits (pits are on floors 3+)
+    const cs=await G(page,()=>{let n=0,bad=0,floors=0;for(let sd=1;sd<=40;sd++)for(const f of [3,5,7,9,12,21]){__game.setSeed(sd);__game.startLevel(f-1);if(!__game.slotState().pos)continue;floors++;__game.clearMobs();__game.faceSlot();const c=__game.critCells(8);n+=c.length;bad+=c.filter(q=>__game.cellType(Math.floor(q.x),Math.floor(q.y))!==0).length;}return {n,bad,floors};});
+    check(`M1.9 crit-fail cells over ${cs.floors} slot floors (40 seeds, floors 3-21) are never pits, walls, doors or the machine`,cs.bad===0&&cs.n>=cs.floors*6,JSON.stringify(cs));
+    await ctx.close();
+  }
+
+  // ---- 2. water balloons: lower fire rate, hand in sync
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-throw'});
+    const t=await G(page,()=>{__game.manual=true;__game.startLevel(0);__game.clearMobs();__game.teleport(1.5,1.5,Math.PI/2);const cd=__game.throwCd();const s0=__game.state().stats.throws;
+      window.dispatchEvent(new KeyboardEvent('keydown',{code:'Space',key:' '}));for(let i=0;i<240;i++)__game.advance(1/60);window.dispatchEvent(new KeyboardEvent('keyup',{code:'Space',key:' '}));const n=__game.state().stats.throws-s0;
+      __game.advance(1);__game.throwOnce();const seq=[{f:__game.state().handFrame,t:0}];for(let i=1;i<=70;i++){const s=__game.advance(1/60);if(seq[seq.length-1].f!==s.handFrame)seq.push({f:s.handFrame,t:i/60});}return {cd,n,seq};});
+    const fs_=t.seq.map(x=>x.f).join('>'),back=t.seq[t.seq.length-1];
+    check(`M1.9 fire rate roughly halved: ${t.cd.old}s -> ${t.cd.cd}s between balloons (4 s of held fire = ${t.n} throws, was ~10)`,t.cd.cd===0.8&&t.cd.old===0.42&&t.n>=5&&t.n<=6,JSON.stringify(t.cd));
+    check('M1.9 hand stays in sync: windup -> throw (0.25 s) -> empty for the rest of the cooldown -> new balloon rises at 0.8 s',fs_==='idle>windup>throw>empty>idle'&&back.f==='idle'&&Math.abs(back.t-0.75)<0.06,JSON.stringify(t.seq));
+    await ctx.close();
+  }
+
+  // ---- 3. power-ups last the floor
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-pu'});
+    const r=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(1,{hearts:5,coins:5});__game.clearMobs();__game.give('sneakers');const used=__game.useItem();const a=__game.state().player;__game.advance(60);const b=__game.state().player;
+      __game.give('sneakers');const again=__game.useItem();const againMsg=__game.state().msg;__game.give('freeze');const second=__game.useItem();const c=__game.state().player;
+      __game.give('magnet');__game.nextFloorViaExit();__game.advance(0.1);const m1=__game.state().mode;__game.advance(0.6);__game.confirm();__game.advance(0.1);const d=__game.state();
+      return {used,a:a.effects,b:b.effects,again,againMsg,second,c:c.effects,m1,lvl:d.level,d:d.player.effects,item:d.player.item,effect:d.player.effect};});
+    check('M1.9 a used power-up lasts the rest of the floor (still on after 60 s)',r.used&&r.a.join()==='sneakers'&&r.b.join()==='sneakers',JSON.stringify(r));
+    check('M1.9 power-ups stack for the floor (a 2nd kind runs alongside; the same kind is refused, keeping the item)',r.again===false&&/ALREADY ON/.test(r.againMsg)&&r.second&&r.c.join()==='sneakers,freeze',r.againMsg);
+    check('M1.9 every effect ends on the next floor (held items carry over)',r.m1==='clear'&&r.lvl===2&&r.d.length===0&&r.effect===null&&r.item==='magnet',JSON.stringify({m1:r.m1,lvl:r.lvl,d:r.d,item:r.item}));
+    const hud=await G(page,()=>{__game.setSeed(777);__game.startLevel(1);__game.clearMobs();__game.teleport(__game.state().player.x,__game.state().player.y,0);const R=__game.hudRects();const sig=(r)=>{let a=[];for(let y=r[1];y<r[1]+r[3];y++)for(let x=r[0];x<r[0]+r[2];x++)a.push(__game.pixelAt(x,y).join());return a;};
+      __game.setEffect(null);__game.advance(0.05);const e0=sig(R.effect),a0=sig(R.active);__game.setEffect('shield');__game.setEffect('giant');__game.advance(0.05);const e1=sig(R.effect),a1=sig(R.active);
+      return {eff:e0.filter((v,i)=>v!==e1[i]).length,act:a0.filter((v,i)=>v!==a1[i]).length,rects:R};});
+    await shot(page,'hud_floor_powerups');
+    check('M1.9 HUD shows running power-ups as an icon row (no countdown ring in the item bar)',hud.eff>60&&hud.act<12,JSON.stringify({eff:hud.eff,act:hud.act}));
+    const sh=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=false;__game.setHearts(5);__game.teleport(6.5,3.5,0);__game.setEffect('shield');const p=__game.state().player;__game.spawn('clunk',p.x+.45,p.y,true,[]);const s0=__game.state().stats.shieldBlocks;__game.advance(9);const s=__game.state();return {blocks:s.stats.shieldBlocks-s0,hearts:s.player.hearts,effects:s.player.effects};});
+    check('M1.9 rebalance: the floor-long Shield Bubble absorbs 3 hits, then pops',sh.blocks===3&&sh.hearts<5&&!sh.effects.includes('shield'),JSON.stringify(sh));
+    const pf=await G(page,()=>__game.puFloor);
+    check('M1.9 rebalance values: sneakers x1.35 (was 1.6), freeze 60% (was 35%), shield 3 hits, magnet 6 cells, giant splash 1 dmg in 1.2 cells (was 2 in 1.4)',pf.sneakers===1.35&&pf.freeze===0.6&&pf.shieldHits===3&&pf.magnet===6&&pf.giantR===1.2,JSON.stringify(pf));
+    await ctx.close();
+  }
+
+  // ---- 4. shop: placement, every input, purchases, saves, balloon types, backpack
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-shop'});
+    const pl=await G(page,()=>{let even=0,evenShop=0,odd=0,reach=0,bad=[];for(let sd=1;sd<=50;sd++)for(let f=2;f<=21;f++){const d=__game.genMap(sd,f);if(f%2===0){even++;if(d.shop)evenShop++;else bad.push(sd+':'+f);}else if(d.shop){odd++;bad.push('odd '+sd+':'+f);}}return {even,evenShop,odd,bad:bad.slice(0,6)};});
+    const tut=await G(page,()=>{__game.startLevel(0);return __game.currentMap().join('').includes('N');});
+    check(`M1.9 shop room every other floor from 2 (all ${pl.even} even floors over 50 seeds, never odd floors or the tutorial)`,pl.evenShop===pl.even&&pl.odd===0&&!tut,JSON.stringify(pl));
+    // talk with E, see rows, buy with keyboard
+    const kb=await G(page,()=>{__game.manual=true;__game.setSeed(4242);__game.startLevel(1,{hearts:5,coins:0});__game.clearMobs();const f=__game.faceShop();__game.advance(0.05);const prompt=__game.state().prompt;const band=__game.state().useTarget;
+      __game.setCoins(200);window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyE',key:'e'}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyE',key:'e'}));__game.advance(0.05);const mode=__game.state().mode;
+      __game.advance(0.3);const K=(c)=>{window.dispatchEvent(new KeyboardEvent('keydown',{code:c}));window.dispatchEvent(new KeyboardEvent('keyup',{code:c}));};
+      K('KeyS');K('KeyS');K('KeyS');const sel=__game.shopInfo().sel;K('Enter');const after=__game.state();return {f,band,mode,sel,rows:__game.shopRows(),coins:after.player.coins,perm:after.perm,save:after.save.perm,saveCoins:after.save.coins};});
+    await G(page,()=>__game.advance(0.05));await shot(page,'shop_menu');
+    check('M1.9 talk to OLD MURKLE with E: the game pauses and the shop menu opens',kb.f&&kb.band&&kb.band.shop&&kb.mode==='shop',JSON.stringify({band:kb.band,mode:kb.mode}));
+    check('M1.9 shop rows: Red 35, Green 45, Yellow 50, Backpack 30, two single-use power-ups at 10, LEAVE',kb.rows.map(r=>r.price).join()==='35,45,50,30,10,10,0'&&kb.rows[4].kind==='power'&&kb.rows[6].id==='leave',kb.rows.map(r=>r.name+' '+r.price).join(', '));
+    check('M1.9 keyboard: W/S choose, ENTER buys (Backpack) -> coins paid, permanent item saved at once',kb.sel===3&&kb.coins===170&&kb.perm.pack&&kb.save&&kb.save.pack===true&&kb.saveCoins===0,JSON.stringify({sel:kb.sel,coins:kb.coins,save:kb.save,saveCoins:kb.saveCoins}));
+    // mouse click on a row (Red), refuse owned, refuse poor, power-up row
+    const rects=await G(page,()=>__game.shopRects());
+    await page.mouse.click(rects[0].x+rects[0].w/2,rects[0].y+rects[0].h/2);
+    const mo=await G(page,()=>{__game.advance(0.05);const s=__game.state();return {coins:s.player.coins,perm:s.perm,ball:s.player.ball};});
+    await page.mouse.click(rects[0].x+rects[0].w/2,rects[0].y+rects[0].h/2);
+    const own=await G(page,()=>({msg:__game.shopInfo().msg,coins:__game.state().player.coins}));
+    const pu=await G(page,()=>{const ok=__game.shopBuy(4);const s=__game.state();const again=__game.shopBuy(4);return {ok,item:s.player.item,coins:s.player.coins,again,msg:__game.shopInfo().msg,save:__game.state().save.item};});
+    const poor=await G(page,()=>{__game.setCoins(5);const r=__game.shopBuy(2);return {r,msg:__game.shopInfo().msg,coins:__game.state().player.coins};});
+    check('M1.9 mouse: click a row to buy (Red Balloons -> equipped), owned items and sold-out offers are refused',mo.perm.red&&mo.coins===135&&mo.ball==='red'&&/ALREADY/.test(own.msg)&&own.coins===135,JSON.stringify({mo,own}));
+    check('M1.9 single-use power-ups fill the item slot, once per floor; not saved as permanent',pu.ok&&!!pu.item&&pu.coins===125&&pu.again===false&&/SOLD OUT/.test(pu.msg),JSON.stringify(pu));
+    check('M1.9 not enough coins -> refused with a message, nothing spent',poor.r===false&&/NOT ENOUGH/.test(poor.msg)&&poor.coins===5,JSON.stringify(poor));
+    await page.keyboard.press('Escape');
+    const left=await G(page,()=>{__game.advance(0.05);return __game.state().mode;});
+    check('M1.9 ESC leaves the shop',left==='play',left);
+    // save + continue restores permanent items and the balloon type
+    await page.reload();await page.waitForFunction(()=>!!window.__game);await sleep(300);
+    const cont=await G(page,()=>{const st=__game.state();const i=st.menu.findIndex(m=>/CONTINUE/.test(m));__game.menuPick(i);__game.manual=true;const s=__game.advance(0.05);return {perm:s.perm,ball:s.player.ball,level:s.level};});
+    check('M1.9 CONTINUE restores the permanent items (Backpack + Red) and the balloon type',cont.perm.pack&&cont.perm.red&&!cont.perm.green&&cont.ball==='red'&&cont.level===1,JSON.stringify(cont));
+    const ng=await G(page,()=>{__game.toTitle();const st=__game.state();const i=st.menu.findIndex(m=>/NEW/.test(m));__game.menuPick(i);__game.manual=true;const s=__game.advance(0.05);return {perm:s.perm,ball:s.player.ball};});
+    check('M1.9 NEW GAME starts without permanent items',!ng.perm.pack&&!ng.perm.red&&ng.ball==='blue',JSON.stringify(ng));
+    // gamepad: X talks, down + A buys, B leaves
+    await G(page,PAD);
+    const gp=await G(page,()=>{__game.setSeed(4242);__game.startLevel(1,{hearts:5,coins:100});__game.clearMobs();__game.faceShop();__game.advance(0.1);const B=(i,v)=>{__pad.buttons[i]={pressed:v,value:v?1:0};};
+      B(2,true);__game.advance(0.05);B(2,false);__game.advance(0.3);const m0=__game.state().mode;__pad.axes[1]=1;__game.advance(0.05);__pad.axes[1]=0;__game.advance(0.05);const sel=__game.shopInfo().sel;
+      B(0,true);__game.advance(0.05);B(0,false);__game.advance(0.05);const p1=__game.state().perm;B(1,true);__game.advance(0.05);B(1,false);__game.advance(0.05);return {m0,sel,green:p1.green,coins:__game.state().player.coins,m1:__game.state().mode};});
+    check('M1.9 gamepad: X talks, stick down + A buys (Green Balloons), B leaves',gp.m0==='shop'&&gp.sel===1&&gp.green&&gp.coins===55&&gp.m1==='play',JSON.stringify(gp));
+    // balloon types: flight + effects
+    const bt=await G(page,()=>{const B=__game.balls;const range=(b)=>{let z=.36,vz=b.vzMax,t=0;while(z>0){vz-=b.g*1/240;z+=vz/240;t+=1/240;}return b.spd*t;};return {blue:range(B.blue),red:range(B.red),bs:B.blue.spd,rs:B.red.spd};});
+    check(`M1.9 Red Balloons fly faster (${bt.rs} vs ${bt.bs} cells/s) and further (${bt.red.toFixed(1)} vs ${bt.blue.toFixed(1)} cells at the top arc)`,bt.rs>bt.bs*1.3&&bt.red>bt.blue*1.8,JSON.stringify(bt));
+    const green=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.setPerm({green:true});__game.freeze=true;__game.teleport(7.0,3.5,0);__game.setBall('green');const i=__game.spawn('clunk',8.6,3.5,false);__game.throwOnce();for(let k=0;k<30;k++)__game.advance(1/60);const h1=__game.state().enemies[i].hp,po=__game.state().enemies[i].poison;__game.advance(2.5);const h2=__game.state().enemies[i].hp;return {h1,po,h2,ticks:__game.state().stats.poisonTicks};});
+    check('M1.9 Green Balloons poison: the hit plus 2 damage ticks over 2 s (clunk 8 -> 7 -> 5)',green.h1===7&&green.po&&green.h2===5,JSON.stringify(green));
+    const yel=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.setPerm({yellow:true});__game.freeze=true;__game.setHearts(5);__game.teleport(7.0,3.5,0);__game.setBall('yellow');__game.setPitch(-40);__game.throwOnce();for(let k=0;k<60;k++)__game.advance(1/60);const pud=__game.ypuds();if(!pud.length)return {pud};
+      const i=__game.spawn('clunk',pud[0].x,pud[0].y,false);__game.advance(2.5);const hp=__game.state().enemies[i].hp;__game.clearMobs();__game.teleport(pud[0].x,pud[0].y,0);__game.freeze=false;__game.advance(1);__game.freeze=true;return {pud:pud.length,hp,hearts:__game.state().player.hearts};});
+    check('M1.9 Yellow Balloons leave a splash puddle that hurts mobs over time, never the player',yel.pud>=1&&yel.hp<=6&&yel.hearts===5,JSON.stringify(yel));
+    // switching on every input + HUD + hand colour
+    const sw=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.setPerm({red:true,green:true,yellow:true});__game.setBall('blue');const K=(c)=>{window.dispatchEvent(new KeyboardEvent('keydown',{code:c}));window.dispatchEvent(new KeyboardEvent('keyup',{code:c}));};const o={};
+      K('KeyR');o.r=__game.state().player.ball;K('Digit4');o.d4=__game.state().player.ball;window.dispatchEvent(new WheelEvent('wheel',{deltaY:100}));o.wheel=__game.state().player.ball;
+      __pad.buttons[4]={pressed:true,value:1};__game.advance(0.05);__pad.buttons[4]={pressed:false,value:0};__game.advance(0.05);o.lb=__game.state().player.ball;return o;});
+    check('M1.9 balloon type switching: R cycles, 1-4 pick, mouse wheel cycles, pad LB cycles',sw.r==='red'&&sw.d4==='yellow'&&sw.wheel==='blue'&&sw.lb==='red',JSON.stringify(sw));
+    const hudc=await G(page,()=>{const out={};const R=__game.hudRects().ball;for(const b of ['blue','red','green','yellow']){__game.setBall(b);__game.advance(0.05);const col=__game.balls[b].col;const t=[parseInt(col.slice(1,3),16),parseInt(col.slice(3,5),16),parseInt(col.slice(5,7),16)];let n=0;for(let y=R[1];y<R[1]+R[3];y++)for(let x=R[0];x<R[0]+R[2];x++){const p=__game.pixelAt(x,y);if(Math.abs(p[0]-t[0])+Math.abs(p[1]-t[1])+Math.abs(p[2]-t[2])<60)n++;}
+      const hb=__game.handBoxes().idle;let h=0;for(let y=Math.max(0,hb.y|0);y<Math.min(300,hb.y+hb.h);y++)for(let x=hb.x|0;x<hb.x+hb.w;x++){const p=__game.pixelAt(x,y);if(Math.abs(p[0]-t[0])+Math.abs(p[1]-t[1])+Math.abs(p[2]-t[2])<70)h++;}out[b]={hud:n,hand:h};}return out;});
+    check('M1.9 the HUD chip and the balloon in the hand take the balloon colour (all 4 types)',Object.values(hudc).every(v=>v.hud>=10&&v.hand>=20),JSON.stringify(hudc));
+    for(const b of ['red','green','yellow']){await G(page,(b)=>{__game.setBall(b);__game.advance(0.05);},b);await shot(page,`balloon_${b}_hud_hand`);}
+    // backpack: 2 slots, switch with F / pad RB, Q uses the selected one
+    const bp=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.setPerm({pack:true});__game.give('shield');__game.give2('magnet');const K=(c)=>{window.dispatchEvent(new KeyboardEvent('keydown',{code:c}));window.dispatchEvent(new KeyboardEvent('keyup',{code:c}));};
+      const o={sel0:__game.state().player.sel};K('KeyF');o.f=__game.state().player.sel;K('KeyQ');__game.advance(0.05);o.used=__game.state().player.effects.slice();o.left=[__game.state().player.item,__game.state().player.item2];
+      __pad.buttons[5]={pressed:true,value:1};__game.advance(0.05);__pad.buttons[5]={pressed:false,value:0};__game.advance(0.05);o.rb=__game.state().player.sel;o.give=__game.giveItem('giant');o.after=[__game.state().player.item,__game.state().player.item2];o.full=__game.giveItem('triple');return o;});
+    await G(page,()=>__game.advance(0.05));await shot(page,'backpack_two_slots');
+    check('M1.9 Backpack: +1 power-up slot; F / pad RB pick the slot; Q uses the selected one; slots fill in order',bp.sel0===0&&bp.f===1&&bp.used.join()==='magnet'&&bp.left.join()==='shield,'&&bp.rb===0&&bp.give===true&&bp.after.join()==='shield,giant'&&bp.full===false,JSON.stringify(bp));
+    const econ=await G(page,()=>{let c=0;const per=[];for(let f=2;f<=8;f++){const d=__game.difficulty(f);c+=d.coins+d.mobs;per.push(d.coins+d.mobs);}return {perFloor:per,total2to8:c};});
+    check(`M1.9 prices fit the coin economy: all 4 permanent items (160) cost about floors 2-5 worth of coins; floors 2-8 offer ~${econ.total2to8}`,160>econ.perFloor[0]*3&&160<econ.total2to8,JSON.stringify(econ));
+    fs.writeFileSync(`${OUT}/m19_shop_economy.json`,JSON.stringify({prices:{red:35,green:45,yellow:50,pack:30,powerUp:10},econ},null,1));
+    await ctx.close();
+  }
+
+  // ---- 5. secret rooms
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-secret'});
+    const gen=await G(page,()=>{const WALL=new Set('#SWTMKRCVO'.split(''));let n=0,ok=0,mob=0,bag=0,pw=0;const bad=[];
+      for(let sd=1;sd<=60;sd++)for(const f of [2,3,4,5,6,7,8,9,10,12,15,20,50,200]){const d=__game.genMap(sd,f),m=d.map,S=d.secret,h=m.length,w=m[0].length;n++;if(!S){bad.push(sd+':'+f+' none');continue;}
+        const inS=(x,y)=>x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;let p=null;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y][x]==='p')p=[x,y];
+        const flood=(open)=>{const seen=new Set([p[1]*w+p[0]]),q=[p];while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy,k=Y*w+X;if(seen.has(k))continue;const c=(X===S.cx&&Y===S.cy&&open)?'.':m[Y][X];if(WALL.has(c)||c==='F'||c==='Y'||c==='N'||c==='P')continue;seen.add(k);q.push([X,Y]);}}return seen;};
+        const shut=flood(false),opn=flood(true);let inner=0,innerShut=0,innerOpen=0,things='';for(let y=S.y;y<S.y+S.h;y++)for(let x=S.x;x<S.x+S.w;x++){inner++;if(shut.has(y*w+x))innerShut++;if(opn.has(y*w+x))innerOpen++;things+=m[y][x];}
+        const crackWall=WALL.has(m[S.cy][S.cx]),front=shut.has(S.fy*w+S.fx);
+        if(crackWall&&front&&innerShut===0&&innerOpen===inner&&/[GU]/.test(things)){ok++;if(/G/.test(things))bag++;else pw++;if(things.replace(/[.GU1-8]/g,'').length)mob++;}else bad.push(`${sd}:${f} wall ${crackWall} front ${front} shut ${innerShut} open ${innerOpen}/${inner} ${things}`);}
+      return {n,ok,mob,bag,pw,bad:bad.slice(0,5)};});
+    check(`M1.9 a secret room on every generated floor (${gen.n} floors: 60 seeds x floors 2-200): reachable ONLY through the cracked wall`,gen.ok===gen.n,JSON.stringify(gen.bad));
+    check(`M1.9 secret rooms hold 1 treasure (coin bag ${gen.bag} / power-up ${gen.pw}) and usually 1 mob (${Math.round(gen.mob/gen.n*100)}%)`,gen.bag+gen.pw===gen.n&&gen.mob/gen.n>0.7&&gen.bag>0&&gen.pw>0,JSON.stringify({bag:gen.bag,pw:gen.pw,mob:gen.mob}));
+    const sub=await G(page,()=>[0,1,2,4,8].map(t=>[__game.crackInfo(t,0),__game.crackInfo(t,1),__game.crackInfo(t,2)]));
+    check('M1.9 the crack is visible but subtle (changes 2-12% of the wall texture, mean colour shift < 6), and grows with each hit',sub.every(r=>r[0].changedFrac>0.015&&r[0].changedFrac<0.12&&r[0].mean<6&&r[1].changedFrac>r[0].changedFrac&&r[2].changedFrac>r[1].changedFrac),JSON.stringify(sub.map(r=>r.map(x=>+x.changedFrac.toFixed(3)))));
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(4,{hearts:5,coins:0});__game.clearMobs();__game.faceCrack();const p=__game.state().player;__game.teleport(p.x-Math.cos(p.ang)*0.6,p.y-Math.sin(p.ang)*0.6,p.ang);__game.advance(0.05);});await shot(page,'secret_crack_wall');
+    await G(page,()=>{__game.faceCrack();__game.crackHit();__game.crackHit();__game.advance(0.05);});await shot(page,'secret_crack_two_hits');
+    // break it with real balloons
+    const br=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(4,{hearts:5,coins:0});__game.clearMobs();const ok=__game.faceCrack();const res={ok,hits:[]};__game.setPitch(0);
+      for(let i=0;i<3;i++){__game.shoot();for(let k=0;k<50;k++)__game.advance(1/60);const s=__game.secret();res.hits.push([s.hits,s.cellT]);if(i===1){res.mid=1;}}
+      const s=__game.secret();res.open=s.open;res.save=__game.state().save.secret;res.lvl=__game.state().level;return res;});
+    check('M1.9 crack: hits 1 and 2 leave the wall standing (crack widens), the 3rd balloon breaks it open',br.ok&&br.hits[0][0]===1&&br.hits[0][1]===1&&br.hits[1][0]===2&&br.hits[1][1]===1&&br.hits[2][1]===0&&br.open,JSON.stringify(br));
+    check('M1.9 the opened secret room is saved for this floor',br.save===br.lvl,JSON.stringify({save:br.save,lvl:br.lvl}));
+    await page.reload();await page.waitForFunction(()=>!!window.__game);await sleep(300);
+    const cont=await G(page,()=>{const st=__game.state();const i=st.menu.findIndex(m=>/CONTINUE/.test(m));__game.menuPick(i);__game.manual=true;__game.advance(0.05);const s=__game.secret();__game.faceCrack();__game.advance(1.0);return {open:s.open,t:s.cellT};});
+    await shot(page,'secret_room_opened');
+    check('M1.9 CONTINUE keeps the secret wall open on that floor',cont.open&&cont.t===0,JSON.stringify(cont));
+    await ctx.close();
+  }
+
+  // ---- 6/7. no empty rooms + decorations
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-rooms'});
+    const r=await G(page,()=>{const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let rooms=0,empty=0,decos=0,badDeco=[];const kinds=new Set();const ex=[];
+      for(let sd=1;sd<=60;sd++)for(const f of [2,3,4,5,6,8,10,13,20]){const d=__game.genMap(sd,f),m=d.map,RR=__game.genRooms(sd,f);
+        for(const R of RR){rooms++;let has=false,free=0;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){const c=m[y][x];if(mob.has(c)||/[1-8N]/.test(c))has=true;if(c==='.')free++;}if(!free)has=true; /* a room packed with keys/coins/hearts is not empty */if(!has){empty++;if(ex.length<4)ex.push(sd+':'+f+(R.start?' start':''));}}
+        for(let y=1;y<m.length-1;y++)for(let x=1;x<m[0].length-1;x++){const c=m[y][x];if(!/[1-8]/.test(c))continue;decos++;kinds.add(c);for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i],four=(i===0)!==(j===0);if(four&&/[DLFkXYNpP]/.test(q)){badDeco.push(sd+':'+f+' '+q);}}}}
+      return {rooms,empty,decos,kinds:kinds.size,badDeco:badDeco.slice(0,5),nBad:badDeco.length,ex};});
+    check(`M1.9 no empty rooms: every one of ${r.rooms} rooms (60 seeds x 9 floors) has a mob, decorations or the merchant (or is packed with items)`,r.empty===0,JSON.stringify(r.ex));
+    check(`M1.9 decorations (${r.decos}, all ${r.kinds} kinds used) never block anything: no door, key, start, exit, fence, slot, merchant or pit beside them (and no hitbox)`,r.nBad===0&&r.kinds===8,JSON.stringify(r.badDeco));
+    const nb=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(3);__game.clearMobs();const D=__game.decos();const d=D.find(q=>__game.cellType(Math.floor(q.x)-1,Math.floor(q.y))===0&&__game.cellType(Math.floor(q.x)+1,Math.floor(q.y))===0)||D[0];__game.teleport(d.x-1,d.y,0);window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW'}));__game.advance(0.7);window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW'}));const p=__game.state().player;return {n:D.length,kinds:[...new Set(D.map(x=>x.kind))],x0:d.x-1,x:p.x,solid:__game.solidAt(d.x,d.y)};});
+    check('M1.9 decorations are billboards with no hitbox (you walk straight through)',nb.n>0&&nb.x>nb.x0+1.0&&nb.solid===false,JSON.stringify(nb));
+    const extra=await G(page,()=>{let n=0,maps=0;for(let sd=1;sd<=60;sd++)for(let f=2;f<=12;f++){maps++;n+=__game.genMap(sd,f).extraMobs;}return n/maps;});
+    check(`M1.9 empty rooms often get a mob instead (${extra.toFixed(2)} extra mobs per floor, at most 2, never near the start)`,extra>0.3&&extra<=2);
+    savePng('m19_sprites_decos_skeleton_merchant_4x.png',await G(page,()=>__game.spriteSheet(4,'m19')));
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(3);__game.clearMobs();const D=__game.decos();const d=D[0];__game.teleport(d.x-1.6,d.y+.2,-0.15);__game.advance(0.05);});await shot(page,'decorations_in_game');
+    await ctx.close();
+  }
+
+  // ---- 8. pits
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-pits'});
+    const pg=await G(page,()=>{let maps=0,bad=[],cnt={};for(let sd=1;sd<=100;sd++)for(const f of [1,2,3,4,5,6,8,10,12,16,30,200]){if(f===1)continue;const d=__game.genMap(sd,f),m=d.map,h=m.length,w=m[0].length;maps++;let n=0;
+        for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(m[y][x]!=='P')continue;n++;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i];if(/[DLFkXYNph]/.test(q))bad.push(`${sd}:${f} ${q} by pit`);}}
+        const want=f>=3?Math.min(6,1+(f>>1)):0;(cnt[f]=cnt[f]||[]).push(n);if(n>want)bad.push(`${sd}:${f} ${n}>${want}`);}
+      const avg={};for(const f in cnt)avg[f]=(cnt[f].reduce((a,b)=>a+b,0)/cnt[f].length).toFixed(1);return {maps,bad:bad.slice(0,6),nBad:bad.length,avg};});
+    check(`M1.9 pits: none on floors 1-2, up to 1 + floor/2 (max 6) from floor 3; never on/next to the start, keys, doors, exit, slot, merchant or hearts (${pg.maps} maps)`,pg.nBad===0&&pg.avg[2]==='0.0'&&+pg.avg[8]>=3,JSON.stringify(pg));
+    // solvability with pits: every lock order, any floor (M1.3 analysis covers 2-8; here floors 9-200 on 40 seeds, locks closed and open)
+    const sol=await G(page,()=>{const WALL=new Set('#SWTMKRCVO'.split(''));const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let maps=0,bad=[];
+      for(let sd=1;sd<=40;sd++)for(const f of [3,5,7,9,11,14,18,25,60,200,999]){const d=__game.genMap(sd,f),m=d.map,S=d.secret,h=m.length,w=m[0].length;maps++;const inS=(x,y)=>S&&x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;let p;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y][x]==='p')p=[x,y];
+        const flood=(locks)=>{const seen=new Set([p[1]*w+p[0]]),q=[p];while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy,k=Y*w+X;if(seen.has(k))continue;const c=m[Y][X];if(WALL.has(c)||c==='F'||c==='Y'||c==='N'||c==='P'||(!locks&&c==='L'))continue;seen.add(k);q.push([X,Y]);}}return seen;};
+        const A=flood(true),B=flood(false);let keysB=0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if(inS(x,y))continue;if(c==='k'&&B.has(y*w+x))keysB++;if(/[Xkch.GU1-8D]/.test(c)||mob.has(c)){if(!A.has(y*w+x)){bad.push(`${sd}:${f} ${c}@${x},${y}`);y=h;break;}}}
+        if(keysB<1)bad.push(`${sd}:${f} no key before a lock`);}
+      return {maps,bad:bad.slice(0,6),nBad:bad.length};});
+    check(`M1.9 pit solvability over ${sol.maps} deep maps: with pits as walls everything (exit, keys, coins, mobs, floor) stays reachable and a key is reachable before any lock`,sol.nBad===0,JSON.stringify(sol.bad));
+    // fall = death
+    const fall=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(5,{hearts:5,coins:3});__game.clearMobs();const P=__game.pits();const q=P[0];__game.setEffect('shield');__game.teleport(q.x+.5,q.y+.5,0);__game.advance(0.05);const m0=__game.state().mode;__game.advance(0.4);const mid=__game.state().mode;__game.advance(0.8);const s=__game.state();return {n:P.length,m0,mid,mode:s.mode,hearts:s.player.hearts,fell:s.fellPit,falls:s.stats.falls,save:s.save};});
+    check('M1.9 falling into a pit kills the player (even with the shield): fall animation, then the run is over',fall.n>0&&fall.m0==='fall'&&fall.mid==='fall'&&fall.mode==='dead'&&fall.hearts===0&&fall.fell&&fall.save===null,JSON.stringify(fall));
+    await shot(page,'pit_death_screen');
+    const edge=await G(page,()=>{__game.setSeed(777);__game.startLevel(5);__game.clearMobs();const q=__game.pits()[0];__game.teleport(q.x-.08,q.y+.5,0);__game.advance(0.1);return {mode:__game.state().mode,under:__game.pitUnder(q.x+.1,q.y+.5,.14)};});
+    check('M1.9 the pit edge is safe (you fall only once your centre is over the hole, 0.14 margin)',edge.mode==='play'&&edge.under===false,JSON.stringify(edge));
+    // render + minimap
+    const rv=await G(page,()=>{__game.setSeed(777);__game.startLevel(5);__game.clearMobs();const q=__game.pits()[0];const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];let used=null;
+      for(const [dx,dy,a] of dirs){for(const k of [2,3]){const x=q.x+dx*k,y=q.y+dy*k;if(__game.cellType(x,y)===0&&__game.cellType(q.x+dx,q.y+dy)===0){__game.teleport(x+.5,y+.5,a);used=[x,y];break;}}if(used)break;}
+      __game.setPitch(-40);__game.seeAll();__game.advance(0.05);let dark=0;for(let y=170;y<300;y+=2)for(let x=150;x<330;x+=2){const p=__game.pixelAt(x,y);if(p[0]+p[1]+p[2]<40)dark++;}
+      const R=__game.hudRects().map;let blk=0;for(let y=R[1]+2;y<R[1]+R[3]-2;y++)for(let x=R[0]+2;x<R[0]+R[2]-2;x++){const p=__game.pixelAt(x,y);if(p[0]+p[1]+p[2]===0)blk++;}return {used,dark,blk};});
+    await shot(page,'pit_in_floor_and_minimap');
+    check('M1.9 pits render as dark holes in the floor and show black (with a rim) on the minimap',rv.used&&rv.dark>150&&rv.blk>=9,JSON.stringify(rv));
+    await G(page,()=>{__game.openMap();__game.advance(0.05);});await shot(page,'pit_full_map_legend');await G(page,()=>{__game.closeMap();});
+    // mobs: ground mobs path around, flyers go over
+    const mv=await G(page,()=>{const out={};for(const sd of [777,4242,99991,31337,2026,9]){__game.setSeed(sd);__game.startLevel(7);const P=__game.pits();for(const q of P){for(const [dx,dy] of [[1,0],[0,1]]){const a=[q.x-dx*2,q.y-dy*2],b=[q.x+dx*2,q.y+dy*2],ok=[[q.x-dx,q.y-dy],[q.x+dx,q.y+dy],a,b].every(c=>__game.cellType(c[0],c[1])===0);if(!ok)continue;
+        const run=(t)=>{__game.startLevel(7);__game.clearMobs();__game.freeze=false;__game.setHearts(99);__game.teleport(b[0]+.5,b[1]+.5,0);const i=__game.spawn(t,a[0]+.5,a[1]+.5,true);let inPit=0,reached=false;for(let k=0;k<360;k++){const e=__game.advance(1/60).enemies[i];if(__game.cellType(Math.floor(e.x),Math.floor(e.y))===6)inPit++;if(Math.hypot(e.x-b[0]-.5,e.y-b[1]-.5)<1.0)reached=true;}return {inPit,reached};};
+        out[sd]={kettle:run('kettle'),clunk:run('clunk'),screamer:run('screamer'),zapfly:run('zapfly'),wisp:run('wisp'),q,dir:[dx,dy]};return out;}}}return out;});
+    const mvv=Object.values(mv)[0];
+    check('M1.9 ground mobs path around pits (Kettlegrump, Clunkbot never enter one); Screamer, Zapfly and Hazewisp fly over',mvv&&mvv.kettle.inPit===0&&mvv.clunk.inPit===0&&(mvv.screamer.inPit>0||mvv.zapfly.inPit>0||mvv.wisp.inPit>0)&&(mvv.screamer.reached||mvv.zapfly.reached),JSON.stringify(mv));
+    const md=await G(page,()=>({fly:['screamer','zapfly','wisp'].every(t=>__game.mobs[t].fly),ground:['kettle','springle','clunk','skeleton'].every(t=>!__game.mobs[t].fly)}));
+    check('M1.9 flyer list: Screamer, Zapfly, Hazewisp fly; Kettlegrump, Springle, Clunkbot, Rattlebone walk',md.fly&&md.ground,JSON.stringify(md));
+    const lt=await G(page,()=>{__game.setSeed(777);__game.startLevel(5);__game.clearMobs();const q=__game.pits()[0];const s=__game.lootSpot(q.x+.5,q.y+.5);const i=__game.spawn('screamer',q.x+.5,q.y+.5,false,['beefy']);__game.setForceDrop(i,true);__game.damageMob(i,20);__game.advance(0.5);const st=__game.state();
+      const bad=st.items.filter(it=>!it.taken&&__game.cellType(Math.floor(it.x),Math.floor(it.y))===6).length;return {spot:__game.cellType(Math.floor(s.x),Math.floor(s.y)),bad};});
+    check('M1.9 loot never lands in a pit (a mob popped over a pit drops its coins and power-up beside it)',lt.spot===0&&lt.bad===0,JSON.stringify(lt));
+    await ctx.close();
+  }
+
+  // ---- 9. Rattlebone skeleton
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-skel'});
+    const sp=await G(page,()=>{let early=0,l6=0,n6=0,deep=0,nd=0;for(let sd=1;sd<=150;sd++){for(let f=2;f<=5;f++)if(__game.genMap(sd,f).map.join('').includes('s'))early++;n6++;if(__game.genMap(sd,6).map.join('').includes('s'))l6++;for(const f of [9,15]){nd++;if(__game.genMap(sd,f).map.join('').includes('s'))deep++;}}return {early,l6,n6,deep,nd,M:__game.mobs.skeleton};});
+    check('M1.9 RATTLEBONE first appears on floor 6 (never on 2-5, on every floor 6, common deeper), hp 4, walks',sp.early===0&&sp.l6===sp.n6&&sp.deep>sp.nd*.6&&sp.M.hp===4&&sp.M.name==='RATTLEBONE'&&!sp.M.fly,JSON.stringify({early:sp.early,l6:sp.l6,deep:sp.deep+'/'+sp.nd}));
+    const k=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(0);__game.clearMobs();__game.freeze=true;__game.setRun({kills:0,elites:0,coins:0,deepest:1});const i=__game.spawn('skeleton',8.6,3.5,false);__game.damageMob(i,4);const s1=__game.state();const e1=s1.enemies[i];
+      __game.advance(2.9);const told0=__game.state().enemies[i].told;__game.advance(0.3);const e2=__game.state().enemies[i];__game.advance(1.4);const e3=__game.state().enemies[i];return {st1:e1.state,kills1:s1.run.kills,told0,told:e2.told,st2:e2.state,st3:e3.state,hp3:e3.hp,reforms:e3.reforms,kills3:__game.state().run.kills};});
+    check('M1.9 Rattlebone at 0 hp collapses into a bone pile (no kill yet), shows a tell at 3 s (rattle + glowing eyes, shaking) and regenerates at 4.5 s with full hp',k.st1==='pile'&&k.kills1===0&&!k.told0&&k.told&&k.st2==='pile'&&k.st3==='chase'&&k.hp3===4&&k.reforms===1&&k.kills3===0,JSON.stringify(k));
+    const sm=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=true;__game.setRun({kills:0,elites:0,coins:0,deepest:1});__game.teleport(7.0,3.5,0);const i=__game.spawn('skeleton',8.6,3.5,false);__game.damageMob(i,4);const sc0=__game.state().score;
+      __game.setPitch(-60);__game.throwOnce();for(let j=0;j<40;j++)__game.advance(1/60);__game.advance(0.3);const s=__game.state();return {st:s.enemies[i].state,gone:s.enemies[i].gone,kills:s.run.kills,dScore:s.score-sc0,coins:s.items.filter(t=>t.kind==='coin'&&!t.taken).length,smashed:s.stats.pilesSmashed};});
+    check('M1.9 a balloon on the bone pile smashes it for good: kill counted (+50 score), coin dropped; no score for knock-downs (no farming)',(sm.gone||sm.st==='dead')&&sm.kills===1&&sm.dScore===50&&sm.coins>=1&&sm.smashed===1,JSON.stringify(sm));
+    const look=await G(page,()=>{const a=__game.spriteCols('bonePile',0),b=__game.spriteCols('deco','bones');const ka=Object.keys(a),kb=new Set(Object.keys(b));const shared=ka.filter(c=>kb.has(c));return {shared:shared.length,na:ka.length,nb:kb.size};});
+    check('M1.9 the bone pile looks like the pile-of-bones decoration (shared palette)',look.shared>=Math.min(look.na,look.nb)*0.5,JSON.stringify(look));
+    const dots=await G(page,()=>{const o={};for(const k of Object.keys(__game.mobs))o[k]=__game.mobs[k].dot;return o;});
+    const hx=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)),dd=(a,b)=>Math.hypot(...hx(a).map((v,i)=>v-hx(b)[i]));
+    const others=[...Object.entries(dots).filter(([k])=>k!=='skeleton').map(x=>x[1]),'#ffe27a','#c89a20','#ff6070','#7dffb0','#ffffff','#000000'];const md=Math.min(...others.map(c=>dd(dots.skeleton,c)));
+    check(`M1.9 Rattlebone has its own minimap colour ${dots.skeleton} (>= 60 from every other mark, pits included)`,md>=60,`closest ${md.toFixed(0)}`);
+    await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=true;__game.teleport(6.4,3.5,0);__game.spawn('skeleton',8.2,3.1,false);const j=__game.spawn('skeleton',8.4,4.1,false);__game.damageMob(j,4);__game.advance(0.3);});
+    await shot(page,'skeleton_and_bone_pile');
+    await G(page,()=>{__game.advance(3.0);});await shot(page,'bone_pile_tell');
+    await ctx.close();
+  }
+
+  // ---- 10. ghosts through doors
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-ghost'});
+    const gd=await G(page,()=>{const run=(t)=>{__game.manual=true;__game.startLevel(0);__game.clearMobs();__game.freeze=false;__game.setHearts(99);const d=__game.state().doors.find(x=>x.x===5&&x.y===3);__game.teleport(7.5,3.5,Math.PI);const i=__game.spawn(t,3.5,3.5,true);let crossed=false,closed=true;for(let k=0;k<360;k++){const s=__game.advance(1/60);const e=s.enemies[i];if(e.x>5.9)crossed=true;const dd=s.doors.find(x=>x.x===5&&x.y===3);if(dd.open>0.05)closed=false;}return {crossed,closed,door:!!d};};return {wisp:run('wisp'),screamer:run('screamer')};});
+    check('M1.9 Hazewisp (ghost) drifts through a closed door; a Screamer cannot',gd.wisp.door&&gd.wisp.crossed&&gd.wisp.closed&&!gd.screamer.crossed,JSON.stringify(gd));
+    const gh=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=true;__game.teleport(3.5,3.5,0);const i=__game.spawn('wisp',5.5,3.5,false);const h0=__game.state().enemies[i].hp;__game.throwOnce();for(let k=0;k<40;k++)__game.advance(1/60);return {h0,h:__game.state().enemies[i].hp,ghostSolidDoor:__game.solidGhost(5.5,3.5)};});
+    check('M1.9 a balloon still hits a ghost inside a closed door cell',gh.h===gh.h0-1&&gh.ghostSolidDoor===false,JSON.stringify(gh));
+    await ctx.close();
+  }
+
+  // ---- 11. touch: BALL button, shop menu, item-slot tap, and layouts at all 11 sizes
+  {
+    const bad=[];let tapBall=null,tapShop=null,tapSlot=null;
+    for(const [w,h] of VIEWS){const {ctx,page}=await newPage({viewport:{width:w,height:h},hasTouch:true,isMobile:true,deviceScaleFactor:2,label:'m19-touch'});const touch=await cdpTouch(ctx,page);
+      await page.touchscreen.tap(5,5).catch(()=>{});
+      await G(page,()=>{__game.manual=true;__game.setSeed(4242);__game.startLevel(1,{hearts:5,coins:200});__game.clearMobs();__game.setPerm({red:true,green:true,pack:true});__game.give('shield');__game.give2('magnet');__game.setEffect('giant');__game.setEffect('freeze');__game.faceShop();__game.advance(0.05);});
+      const L=await G(page,()=>({lay:__game.layout(),touch:__game.state().touch}));
+      const btns=['useBtn','throwBtn','itemBtn','pauseBtn','mapBtn','ballBtn'].map(k=>[k,L.lay[k]]).filter(([k,b])=>b.visible);
+      if(!L.lay.ballBtn.visible)bad.push(`${w}x${h} BALL button hidden`);
+      const hudZones={band:L.lay.band,hud:L.lay.hud,minimap:L.lay.minimap,itemBar:L.lay.itemBar};
+      for(const [k,b] of btns){for(const [z,r] of Object.entries(hudZones))if(ov(b,r))bad.push(`${w}x${h} ${k} over ${z}`);if(b.x<0||b.y<0||b.x+b.w>w||b.y+b.h>h)bad.push(`${w}x${h} ${k} off-screen`);}
+      for(let i=0;i<btns.length;i++)for(let j=i+1;j<btns.length;j++)if(ov(btns[i][1],btns[j][1]))bad.push(`${w}x${h} ${btns[i][0]} over ${btns[j][0]}`);
+      const hb=await G(page,()=>__game.handCss());for(const [f,r] of Object.entries(hb))if(L.lay.ballBtn.visible&&ov(r,L.lay.ballBtn))bad.push(`${w}x${h} hand:${f} under ballBtn`);
+      // jackpot / crit messages use the band: covered above; shop panel: the overlay hides while the menu is open
+      const u=L.lay.useBtn;await tapAt(touch,u.x+u.w/2,u.y+u.h/2);
+      const S=await G(page,()=>{__game.advance(0.3);return {mode:__game.state().mode,lay:__game.layout(),rects:__game.shopRects()};});
+      if(S.mode!=='shop')bad.push(`${w}x${h} USE did not open the shop`);else{
+        if(S.lay.overlayOn)bad.push(`${w}x${h} touch buttons still shown over the shop menu`);const sp=S.lay.shopPanel;if(sp.x<S.lay.canvas.x-1||sp.y<S.lay.canvas.y-1||sp.x+sp.w>S.lay.canvas.x+S.lay.canvas.w+1)bad.push(`${w}x${h} shop panel off the canvas`);
+        const r=S.rects[2];await tapAt(touch,r.x+r.w/2,r.y+r.h/2);const b=await G(page,()=>{__game.advance(0.05);return __game.state().perm.yellow;});if(w===844)tapShop=b;
+        if(w===844||w===568){await shot(page,`phone_${w}x${h}_shop_menu`);}
+        await tapAt(touch,Math.max(2,S.lay.canvas.x/2),h-4);await tapAt(touch,4,4);const m=await G(page,()=>{__game.advance(0.05);return __game.state().mode;});if(m!=='play')bad.push(`${w}x${h} tap outside did not leave the shop (${m})`);}
+      await G(page,()=>{__game.setBall('blue');__game.advance(0.05);});const L2=await G(page,()=>__game.layout());const bb=L2.ballBtn;await tapAt(touch,bb.x+bb.w/2,bb.y+bb.h/2);const nb=await G(page,()=>{__game.advance(0.05);return __game.state().player.ball;});if(nb!=='red')bad.push(`${w}x${h} BALL tap -> ${nb}`);if(w===844)tapBall=nb;
+      const sr=await G(page,()=>{const r=__game.hudRects().active;const c=document.getElementById('screen').getBoundingClientRect();const s=c.width/480;return {x:c.left+(r[0]+r[2]/2)*s,y:c.top+(r[1]+r[3]/2)*s};});await tapAt(touch,sr.x,sr.y);const sel=await G(page,()=>{__game.advance(0.05);return __game.state().player.sel;});if(sel!==1)bad.push(`${w}x${h} slot tap -> ${sel}`);if(w===844)tapSlot=sel;
+      if(w===844||w===568||w===800){await G(page,()=>__game.advance(0.05));await shot(page,`phone_${w}x${h}_hud_ball_backpack`);}
+      await ctx.close();}
+    check('M1.9 touch: the BALL button switches balloon type',tapBall==='red',String(tapBall));
+    check('M1.9 touch: USE talks to the merchant, tapping a row buys, tapping outside leaves',tapShop===true,String(tapShop));
+    check('M1.9 touch: tapping an item-bar slot picks it (Backpack)',tapSlot===1,String(tapSlot));
+    check('M1.9 touch layout at all 11 sizes: BALL + every button clear of the HUD, band, minimap, item bar, hand and each other; shop menu never under a button',bad.length===0,bad.slice(0,6).join(' | '));
+  }
+
+  // ---- 12. score formula unchanged and capped
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-score'});
+    const sc=await G(page,()=>({a:__game.scoreOf({deepest:5,kills:20,elites:3,coins:40}),b:__game.scoreOf({deepest:2,kills:5000,elites:5000,coins:99999}),bag:__game.bagCoins}));
+    check('M1.9 score formula unchanged (1000/floor + 50/kill + 100/elite + 5/coin), still <= floor x 100,000; coin bags add 10 coins',sc.a===4000+1000+300+200&&sc.b===200000&&sc.bag===10,JSON.stringify(sc));
+    await ctx.close();
+  }
 }

@@ -30,9 +30,10 @@ URL options: `?seed=<text>` plays a reproducible run; `?debug` exposes the test 
 
 | Path | What |
 |---|---|
-| `src/index.html` | The current game (M1.9 release build). The single file *is* the source. |
-| `builds/<milestone>/index.html` | Frozen builds M1 to M1.9, checksums in `builds/SHA256SUMS`. |
-| `builds/m1.7-qa`, `builds/m1.8-qa`, `builds/m1.9-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
+| `src/index.html` | The current game (M1.9.1 release build). The single file *is* the source. |
+| `builds/<milestone>/index.html` | Frozen builds M1 to M1.9.1, checksums in `builds/SHA256SUMS`. |
+| `builds/m1.7-qa` … `builds/m1.9.1-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
+| `tools/release.mjs` | Freezes `src/` into a release + QA build pair (see Release below). |
 | `tests/` | Playwright test suite, local high score API stub. |
 | `docs/` | Plan, changelog, controls and features, balance, research notes, API contract. |
 | `concepts/` | Original concept art from the M0 milestone. |
@@ -45,8 +46,8 @@ Needs Node 18+.
 cd tests
 npm ci
 npx playwright install chromium
-npm test                     # full suite against builds/m1.9 (+ builds/m1.9-qa)
-node m1.test.mjs m1.8        # any older milestone: m1, m1.1 ... m1.9
+npm test                     # full suite against builds/m1.9.1 (+ builds/m1.9.1-qa)
+node m1.test.mjs m1.8        # any older milestone: m1, m1.1 ... m1.9.1
 ```
 
 Results and screenshots go to `test-output/<build>/` (gitignored). From M1.7 on, the
@@ -55,7 +56,17 @@ High score tests use the local stub `tests/hs_stub.mjs` (loopback only), never a
 To preview with the stub API: `cd tests && npm run stub`, then open `localhost:8787` in a browser.
 
 Expected results: m1 54, m1.1 83, m1.2 106, m1.3 158, m1.4 195, m1.5 217, m1.6 238,
-m1.7 256, m1.8 325, m1.9 388 checks, all passing.
+m1.7 256, m1.8 325, m1.9 388, m1.9.1 390 checks, all passing.
+
+## Release
+
+```sh
+node tools/release.mjs dev --test          # test the current src/ as a throwaway build in .work/builds/
+node tools/release.mjs dev m1.10 --test    # ...under the version it will get
+node tools/release.mjs m1.10               # freeze builds/m1.10 + builds/m1.10-qa, update src/, SHA256SUMS, tests/package.json
+```
+
+Then write `builds/<version>/README.md` (and the QA one) and the changelog entry by hand.
 
 ## Credits
 

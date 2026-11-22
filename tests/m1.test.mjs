@@ -9,16 +9,19 @@ import __np from 'path';
 const ROOT=__np.resolve(__np.dirname(__f2p(import.meta.url)),'..'); // repo root
 const BUILDS=process.env.BUILDS_DIR||`${ROOT}/builds`; // builds/<build>/index.html
 const BUILD=process.argv[2]||'m1.1';
-const VER=parseFloat(BUILD.replace(/^m/,''))||1;
-const NEW=VER>=1.1; // M1.1+ regression tests (A1-A9, B1-B8)
-const V12=VER>=1.2; // M1.2+: pitch, new hand frames, Screamer enemy
-const V13=VER>=1.3; // M1.3+: 480x300, six mobs, procedural levels, steering fixes
-const V14=VER>=1.4; // M1.4+: elite mobs, power-ups, item bar, touch ITEM button
-const V15=VER>=1.5; // M1.5+: QA fixes, Screamer redraw, full-screen map, MAP button
-const V17=VER>=1.7; // M1.7+: icon placement, gated debug hook (QA build for hook tests), RANGED colour, L3 per-seed floor, top-strip touch, thicker Screamer ears
-const V18=VER>=1.8; // M1.8+: endless floors, deeper wall textures, score + high scores (stub API), slot machine
-const V19=VER>=1.9; // M1.9+: slot rework (no limit, jackpot spray, crit fail), slower balloons, floor-long power-ups, shop, balloon types, backpack, secret rooms, decorations, pits, Rattlebone, ghosts through doors
-const V16=VER>=1.6; // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
+// versions compare part by part (m1.10 > m1.9.1 > m1.9); parseFloat would read "1.10" as 1.1
+const VPARTS=(BUILD.replace(/^m/,'').match(/^\d+(\.\d+)*/)||['1'])[0].split('.').map(Number);
+const atLeast=v=>{const w=v.split('.').map(Number);for(let i=0;i<Math.max(w.length,VPARTS.length);i++){const a=VPARTS[i]||0,b=w[i]||0;if(a!==b)return a>b;}return true;};
+const NEW=atLeast('1.1'); // M1.1+ regression tests (A1-A9, B1-B8)
+const V12=atLeast('1.2'); // M1.2+: pitch, new hand frames, Screamer enemy
+const V13=atLeast('1.3'); // M1.3+: 480x300, six mobs, procedural levels, steering fixes
+const V14=atLeast('1.4'); // M1.4+: elite mobs, power-ups, item bar, touch ITEM button
+const V15=atLeast('1.5'); // M1.5+: QA fixes, Screamer redraw, full-screen map, MAP button
+const V17=atLeast('1.7'); // M1.7+: icon placement, gated debug hook (QA build for hook tests), RANGED colour, L3 per-seed floor, top-strip touch, thicker Screamer ears
+const V18=atLeast('1.8'); // M1.8+: endless floors, deeper wall textures, score + high scores (stub API), slot machine
+const V19=atLeast('1.9'); // M1.9+: slot rework (no limit, jackpot spray, crit fail), slower balloons, floor-long power-ups, shop, balloon types, backpack, secret rooms, decorations, pits, Rattlebone, ghosts through doors
+const V191=atLeast('1.9.1'); // M1.9.1+: shop panel clear of the HUD, decorations never diagonal to a door
+const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
 const URL='file://'+FILE;
@@ -241,6 +244,23 @@ for(const [w,h] of viewports){
   await pc.ctx.close();
 }
 
+// ---------- M1.9.1: shop panel clear of the HUD (known issue in M1.9), decorations never diagonal to a door (checked in m19Tests) ----------
+async function m191Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m191-shop'});
+  const r=await G(page,()=>{const R=__game.hudRects(),ov=(a,b)=>a[0]<b[0]+b[2]&&b[0]<a[0]+a[2]&&a[1]<b[1]+b[3]&&b[1]<a[1]+a[3],D=__game.dims,S=R.shop;
+    const hits=['hud','band','itemBar','ball'].filter(k=>ov(S,R[k]));
+    __game.manual=true;__game.setSeed(777);__game.startLevel(1);__game.clearMobs();__game.setCoins(60);__game.give('freeze');__game.faceShop();__game.advance(0.05);
+    const grab=rc=>{const o=[];for(let y=rc[1];y<rc[1]+rc[3];y++)for(let x=rc[0];x<rc[0]+rc[2];x++)o.push(__game.pixelAt(x,y).join());return o;};
+    const a=grab(R.hud).concat(grab(R.item));__game.openShop();__game.render();const mode=__game.state().mode;const b=grab(R.hud).concat(grab(R.item));
+    let same=0;for(let i=0;i<a.length;i++)if(a[i]===b[i])same++;
+    const rows=__game.shopRectsInt(),inside=rows.every(q=>q[0]>=S[0]&&q[1]>=S[1]&&q[0]+q[2]<=S[0]+S[2]&&q[1]+q[3]<=S[1]+S[3]);
+    return {hits,inScreen:S[0]>=0&&S[1]>=0&&S[0]+S[2]<=D.W&&S[1]+S[3]<=D.H,rowsInside:inside,mode,sameFrac:same/a.length,shop:S};});
+  check('M1.9.1 the shop panel no longer covers the HUD, message band, balloon box or item bar, and stays on screen with every row inside it',r.hits.length===0&&r.inScreen&&r.rowsInside,JSON.stringify(r));
+  check('M1.9.1 while the shop is open the hearts, coins, keys and item slot are drawn as in play (not dimmed or hidden; M1.9: 0%)',r.mode==='shop'&&r.sameFrac>0.3,`${(r.sameFrac*100).toFixed(0)}% of HUD pixels unchanged`);
+  await page.screenshot({path:`${SHOTS}/m191_shop_clear_of_hud.png`});
+  await ctx.close();
+}
+
 if(NEW){ await regressionTests(); }
 if(V12){ await m12Tests(); }
 if(V13){ await m13Tests(); }
@@ -250,6 +270,7 @@ if(V16){ await m16Tests(); }
 if(V17){ await m17Tests(); }
 if(V18){ await m18Tests(); }
 if(V19){ await m19Tests(); }
+if(V191){ await m191Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2169,13 +2190,15 @@ async function m19Tests(){
   // ---- 6/7. no empty rooms + decorations
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-rooms'});
-    const r=await G(page,()=>{const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let rooms=0,empty=0,decos=0,badDeco=[];const kinds=new Set();const ex=[];
+    const r=await G(page,(V191)=>{const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let rooms=0,empty=0,decos=0,badDeco=[];const kinds=new Set();const ex=[];
       for(let sd=1;sd<=60;sd++)for(const f of [2,3,4,5,6,8,10,13,20]){const d=__game.genMap(sd,f),m=d.map,RR=__game.genRooms(sd,f);
-        for(const R of RR){rooms++;let has=false,free=0;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){const c=m[y][x];if(mob.has(c)||/[1-8N]/.test(c))has=true;if(c==='.')free++;}if(!free)has=true; /* a room packed with keys/coins/hearts is not empty */if(!has){empty++;if(ex.length<4)ex.push(sd+':'+f+(R.start?' start':''));}}
-        for(let y=1;y<m.length-1;y++)for(let x=1;x<m[0].length-1;x++){const c=m[y][x];if(!/[1-8]/.test(c))continue;decos++;kinds.add(c);for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i],four=(i===0)!==(j===0);if(four&&/[DLFkXYNpP]/.test(q)){badDeco.push(sd+':'+f+' '+q);}}}}
-      return {rooms,empty,decos,kinds:kinds.size,badDeco:badDeco.slice(0,5),nBad:badDeco.length,ex};});
+        for(const R of RR){rooms++;let has=false,free=0;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){const c=m[y][x];if(mob.has(c)||/[1-8N]/.test(c))has=true;if(c==='.')free++;}if(!free)has=true; /* a room packed with keys/coins/hearts is not empty */
+          if(V191&&!has&&R.start){let clear=false;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){if(m[y][x]!=='.')continue;let ok=true;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i];if(/[DL]/.test(q)||((i===0)!==(j===0)&&/[FkXYNpP]/.test(q)))ok=false;}if(ok)clear=true;}if(!clear)has=true;} /* M1.9.1: a tiny start room ringed by doors may stay bare (you start in it) */
+          if(!has){empty++;if(ex.length<4)ex.push(sd+':'+f+(R.start?' start':''));}}
+        for(let y=1;y<m.length-1;y++)for(let x=1;x<m[0].length-1;x++){const c=m[y][x];if(!/[1-8]/.test(c))continue;decos++;kinds.add(c);for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i],four=(i===0)!==(j===0),diag=i!==0&&j!==0;if((four&&/[DLFkXYNpP]/.test(q))||(V191&&diag&&/[DL]/.test(q))){badDeco.push(sd+':'+f+' '+q+(diag?' (diagonal)':''));}}}}
+      return {rooms,empty,decos,kinds:kinds.size,badDeco:badDeco.slice(0,5),nBad:badDeco.length,ex};},V191);
     check(`M1.9 no empty rooms: every one of ${r.rooms} rooms (60 seeds x 9 floors) has a mob, decorations or the merchant (or is packed with items)`,r.empty===0,JSON.stringify(r.ex));
-    check(`M1.9 decorations (${r.decos}, all ${r.kinds} kinds used) never block anything: no door, key, start, exit, fence, slot, merchant or pit beside them (and no hitbox)`,r.nBad===0&&r.kinds===8,JSON.stringify(r.badDeco));
+    check(`M1.9 decorations (${r.decos}, all ${r.kinds} kinds used) never block anything: no door, key, start, exit, fence, slot, merchant or pit beside them${V191?', no door diagonally next to them either':''} (and no hitbox)`,r.nBad===0&&r.kinds===8,JSON.stringify(r.badDeco));
     const nb=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(3);__game.clearMobs();const D=__game.decos();const d=D.find(q=>__game.cellType(Math.floor(q.x)-1,Math.floor(q.y))===0&&__game.cellType(Math.floor(q.x)+1,Math.floor(q.y))===0)||D[0];__game.teleport(d.x-1,d.y,0);window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW'}));__game.advance(0.7);window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW'}));const p=__game.state().player;return {n:D.length,kinds:[...new Set(D.map(x=>x.kind))],x0:d.x-1,x:p.x,solid:__game.solidAt(d.x,d.y)};});
     check('M1.9 decorations are billboards with no hitbox (you walk straight through)',nb.n>0&&nb.x>nb.x0+1.0&&nb.solid===false,JSON.stringify(nb));
     const extra=await G(page,()=>{let n=0,maps=0;for(let sd=1;sd<=60;sd++)for(let f=2;f<=12;f++){maps++;n+=__game.genMap(sd,f).extraMobs;}return n/maps;});

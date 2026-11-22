@@ -1,4 +1,4 @@
-# Controls and features (M1.9)
+# Controls and features (M1.9.1)
 
 ## Keyboard and mouse
 
@@ -76,7 +76,7 @@ A corner minimap (colour-coded keys, doors, exit, mobs, items, pits) and a full-
 Appears every even floor from floor 2 (never the tutorial). Talk to him with E / X / USE / a
 tap. The shop is modal and pauses the game. He sells permanent balloon types and a Backpack,
 plus two one-use power-ups per floor (see [BALANCE.md](BALANCE.md)). While it is open the
-panel covers the top-left HUD.
+HUD (hearts, coins, keys, balloon type, item slots) stays visible; the panel covers the minimap.
 
 ## Slot machine
 

@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Labyrinth">
-<title>Labyrinth Remake (M1.9 prototype)</title>
+<title>Labyrinth Remake (M1.9.1 prototype)</title>
 <link rel="icon" id="icon" href="data:,">
 <link rel="manifest" id="manifest" href="data:application/manifest+json,%7B%7D">
 <style>
@@ -62,7 +62,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Labyrinth Remake - M1.9 prototype (slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
+   Labyrinth Remake - M1.9.1 prototype (M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
@@ -636,7 +636,7 @@ function genTry(s,lvl,lseed){
   // e. no empty rooms: a room with no mob gets one (at most 2 extra per floor, never in the start or shop room) or decorations
   var decoN=0,extraMobs=0;
   function decoOk(q,rl){if(g[q]!==1||obj[q]||pitA[q])return false;if(secret&&q===secret.fy*w+secret.fx)return false;var nb=[q-1,q+1,q-w,q+w,q-w-1,q-w+1,q+w-1,q+w+1];for(var m=0;m<8;m++){var v=g[nb[m]],o=obj[nb[m]],four=m<4;if(v===2||v===3||o==='k')return false;if((four||!rl)&&(v===4||pitA[nb[m]]||o==='Y'||o==='N'||o==='X'||o==='p'))return false;}return true;} /* never next to a door or key; rl (relaxed, for tiny rooms): only the 4 side cells must be clear of the start, exit, fences, pits, slot and merchant */
-  function decoOk3(q){if(g[q]!==1||obj[q]||pitA[q])return false;if(secret&&q===secret.fy*w+secret.fx)return false;var nb=[q-1,q+1,q-w,q+w];for(var m=0;m<4;m++){var v=g[nb[m]],o=obj[nb[m]];if(v===2||v===3||v===4||pitA[nb[m]]||o==='k'||o==='X'||o==='p'||o==='Y'||o==='N')return false;}return true;} /* last resort for door-ringed rooms: only the 4 side cells */
+  function decoOk3(q){if(g[q]!==1||obj[q]||pitA[q])return false;if(secret&&q===secret.fy*w+secret.fx)return false;var nb=[q-1,q+1,q-w,q+w];for(var m=0;m<4;m++){var v=g[nb[m]],o=obj[nb[m]];if(v===2||v===3||v===4||pitA[nb[m]]||o==='k'||o==='X'||o==='p'||o==='Y'||o==='N')return false;}var dg=[q-w-1,q-w+1,q+w-1,q+w+1];for(m=0;m<4;m++){if(g[dg[m]]===2||g[dg[m]]===3)return false;}return true;} /* last resort for door-ringed rooms: only the 4 side cells, but (M1.9.1) never diagonally next to a door either */
   function addDeco(rm,n){var cs=[];for(var pass=0;pass<3&&!cs.length;pass++)for(var yy=rm.y;yy<rm.y+rm.h;yy++)for(var xx=rm.x;xx<rm.x+rm.w;xx++){var q=yy*w+xx;if(pass<2?decoOk(q,pass===1):decoOk3(q))cs.push(q);}if(!cs.length){var fr=[],it=[];for(var yy=rm.y;yy<rm.y+rm.h;yy++)for(var xx=rm.x;xx<rm.x+rm.w;xx++){var q=yy*w+xx;if(g[q]===1&&!obj[q]&&!pitA[q]&&!(secret&&q===secret.fy*w+secret.fx))fr.push(q);else if(obj[q]==='c'||obj[q]==='h')it.push(q);}
     for(var m=0;m<it.length&&fr.length&&!cs.length;m++){var q=it[m],o0=obj[q];delete obj[q];if(decoOk3(q)){obj[fr[0]]=o0;cs.push(q);}else obj[q]=o0;}} /* item-packed room: shift a coin/heart onto a free cell to make room for one decoration */
   sh9(cs);var put=0;for(var m=0;m<cs.length&&put<n;m++){obj[cs[m]]=String(1+Math.floor(R9()*DECO_IDS.length));put++;decoN++;}return put;}
@@ -1379,19 +1379,20 @@ function shopBuy(i){var rows=shopRows(),r=rows[i],p=G.p;if(!r||G.mode!=='shop')r
   else{G.perm[r.id]=true;p.coins-=r.price;if(BALLS[r.id])setBall(r.id,true);var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coins=Math.max(0,(sv.coins|0)-r.price);sv.perm=permCopy();sv.ball=G.p.ball;writeSave(sv);} /* permanent: saved now (and paid for in the save too) */
     G.shopMsg=BALLS[r.id]?r.name+'! '+ballHint()+' SWITCHES TYPE':'A BACKPACK! '+slotHint()+' SWITCHES SLOT';}
   stats.shopBuys++;stats.shopSpent+=r.price;SFX.buy();return true;}
-var SHOP_RECT=[36,22,408,256],SHOP_ROW0=70,SHOP_ROWH=24,SHOP_ROWX=152,SHOP_ROWW=284;
+var SHOP_RECT=[90,40,386,256],SHOP_ROW0=88,SHOP_ROWH=24,SHOP_ROWX=206,SHOP_ROWW=258; /* M1.9.1: below the HUD panel and right of the item bar, so hearts, coins, keys and item slots stay visible */
 function shopRects(){var n=shopRows().length,o=[];for(var i=0;i<n;i++)o.push([SHOP_ROWX-4,SHOP_ROW0+i*SHOP_ROWH-3,SHOP_ROWW,SHOP_ROWH-2]);return o;}
 function shopClick(p){if(G.modeT<.15)return;var r=shopRects();for(var i=0;i<r.length;i++)if(inRect(p,r[i])){shopBuy(i);return;}if(!inRect(p,SHOP_RECT))closeShop();}
 function shopMove(d){var n=shopRows().length;G.shopSel=(G.shopSel+d+n)%n;SFX.menu();}
 function drawShop(){var Y1=HEX('#ffe27a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0'),RD=HEX('#ff8a7a'),usePad=pad&&G.lastInput==='pad',S=SHOP_RECT,rows=shopRows();
-  blend(0,0,W,H,HEX('#07051a'),.55);panel(S[0],S[1],S[2],S[3]);drawTextC("OLD MURKLE'S CURIOS",W/2,S[1]+9,Y1,2);
+  blend(0,0,W,H,HEX('#07051a'),.55);var mm=G.minimap;G.minimap=false;drawHUD();G.minimap=mm; /* M1.9.1: the HUD stays bright above the dimmed world (no minimap: the panel covers its spot) */
+  var CX=S[0]+S[2]/2;panel(S[0],S[1],S[2],S[3]);drawTextC("OLD MURKLE'S CURIOS",CX,S[1]+9,Y1,2);
   var mf=(((G.time*1.2)|0)%6===5)?2:(((G.time*3)|0)&1);blit(SPR.merchant[mf],S[0]+14,S[1]+66,2);drawText('COINS '+G.p.coins,S[0]+14,S[1]+46,Y1,1);
   rows.forEach(function(r,i){var y=SHOP_ROW0+i*SHOP_ROWH,sel=i===G.shopSel,x=SHOP_ROWX;if(sel)blend(x-4,y-3,SHOP_ROWW,SHOP_ROWH-2,HEX('#3a2a70'),.85);
     var ic=r.kind==='perm'?(BALLS[r.id]?SPR.balloonT[r.id]:SPR.packIco):r.kind==='power'?SPR.puS[r.pu]:null;if(ic)blit(ic,x,y,1);
     drawText(r.name+(r.owned?(r.kind==='perm'?' - OWNED':' - SOLD'):''),x+18,y,r.owned?GR:(sel?Y1:W1),1);if(r.desc)drawText(r.desc,x+18,y+9,GR,1);
     if(r.price&&!r.owned){var pr=r.price+' C';drawText(pr,x+SHOP_ROWW-12-textW(pr,1),y,G.p.coins>=r.price?Y1:RD,1);}});
-  if(G.shopMsg)drawTextC(G.shopMsg.length>62?G.shopMsg.slice(0,62):G.shopMsg,W/2,S[1]+S[3]-30,HEX('#8fd0ff'),1);
-  G.prompt=G.touch?'TAP AN ITEM TO BUY - TAP OUTSIDE TO LEAVE':usePad?'UP/DOWN: CHOOSE  A: BUY  B: LEAVE':'W/S: CHOOSE  ENTER OR E: BUY  ESC: LEAVE';drawTextC(G.prompt,W/2,S[1]+S[3]-16,GR,1);}
+  if(G.shopMsg)drawTextC(G.shopMsg.length>62?G.shopMsg.slice(0,62):G.shopMsg,CX,S[1]+S[3]-30,HEX('#8fd0ff'),1);
+  G.prompt=G.touch?'TAP AN ITEM TO BUY - TAP OUTSIDE TO LEAVE':usePad?'UP/DOWN: CHOOSE  A: BUY  B: LEAVE':'W/S: CHOOSE  ENTER OR E: BUY  ESC: LEAVE';drawTextC(G.prompt,CX,S[1]+S[3]-16,GR,1);}
 /* ---- slot jackpot: coins pop out of the machine and scatter across the room as pickups ---- */
 function coinSpray(n){var s=G.L.slot;if(!s)return 0;var dirs=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(d){var c=cellAt(s.x+d[0],s.y+d[1]);return c&&(c.t===0||c.t===4);});if(!dirs.length)dirs=[[1,0]];
   for(var i=0;i<n;i++){var d=dirs[i%dirs.length],a=Math.atan2(d[1],d[0])+(Math.random()-.5)*2.4,sp=1.4+Math.random()*3.4;G.items.push({kind:'coin',x:s.x+.5+d[0]*.6,y:s.y+.5+d[1]*.6,z:.55,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,vz:1.2+Math.random()*2.4,ph:i%6,fly:true,spray:true});}
@@ -1671,7 +1672,7 @@ function fmtTime(t){var s=Math.floor(t),m=Math.floor(s/60);s%=60;return m+':'+(s
 function drawTitle(){var t=G.time,Y1=HEX('#ffe27a'),OR=HEX('#ff9a3a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0');
   blend(0,0,W,H,HEX('#0d0a1e'),.55);
   drawTextC('LABYRINTH',W/2,22,Y1,4,HEX('#5a2a08'));drawTextC('REMAKE',W/2,60,OR,3,HEX('#3a1404'));
-  drawTextC('M1.9 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
+  drawTextC('M1.9.1 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
   var sp=SPR.screamer[flapFrame(t)];blit(sp,Math.round(W/2-sp.w),102+Math.sin(t*3)*3,2);
   for(var i=0;i<G.menuItems.length;i++){var it=G.menuItems[i],sel=i===G.menuSel,lbl=it.label,w=textW(lbl,2),x=Math.round(W/2-w/2),y=212+i*21;it.rect=[x,y,w,14];
     if(sel){blend(x-12,y-4,w+24,22,HEX('#3a2a70'),.7);drawText('>',x-15+((t*4|0)&1),y,Y1,2);}drawText(lbl,x,y,sel?Y1:W1,2);}
@@ -1864,7 +1865,7 @@ api.spriteCols=function(name,key){var sp=key===undefined?SPR[name]:SPR[name][key
 api.nextFloorViaExit=function(){var e=G.L.exit;G.p.x=e.x+.5;G.p.y=e.y+.5;return true;};
 api.genSecret=function(seed,f){var d=genLevel(levelSeed(seed,f),f);return d.secret||null;};
 api.crackHit=function(){var s=G.L.def.secret;return s?crackHit(s.cx+.5,s.cy+.5):false;};
-var QA_BUILD=false; /* the QA build (build/m1.9-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.9.1-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

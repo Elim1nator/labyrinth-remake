@@ -125,7 +125,7 @@ A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
 - Each full round of three adds a tier: HP +40% (max ×3, from floor 80), attacks 8% more often (max 1/0.6), speed +6% (max ×1.3). Floor 20's King Gloop has 51 HP; floor 80's has 108.
 - At 0.8 s per throw, a floor-5 King Gloop takes at least 29 s of hits.
 - Loot: 15 coins spray out, plus a heart and a random power-up. The boss counts as a kill and an elite (+150 score). The score formula is unchanged.
-- Arena: the exit room if it has 35+ cells (so the boss stands by the portal), else the biggest room (never the start, shop, slot or vault room). Other mobs move out and no pits are dug there.
+- Arena: the exit room if it has 35+ cells (so the boss stands by the portal), else the biggest room (never the start, shop, slot or vault room). Other mobs move out and no pits are dug there. Once you are inside, its doors lock until the boss falls (M1.10.1).
 - The exit door on a boss floor is not locked and its key is not placed (with a vault, the vault keeps its lock and the open-area key opens it).
 
 ## Endless floors (M1.8)

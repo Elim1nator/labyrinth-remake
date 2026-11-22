@@ -313,7 +313,7 @@ async function m110Tests(){
         const idle0=__game.boss().ent.woke;__game.faceBoss(2.5);const s1=__game.advance(0.1),woke=__game.boss().ent.woke,bar=s1.stats.bossBar;
         let outside=0,maxShots=0,hurt=0,h0=5;for(let i=0;i<120;i++){__game.setHearts(5);const s=__game.advance(0.1);const e=__game.boss().ent;if(e.x<A.x||e.x>A.x+A.w||e.y<A.y||e.y>A.y+A.h)outside++;if(s.player.hearts<5||s.player.inv>0.5)hurt++;maxShots=s.stats.bossShots;}
         out[f]={idle0,woke,msg:s1.msg,bar:!!bar,outside,shots:maxShots,hurt,type:b0.ent.type,fly:!!__game.bosses[b0.ent.type].fly};}return out;});
-    check('M1.10 each boss sleeps until you come near, then wakes with a message and the health bar shows',[5,10,15].every(f=>!per[f].idle0&&per[f].woke&&/AWAKENS/.test(per[f].msg)&&per[f].bar),JSON.stringify(per));
+    check('M1.10 each boss sleeps until you come near, then wakes with a message and the health bar shows',[5,10,15].every(f=>!per[f].idle0&&per[f].woke&&/AWAKENS|LOCKS YOU IN/.test(per[f].msg)&&per[f].bar),JSON.stringify(per));
     check('M1.10 each boss stays inside its arena, shoots at you and can hurt you (12 s each, standing 2.5 cells away)',[5,10,15].every(f=>per[f].outside===0&&per[f].shots>0&&per[f].hurt>0),JSON.stringify(per));
     check('M1.10 Coghoot flies (crosses pits); the other two walk',per[15].fly&&!per[5].fly&&!per[10].fly);
     // leash: from outside the arena the boss presses against the edge but never leaves
@@ -332,6 +332,14 @@ async function m110Tests(){
     check('M1.10 Luggernaut loses a suitcase at 2/3 and 1/3 health (3 -> 2 -> 1, a burst of socks and coins each time) and gets shorter, so balloons must aim lower',lugg[0].stack===3&&lugg[1].stack===2&&lugg[2].stack===1&&lugg[2].bursts===2&&lugg[0].hh>lugg[1].hh&&lugg[1].hh>lugg[2].hh&&lugg[2].frame>=4,JSON.stringify(lugg));
     const owl=await G(page,()=>{__game.setSeed(777);__game.startLevel(14);__game.faceBoss(3);__game.advance(0.1);let home=0,gear=0;for(let i=0;i<60;i++){__game.setHearts(5);const s=__game.advance(0.1);s.eshots.forEach(q=>{if(q.kind==='gear')gear++;});}return {gear,z:__game.boss().ent.z};});
     check('M1.10 Coghoot hovers above the floor and fires gears',owl.gear>0&&owl.z>0.1,JSON.stringify(owl));
+    // arena doors lock behind you and open when the boss falls
+    const lock=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const b=__game.boss(),A=b.def.room,d0=__game.arenaDoors();
+      const door=d0[0];const out=[door.x-(door.x<A.x?1:door.x>=A.x+A.w?-1:0),door.y-(door.y<A.y?1:door.y>=A.y+A.h?-1:0)];__game.teleport(out[0]+.5,out[1]+.5,0);__game.advance(0.2);const before=__game.arenaDoors().some(d=>d.bossLock);
+      __game.faceBoss(2.5);let s=__game.advance(1.2);const locked=__game.arenaDoors(),msg=s.msg;
+      const fx=door.x<A.x?A.x:door.x>=A.x+A.w?A.x+A.w-1:door.x,fy=door.y<A.y?A.y:door.y>=A.y+A.h?A.y+A.h-1:door.y;__game.teleport(fx+.5,fy+.5,Math.atan2(door.y-fy,door.x-fx));__game.setHearts(5);const keys0=s.player.keys;__game.use();s=__game.advance(0.6);const tried=__game.arenaDoors().find(d=>d.x===door.x&&d.y===door.y),useMsg=s.msg;
+      __game.hitBoss(999);__game.advance(1.6);const after=__game.arenaDoors();__game.use();__game.advance(0.8);const opened=__game.arenaDoors().find(d=>d.x===door.x&&d.y===door.y);
+      return {n:d0.length,before,allLocked:locked.every(d=>d.bossLock&&d.locked),closed:locked.every(d=>d.open<0.8),msg,triedOpen:tried.open,useMsg,keys0,afterLocked:after.some(d=>d.bossLock||d.locked),opened:opened.open};});
+    check('M1.10 stepping into the arena slams and locks every door in its walls; no key opens them; they unlock when the boss falls',lock.n>0&&!lock.before&&lock.allLocked&&lock.closed&&/LUGGERNAUT LOCKS YOU IN/.test(lock.msg)&&lock.triedOpen<0.1&&/LOCKED UNTIL LUGGERNAUT/.test(lock.useMsg)&&!lock.afterLocked&&lock.opened>0.9,JSON.stringify(lock));
     // death: loot, score, portal opens, clear screen names the boss, next floor
     const win=await G(page,()=>{__game.setSeed(777);__game.startLevel(4,{hearts:5,coins:0});__game.setRun({kills:0,elites:0,coins:0,deepest:5});__game.faceBoss(2.5);__game.advance(0.1);const sc0=__game.state().score,bx=__game.boss().ent.x,by=__game.boss().ent.y,near=i=>Math.hypot(i.x-bx,i.y-by)<1.2;
       __game.hitBoss(999);let s=__game.advance(0.5);const dying=__game.boss().ent.state,sealedMid=__game.boss().sealed;s=__game.advance(1.0);const b=__game.boss();

@@ -1,4 +1,4 @@
-# Balance (M1.9)
+# Balance (M1.10)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -111,6 +111,23 @@ The four permanent items cost 160 coins together. Floors 2–8 place 200 coins i
 every coin and pop every mob (before elite loot, secret-room bags and the slot), so a full
 shop spend is a long-run investment rather than a first-shop impulse buy.
 
+## Bosses (M1.10)
+
+A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
+
+| Boss | Base HP | Moves | Attacks | Phases |
+|---|---|---|---|---|
+| King Gloop | 36 | Hops at you (0.9 cells/s, faster in the air) | Fan of 5 jelly blobs every 3.2 s (0.6 s tell) | 2 minions at 2/3 and 1/3 HP (max 4 alive); furious at 1/2: fan of 7, faster hops, landings leave goo |
+| Luggernaut | 45 | Walks at you (1.0 cells/s) | Sock fan (3, 5, then 2 fast ones) or a charge (4.6 cells/s, stunned 0.7 s on a wall) every 2.4 s | A suitcase bursts at 2/3 and 1/3 HP: ring of 10 socks + 3 coins; speed ×1.35, then ×1.75; shorter target |
+| Coghoot | 40 | Flies circles about 3 cells from you (1.7 cells/s) | 3 homing gears or a swoop (5 cells/s) every 2.6 s | Furious at 1/2: rings of 8 gears, ×1.25 speed |
+
+- Contact and every shot cost 1 heart. A boss never leaves its arena. It wakes when you step into the arena, or see it from within 7 cells.
+- Each full round of three adds a tier: HP +40% (max ×3, from floor 80), attacks 8% more often (max 1/0.6), speed +6% (max ×1.3). Floor 20's King Gloop has 51 HP; floor 80's has 108.
+- At 0.8 s per throw, a floor-5 King Gloop takes at least 29 s of hits.
+- Loot: 15 coins spray out, plus a heart and a random power-up. The boss counts as a kill and an elite (+150 score). The score formula is unchanged.
+- Arena: the exit room if it has 35+ cells (so the boss stands by the portal), else the biggest room (never the start, shop, slot or vault room). Other mobs move out and no pits are dug there.
+- The exit door on a boss floor is not locked and its key is not placed (with a vault, the vault keeps its lock and the open-area key opens it).
+
 ## Endless floors (M1.8)
 
 - The floor limit is 10,000. M1.8 scaling still applies on top of the M1.9 floor features above.
@@ -126,7 +143,7 @@ score = 1000·(L − 1) + 50 per mob popped + 100 extra per elite + 5 per coin
 score = min(score, L·100,000, 10,000,000)
 ```
 
-The cap keeps every score valid for the high score API. The formula is unchanged in M1.9.
+The cap keeps every score valid for the high score API. The formula is unchanged in M1.9 and M1.10 (a boss scores as a mob plus an elite).
 
 ## Slot machine
 

@@ -21,6 +21,7 @@ const V17=atLeast('1.7'); // M1.7+: icon placement, gated debug hook (QA build f
 const V18=atLeast('1.8'); // M1.8+: endless floors, deeper wall textures, score + high scores (stub API), slot machine
 const V19=atLeast('1.9'); // M1.9+: slot rework (no limit, jackpot spray, crit fail), slower balloons, floor-long power-ups, shop, balloon types, backpack, secret rooms, decorations, pits, Rattlebone, ghosts through doors
 const V191=atLeast('1.9.1'); // M1.9.1+: shop panel clear of the HUD, decorations never diagonal to a door
+const V110=atLeast('1.10'); // M1.10+: a boss every 5th floor guards a sealed portal (its exit door is unlocked)
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -261,16 +262,129 @@ async function m191Tests(){
   await ctx.close();
 }
 
-if(NEW){ await regressionTests(); }
-if(V12){ await m12Tests(); }
-if(V13){ await m13Tests(); }
-if(V14){ await m14Tests(); }
-if(V15){ await m15Tests(); }
-if(V16){ await m16Tests(); }
-if(V17){ await m17Tests(); }
-if(V18){ await m18Tests(); }
-if(V19){ await m19Tests(); }
-if(V191){ await m191Tests(); }
+// ---------- M1.10: bosses every 5th floor (King Gloop, Luggernaut, Coghoot); the portal opens when the boss falls ----------
+async function m110Tests(){
+  const S10=`${OUT}/screens`;const shot=async(page,name)=>page.screenshot({path:`${S10}/m110_${name}.png`});
+  const savePng=(name,url)=>fs.writeFileSync(`${S10}/${name}`,Buffer.from(url.split(',')[1],'base64'));
+  // ---- 1. generation: which floors, which boss, the arena, the unlocked exit door, keys
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m110-gen'});
+    const g=await G(page,()=>{const out={floors:0,bossFloors:0,wrongType:[],bad:[],noBossOk:true,arenaSizes:{},exitArena:0,tiers:{}};const B=__game.bosses,order=__game.bossOrder,ch={};order.forEach(t=>ch[B[t].ch]=t);
+      for(let sd=1;sd<=30;sd++)for(let f=2;f<=60;f++){const d=__game.genMap(sd,f),m=d.map,RR=__game.genRooms(sd,f),h=m.length,w=m[0].length;out.floors++;
+        let bosses=[],nk=0,nl=0,start=null,exit=null;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if(ch[c])bosses.push({t:ch[c],x,y});if(c==='k')nk++;if(c==='L')nl++;if(c==='p')start=[x,y];if(c==='X')exit=[x,y];}
+        const want=__game.bossFor(f);if(!want){if(bosses.length){out.noBossOk=false;out.bad.push(`${sd}:${f} boss on a non-boss floor`);}continue;}
+        out.bossFloors++;if(bosses.length!==1){out.bad.push(`${sd}:${f} ${bosses.length} bosses`);continue;}const b=bosses[0];if(b.t!==want.type)out.wrongType.push(`${sd}:${f} ${b.t}`);
+        const A=RR.find(r=>b.x>=r.x&&b.x<r.x+r.w&&b.y>=r.y&&b.y<r.y+r.h);if(!A){out.bad.push(`${sd}:${f} boss not in a room`);continue;}
+        if(A.start||A.shop)out.bad.push(`${sd}:${f} arena is the start or shop room`);const sz=A.w*A.h;out.arenaSizes[sz]=(out.arenaSizes[sz]||0)+1;
+        const inA=(x,y)=>x>=A.x&&x<A.x+A.w&&y>=A.y&&y<A.y+A.h;if(inA(exit[0],exit[1]))out.exitArena++;
+        const ringHas=(r,c)=>{for(let x=r.x-1;x<=r.x+r.w;x++)if(m[r.y-1][x]===c||m[r.y+r.h][x]===c)return true;for(let y=r.y;y<r.y+r.h;y++)if(m[y][r.x-1]===c||m[y][r.x+r.w]===c)return true;return false;},hasY=r=>{for(let y=r.y;y<r.y+r.h;y++)if(m[y].slice(r.x,r.x+r.w).includes('Y'))return true;return false;};
+        const biggest=Math.max(...RR.filter(r=>!r.start&&!r.shop&&!hasY(r)&&!ringHas(r,'L')).map(r=>r.w*r.h)); /* the slot machine's room and the vault are never arenas */if(!inA(exit[0],exit[1])&&sz<35&&sz<biggest)out.bad.push(`${sd}:${f} arena ${sz} smaller than the biggest room ${biggest}`);
+        for(let y=A.y;y<A.y+A.h;y++)for(let x=A.x;x<A.x+A.w;x++){const c=m[y][x];if(c==='P')out.bad.push(`${sd}:${f} pit in the arena`);if(/[ebtgrzs]/.test(c))out.bad.push(`${sd}:${f} mob ${c} in the arena`);}
+        if(nk!==nl)out.bad.push(`${sd}:${f} keys ${nk} != locks ${nl}`);if(nl>1)out.bad.push(`${sd}:${f} ${nl} locks`);
+        // reachable from the start without any key: boss and portal
+        const seen=new Set([start.join()]),q=[start];const walk=c=>!(/[#SWTMKRCVOFLPYN]/.test(c));while(q.length){const [x,y]=q.shift();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(seen.has(k)||!walk(m[ny][nx]))continue;seen.add(k);q.push([nx,ny]);}}
+        if(!seen.has(b.x+','+b.y)||!seen.has(exit.join()))out.bad.push(`${sd}:${f} boss or portal not reachable without a key`);
+        out.tiers[want.tier]=(out.tiers[want.tier]||0)+1;}
+      return out;});
+    check(`M1.10 a boss on every 5th floor and nowhere else (${g.bossFloors} boss floors in ${g.floors} floors, 30 seeds x floors 2-60), in the order King Gloop, Luggernaut, Coghoot`,g.bossFloors===30*12&&g.noBossOk&&g.wrongType.length===0&&g.bad.filter(b=>/bosses|non-boss/.test(b)).length===0,JSON.stringify({wrong:g.wrongType.slice(0,4),bad:g.bad.slice(0,4)}));
+    check('M1.10 the arena is the exit room when it has 35+ cells, else the biggest room; never the start or shop room; no pits or other mobs inside',g.bad.filter(b=>/arena|pit|mob /.test(b)).length===0,JSON.stringify({bad:g.bad.filter(b=>/arena|pit|mob /.test(b)).slice(0,4),exitArena:g.exitArena,sizes:g.arenaSizes}));
+    check('M1.10 boss floors: the exit door is unlocked (keys match locks, at most the vault lock), and the boss and portal are reachable without a key',g.bad.filter(b=>/keys|locks|reachable/.test(b)).length===0,JSON.stringify(g.bad.filter(b=>/keys|locks|reachable/.test(b)).slice(0,4)));
+    // non-boss floors are exactly as in M1.9.1; boss floors keep the M1.8 layout (map18)
+    const cur=await G(page,()=>{const o={};for(const sd of [1,777,4242])for(let f=2;f<=26;f++){const d=__game.genMap(sd,f);o[sd+':'+f]=(__game.bossFor(f)?d.map18:d.map).join('\n');}return o;});
+    const old=await page.context().newPage();await old.goto(`file://${BUILDS}/m1.9.1-qa/index.html`);await old.waitForFunction(()=>!!window.__game);
+    const prev=await old.evaluate(()=>{const o={};const bf=f=>f>=5&&f%5===0;for(const sd of [1,777,4242])for(let f=2;f<=26;f++){const d=__game.genMap(sd,f);o[sd+':'+f]=(bf(f)?d.map18:d.map).join('\n');}return o;});await old.close();
+    const diff=Object.keys(cur).filter(k=>cur[k]!==prev[k]);
+    check('M1.10 floors without a boss are generated exactly as in M1.9.1, boss floors keep their M1.8 layout (3 seeds x floors 2-26)',diff.length===0,diff.slice(0,6).join(', '));
+    const api=await G(page,()=>({mobs:Object.keys(__game.mobs),bosses:Object.keys(__game.bosses).map(k=>({k,name:__game.bosses[k].name,hp:__game.bosses[k].hp,ch:__game.bosses[k].ch,dot:__game.bosses[k].dot})),f:[5,10,15,20,25,30,80,95,200].map(f=>{const b=__game.bossFor(f);return f+':'+b.type+':'+b.tier+':'+b.hpMul.toFixed(2);}),none:[1,4,6,7,11].map(f=>__game.bossFor(f))}));
+    check('M1.10 three bosses with their own names and map letters, kept out of the regular mob table; tougher each round (+40% HP per round of three, at most x3)',api.bosses.length===3&&new Set(api.bosses.map(b=>b.name)).size===3&&!api.mobs.some(m=>api.bosses.some(b=>b.k===m))&&api.none.every(x=>x===null)&&api.f.join()==='5:king:0:1.00,10:lugg:0:1.00,15:owl:0:1.00,20:king:1:1.40,25:lugg:1:1.40,30:owl:1:1.40,80:king:5:3.00,95:king:6:3.00,200:king:13:3.00',JSON.stringify(api));
+    savePng('m110_boss_sprites_3x.png',await G(page,()=>__game.spriteSheet(3,'boss')));
+    const fr=await G(page,()=>({king:new Set([0,1,2,3].map(i=>__game.frameSig('king',i))).size,owl:new Set([0,1,2,3].map(i=>__game.frameSig('owl',i))).size,lugg:new Set([0,1,2,3,4,5].map(i=>__game.frameSig('lugg',i))).size,portalS:__game.frameSig('portalS',0)!==__game.frameSig('portal',0)}));
+    check('M1.10 boss art: King Gloop and Coghoot have 4 distinct frames, Luggernaut 6 (2 per stack height); the sealed portal looks different',fr.king===4&&fr.owl===4&&fr.lugg===6&&fr.portalS,JSON.stringify(fr));
+    await ctx.close();
+  }
+  // ---- 2. the fight: seal, wake, arena leash, attacks, phases, death, loot, portal
+  {
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m110-fight'});
+    const seal=await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.startLevel(4);const s0=__game.state(),b=__game.boss();const ex=s0.exit;
+      __game.teleport(ex.x+.5,ex.y+.5,0);let s=__game.advance(0.3);const still=s.mode,msg=s.msg;return {msg0:s0.msg,sealed:b.sealed,idle:b.ent.state,still,msg,hp:b.ent.hp,save:s0.save&&s0.save.level};});
+    check('M1.10 floor 5: "BOSS FLOOR!" message, the portal is sealed, and stepping into it does nothing but say who to beat',/BOSS FLOOR! KING GLOOP/.test(seal.msg0)&&seal.sealed&&seal.still==='play'&&/SEALED! DEFEAT KING GLOOP/.test(seal.msg),JSON.stringify(seal));
+    // each boss: wakes, stays in its arena, attacks, can hurt you
+    const per=await G(page,()=>{const out={};for(const f of [5,10,15]){__game.setSeed(777);__game.startLevel(f-1);__game.setEffect(null);const b0=__game.boss(),A=b0.def.room;
+        const idle0=__game.boss().ent.woke;__game.faceBoss(2.5);const s1=__game.advance(0.1),woke=__game.boss().ent.woke,bar=s1.stats.bossBar;
+        let outside=0,maxShots=0,hurt=0,h0=5;for(let i=0;i<120;i++){__game.setHearts(5);const s=__game.advance(0.1);const e=__game.boss().ent;if(e.x<A.x||e.x>A.x+A.w||e.y<A.y||e.y>A.y+A.h)outside++;if(s.player.hearts<5||s.player.inv>0.5)hurt++;maxShots=s.stats.bossShots;}
+        out[f]={idle0,woke,msg:s1.msg,bar:!!bar,outside,shots:maxShots,hurt,type:b0.ent.type,fly:!!__game.bosses[b0.ent.type].fly};}return out;});
+    check('M1.10 each boss sleeps until you come near, then wakes with a message and the health bar shows',[5,10,15].every(f=>!per[f].idle0&&per[f].woke&&/AWAKENS/.test(per[f].msg)&&per[f].bar),JSON.stringify(per));
+    check('M1.10 each boss stays inside its arena, shoots at you and can hurt you (12 s each, standing 2.5 cells away)',[5,10,15].every(f=>per[f].outside===0&&per[f].shots>0&&per[f].hurt>0),JSON.stringify(per));
+    check('M1.10 Coghoot flies (crosses pits); the other two walk',per[15].fly&&!per[5].fly&&!per[10].fly);
+    // leash: from outside the arena the boss presses against the edge but never leaves
+    const leash=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const b=__game.boss(),A=b.def.room;__game.faceBoss(2);__game.advance(0.1);
+      let x=A.x-1.5,y=A.y+A.h/2;for(const yy of [A.y+1,A.y+A.h-1.5,A.y+A.h/2])for(const xx of [A.x-1.5,A.x+A.w+1.5])if(!__game.solidAt(xx,yy)){x=xx;y=yy;}
+      __game.teleport(x,y,0);let out=0,minD=99;for(let i=0;i<100;i++){__game.setHearts(5);__game.advance(0.1);const e=__game.boss().ent;if(e.x<A.x||e.x>A.x+A.w||e.y<A.y||e.y>A.y+A.h)out++;minD=Math.min(minD,Math.hypot(e.x-x,e.y-y));}return {out,minD,A,p:[x,y]};});
+    check('M1.10 a boss never leaves its arena, even when you stand outside it',leash.out===0,JSON.stringify(leash));
+    // King Gloop phases: minions at 2/3 and 1/3, furious at half
+    const king=await G(page,()=>{__game.setSeed(777);__game.startLevel(4);__game.faceBoss(2.5);__game.advance(0.1);const B=()=>__game.boss().ent,mx=B().maxHp,r=[];
+      const step=(n)=>{__game.hitBoss(n);__game.setHearts(5);const s=__game.advance(0.1);r.push({hp:B().hp,split:B().split,enr:B().enraged,minions:s.stats.bossMinions,alive:s.enemies.filter(e=>e.spawned&&!e.gone&&e.state!=='dead').length});};
+      step(Math.ceil(mx/3));step(Math.ceil(mx/6));step(Math.ceil(mx/6));return {mx,r};});
+    check('M1.10 King Gloop splits off 2 minions at 2/3 and again at 1/3 health (never more than 4 alive) and gets furious at half',king.r[0].split===1&&king.r[0].minions===2&&!king.r[0].enr&&king.r[1].enr&&king.r[2].split===2&&king.r[2].minions===4&&king.r.every(x=>x.alive<=4),JSON.stringify(king));
+    // Luggernaut: suitcases burst at 2/3 and 1/3; the hit box shrinks with the stack
+    const lugg=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.5);__game.advance(0.1);const B=()=>__game.boss().ent,mx=B().maxHp,r=[{stack:B().stack,hh:B().hh,frame:B().frame}];
+      for(const n of [Math.ceil(mx/3),Math.ceil(mx/3)]){__game.hitBoss(n);__game.setHearts(5);const s=__game.advance(0.1);r.push({stack:B().stack,hh:B().hh,frame:B().frame,bursts:s.stats.caseBursts,msg:s.msg});}return r;});
+    check('M1.10 Luggernaut loses a suitcase at 2/3 and 1/3 health (3 -> 2 -> 1, a burst of socks and coins each time) and gets shorter, so balloons must aim lower',lugg[0].stack===3&&lugg[1].stack===2&&lugg[2].stack===1&&lugg[2].bursts===2&&lugg[0].hh>lugg[1].hh&&lugg[1].hh>lugg[2].hh&&lugg[2].frame>=4,JSON.stringify(lugg));
+    const owl=await G(page,()=>{__game.setSeed(777);__game.startLevel(14);__game.faceBoss(3);__game.advance(0.1);let home=0,gear=0;for(let i=0;i<60;i++){__game.setHearts(5);const s=__game.advance(0.1);s.eshots.forEach(q=>{if(q.kind==='gear')gear++;});}return {gear,z:__game.boss().ent.z};});
+    check('M1.10 Coghoot hovers above the floor and fires gears',owl.gear>0&&owl.z>0.1,JSON.stringify(owl));
+    // death: loot, score, portal opens, clear screen names the boss, next floor
+    const win=await G(page,()=>{__game.setSeed(777);__game.startLevel(4,{hearts:5,coins:0});__game.setRun({kills:0,elites:0,coins:0,deepest:5});__game.faceBoss(2.5);__game.advance(0.1);const sc0=__game.state().score,bx=__game.boss().ent.x,by=__game.boss().ent.y,near=i=>Math.hypot(i.x-bx,i.y-by)<1.2;
+      __game.hitBoss(999);let s=__game.advance(0.5);const dying=__game.boss().ent.state,sealedMid=__game.boss().sealed;s=__game.advance(1.0);const b=__game.boss();
+      const coins=s.items.filter(i=>i.kind==='coin'&&i.spray).length,hearts=s.items.filter(i=>i.kind==='heart'&&!i.taken&&near(i)).length,pw=s.items.filter(i=>i.kind==='power'&&near(i)).length;
+      __game.advance(2);__game.nextFloorViaExit();s=__game.advance(0.1);const mode=s.mode;__game.advance(0.6);__game.confirm();const s2=__game.advance(0.05);
+      return {dying,sealedMid,sealed:b.sealed,gone:b.ent.gone,msg:s.msg,coins,hearts,pw,dScore:s.score-sc0-5*s.run.coins,run:s.run,kills:s.stats.bossKills,mode,next:s2.level,nextMode:s2.mode};});
+    check('M1.10 a beaten boss flashes for a moment, then pops: the portal opens with a message',win.dying==='dead'&&win.sealedMid&&!win.sealed&&win.gone&&win.kills>=1,JSON.stringify(win));
+    check('M1.10 boss loot: 15 coins spray out, plus a heart and a power-up; it scores as a kill and an elite (+150, plus 5 per coin you pick up)',win.coins>=15&&win.hearts===1&&win.pw===1&&win.dScore===150,JSON.stringify(win));
+    check('M1.10 once the boss is down the portal clears the floor and leads to floor 6',win.mode==='clear'&&win.next===5&&win.nextMode==='play',JSON.stringify(win));
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(4);__game.hitBoss(999);__game.advance(1.6);__game.nextFloorViaExit();__game.advance(0.8);});await shot(page,'clear_screen_boss');
+    // the clear screen line, bar and maps
+    const ui=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const r0=__game.state().stats.bossBar;__game.seeAll();__game.openMap();__game.advance(0.05);__game.render();const ex=__game.state().exit,fm=__game.state().stats.fullMap;
+      const cs=fm.cs,px=__game.pixelAt(Math.round(fm.ox+ex.x*cs+cs/2),Math.round(fm.oy+ex.y*cs+cs/2));__game.closeMap();__game.hitBoss(999);__game.advance(1.6);__game.seeAll();__game.openMap();__game.advance(0.05);__game.render();
+      const px2=__game.pixelAt(Math.round(fm.ox+ex.x*cs+cs/2),Math.round(fm.oy+ex.y*cs+cs/2));__game.closeMap();return {px,px2};});
+    check('M1.10 the full map shows the sealed portal dim, and bright once it opens',ui.px.join()!==ui.px2.join()&&ui.px[2]<120,JSON.stringify(ui));
+    const bar=await G(page,()=>{__game.setSeed(777);__game.startLevel(14);const r=[];let s=__game.advance(0.05);const idle=s.stats.bossBar?1:0;__game.faceBoss(3);s=__game.advance(0.1);const w0=s.stats.bossBar.w;__game.hitBoss(Math.ceil(__game.boss().ent.maxHp/2));s=__game.advance(0.1);const w1=s.stats.bossBar.w;const R=__game.bossBar(),H=__game.hudRects();
+      return {idle,w0,w1,inBand:R[0]>=H.band[0]&&R[1]>=H.band[1]&&R[0]+R[2]<=H.band[0]+H.band[2]&&R[1]+R[3]<=H.band[1]+H.band[3]};});
+    check('M1.10 the boss health bar appears once the boss wakes, sits inside the message band (no new screen space) and shrinks with the boss HP',bar.idle===0&&bar.inBand&&bar.w0>0&&Math.abs(bar.w1/bar.w0-0.5)<0.08,JSON.stringify(bar));
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(4);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'king_gloop');
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'luggernaut');
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(14);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'coghoot');
+    // a deeper boss is tougher; CONTINUE on a boss floor brings the boss back and the portal sealed
+    const deep=await G(page,()=>{__game.setSeed(4242);__game.startLevel(19);const a=__game.boss().ent;__game.startLevel(79);const b=__game.boss().ent;const B=__game.bosses;return {a:[a.type,a.maxHp,a.tier],b:[b.type,b.maxHp,b.tier,b.cdMul,b.spdMul],base:B.king.hp};});
+    check('M1.10 floor 20 King Gloop has 40% more HP than on floor 5; by floor 80 x3 HP, attacks 1/0.6 as often, 1.3x speed (caps)',deep.a[0]==='king'&&deep.a[1]===Math.ceil(deep.base*1.4)&&deep.b[1]===deep.base*3&&deep.b[3]===0.6&&deep.b[4]===1.3,JSON.stringify(deep));
+    const cont=await G(page,()=>{localStorage.clear();__game.setSeed(777);__game.startLevel(9);__game.hitBoss(999);__game.advance(1.6);__game.toTitle();__game.menuPick(0);__game.advance(0.05);const b=__game.boss();return {level:__game.state().level,sealed:b.sealed,alive:!!(b.ent&&!b.ent.gone&&b.ent.hp===b.ent.maxHp)};});
+    check('M1.10 CONTINUE on a boss floor starts it fresh: the boss is back and the portal sealed',cont.level===9&&cont.sealed&&cont.alive,JSON.stringify(cont));
+    await ctx.close();
+  }
+  // ---- 3. phone: the bar lives in the band, so no touch button can cover it
+  {
+    const {ctx,page}=await newPage({viewport:{width:844,height:390},hasTouch:true,isMobile:true,label:'m110-phone'});
+    const r=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.6);__game.advance(0.3);const l=__game.layout(),R=__game.bossBar();return {l,R};});
+    const c=r.l.canvas,s=c.w/480,bar={x:c.x+r.R[0]*s,y:c.y+r.R[1]*s,w:r.R[2]*s,h:r.R[3]*s},ov=(a,b)=>a.visible!==false&&a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+    const hits=['throwBtn','useBtn','pauseBtn','itemBtn','mapBtn','ballBtn'].filter(k=>r.l[k].visible&&ov(r.l[k],bar));
+    check('M1.10 phone 844x390: no touch button covers the boss health bar',hits.length===0,hits.join(','));
+    await shot(page,'phone_844x390_boss');
+    await ctx.close();
+  }
+}
+
+// ONLY=m19,m110 node m1.test.mjs <build> runs just those groups (names as in the function names, 'regression' for the M1.1 set)
+const ONLY=(process.env.ONLY||'').split(',').filter(Boolean),want=n=>!ONLY.length||ONLY.includes(n);
+if(NEW&&want('regression')){ await regressionTests(); }
+if(V12&&want('m12')){ await m12Tests(); }
+if(V13&&want('m13')){ await m13Tests(); }
+if(V14&&want('m14')){ await m14Tests(); }
+if(V15&&want('m15')){ await m15Tests(); }
+if(V16&&want('m16')){ await m16Tests(); }
+if(V17&&want('m17')){ await m17Tests(); }
+if(V18&&want('m18')){ await m18Tests(); }
+if(V19&&want('m19')){ await m19Tests(); }
+if(V191&&want('m191')){ await m191Tests(); }
+if(V110&&want('m110')){ await m110Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -765,7 +879,7 @@ async function m13Tests(){
       for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(at(x,y)!=='F'&&at(x,y)!=='D'&&at(x,y)!=='L')continue;const hz=!WALL.has(at(x-1,y))&&!WALL.has(at(x+1,y))&&at(x-1,y)!=='F'&&at(x+1,y)!=='F',vt=!WALL.has(at(x,y-1))&&!WALL.has(at(x,y+1))&&at(x,y-1)!=='F'&&at(x,y+1)!=='F';if(!(hz&&WALL.has(at(x,y-1))&&WALL.has(at(x,y+1)))&&!(vt&&WALL.has(at(x-1,y))&&WALL.has(at(x+1,y)))){problems.push(`bad ${at(x,y)} at ${x},${y}`);break;}}
       return {problems,w,h,mobs,locks:locks.length,states,types:new Set([...rows.join('')].filter(c=>mobCh[c]).map(c=>mobCh[c])),rows};}
     const bad=[];const byLvl={};
-    for(const m of maps){const a=analyse(m);if(V19&&m.map18){const mc={e:1,b:1,t:1,g:1,r:1,z:1};a.mobs=[...m.map18.join('')].filter(c=>mc[c]).length;a.types=new Set([...m.map18.join('')].filter(c=>mc[c]).map(c=>mobCh[c]));} /* M1.9: the growth check uses the M1.8 mob layout; extra room-fill mobs are checked in M1.9 */if(m.fallback)a.problems.push('fallback');if(a.problems.length)bad.push(`seed ${m.seed} L${m.lvl}: ${a.problems.join(',')}`);(byLvl[m.lvl]=byLvl[m.lvl]||[]).push({...a,m});}
+    for(const m of maps){const a=analyse(m);if(V19&&m.map18){const mc={e:1,b:1,t:1,g:1,r:1,z:1};a.mobs=[...m.map18.join('')].filter(c=>mc[c]).length;a.types=new Set([...m.map18.join('')].filter(c=>mc[c]).map(c=>mobCh[c]));if(V110)a.locks=[...m.map18.join('')].filter(c=>c==='L').length;} /* M1.10: boss floors unlock the exit door, so lock growth is checked on the M1.8 layout too */ /* M1.9: the growth check uses the M1.8 mob layout; extra room-fill mobs are checked in M1.9 */if(m.fallback)a.problems.push('fallback');if(a.problems.length)bad.push(`seed ${m.seed} L${m.lvl}: ${a.problems.join(',')}`);(byLvl[m.lvl]=byLvl[m.lvl]||[]).push({...a,m});}
     check(`M1.3 procgen: ${maps.length} generated maps (525 seeds + 30 seeds x 7 levels) are all fully reachable and solvable in any key order`,bad.length===0&&maps.length>=735,bad.slice(0,6).join(' | ')||`max lock-order states ${Math.max(...Object.values(byLvl).flat().map(a=>a.states))}`);
     const det=await G(page,()=>{const a=JSON.stringify(__game.genMap(777,4).map),b=JSON.stringify(__game.genMap(777,4).map),c=JSON.stringify(__game.genMap(778,4).map),d=JSON.stringify(__game.genMap(777,5).map);return {same:a===b,diffSeed:a!==c,diffLvl:a!==d};});
     check('M1.3 procgen is deterministic per seed+level and varies by seed and level',det.same&&det.diffSeed&&det.diffLvl,JSON.stringify(det));
@@ -1687,7 +1801,7 @@ async function m18Tests(){
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m18-endless'});
     let r=await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.startLevel(7);__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);let s=__game.advance(0.3);const m1=s.mode;__game.advance(0.6);__game.confirm();s=__game.advance(0.05);return {m1,mode:s.mode,level:s.level,name:s.levelName,save:s.save};});
     check('M1.8 no final win: clearing level 8 starts floor 9 (deep theme) and saves it',r.m1==='clear'&&r.mode==='play'&&r.level===8&&/^LEVEL 9: BASALT DEPTHS/.test(r.name)&&r.save&&r.save.level===8,JSON.stringify(r));
-    r=await G(page,()=>{const out=[];for(const f of [50,200,1000]){__game.startLevel(f-1);__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);__game.advance(0.3);__game.advance(0.6);__game.confirm();const s=__game.advance(0.05);out.push(s.mode+':'+s.level);}return out;});
+    r=await G(page,()=>{const out=[];for(const f of [50,200,1000]){__game.startLevel(f-1);if(__game.hitBoss){__game.hitBoss(9999);__game.advance(1.5);} /* M1.10: these are boss floors; the portal opens once the boss falls */__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);__game.advance(0.3);__game.advance(0.6);__game.confirm();const s=__game.advance(0.05);out.push(s.mode+':'+s.level);}return out;});
     check('M1.8 clears on floors 50, 200 and 1000 lead on to the next floor (never a win screen)',r.join()==='play:50,play:200,play:1000',r.join());
     await G(page,()=>{__game.setRun({kills:12,elites:3,coins:40,deepest:199});__game.startLevel(199,{hearts:4,coins:33,item:'shield'});});
     const sv=await G(page,()=>__game.state().save);
@@ -1729,7 +1843,7 @@ async function m18Tests(){
     check('M1.8 difficulty keeps scaling then caps: mobs <= 22 (from L13), coins <= 30, HP x1.06/floor past 8 up to x1.6 (L18), elites <= 60% (L12), two mods from L8',
       mono('mobs')&&mono('hpMul')&&mono('elite')&&d.every(x=>x.mobs<=22&&x.coins<=30&&x.hpMul<=1.6&&x.elite<=.6&&x.roomTries<=90)&&d[12].mobs===22&&d[11].mobs<22&&d[7].hpMul===1&&Math.abs(d[17].hpMul-1.6)<1e-9&&Math.abs(d[16].hpMul-1.54)<1e-9&&d[11].elite===.6&&d[399].twoMod===1&&d[7].mobs===15,
       `L8 mobs ${d[7].mobs}, L12 ${d[11].mobs}, L13 ${d[12].mobs}; hp L9 ${d[8].hpMul.toFixed(2)} L18 ${d[17].hpMul}; elite L12 ${d[11].elite} L400 ${d[399].elite}`);
-    const hp=await G(page,()=>{__game.setSeed(4242);__game.startLevel(199);const s=__game.state();const M=__game.mobs;let bad=0;s.enemies.forEach(e=>{const base=M[e.type].hp,cap=Math.ceil((e.mods.includes('beefy')?Math.ceil(base*2.5):base)*1.6);if(e.maxHp!==cap)bad++;});return {n:s.enemies.length,bad,elites:s.enemies.filter(e=>e.mods.length).length};});
+    const hp=await G(page,()=>{__game.setSeed(4242);__game.startLevel(199);const s=__game.state();const M=__game.mobs;let bad=0;s.enemies=s.enemies.filter(e=>M[e.type]); /* M1.10: floor 200 has a boss (own HP rules, checked in m110Tests) */s.enemies.forEach(e=>{const base=M[e.type].hp,cap=Math.ceil((e.mods.includes('beefy')?Math.ceil(base*2.5):base)*1.6);if(e.maxHp!==cap)bad++;});return {n:s.enemies.length,bad,elites:s.enemies.filter(e=>e.mods.length).length};});
     check('M1.8 floor 200 mobs: count <= 22, HP exactly x1.6 of their (elite) base',hp.n>0&&hp.n<=22&&hp.bad===0,JSON.stringify(hp));
     await ctx.close();
   }

@@ -43,7 +43,9 @@ on the inspiration are kept out of this repository.
 | M0 | done | Concept art (see `concepts/`) |
 | M1–M1.2 | done | First playable, input fixes, pitch, hand frames, Screamer |
 | M1.3–M1.9 | done | Procedural floors, new mobs, elites and power-ups, balance, endless floors, score, high scores, slot machine, shop, pits, Rattlebone (see [CHANGELOG.md](CHANGELOG.md)) |
-| Next | planned | More weapon families, breakable walls and secrets, shop machine, bosses, music, further polish |
+| M1.9.1 | done | Fixes for the M1.9 known issues, release tooling |
+| M1.10 | done | Bosses every 5th floor: King Gloop, Luggernaut, Coghoot; the portal opens when the boss falls |
+| Next | planned | More weapon families, shop machine, music, further polish |
 
 ## Risks we watch
 

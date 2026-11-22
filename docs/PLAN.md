@@ -42,7 +42,7 @@ on the inspiration are kept out of this repository.
 |---|---|---|
 | M0 | done | Concept art (see `concepts/`) |
 | M1–M1.2 | done | First playable, input fixes, pitch, hand frames, Screamer |
-| M1.3–M1.8 | done | Procedural floors, new mobs, elites and power-ups, balance, endless floors, score, high scores, slot machine (see [CHANGELOG.md](CHANGELOG.md)) |
+| M1.3–M1.9 | done | Procedural floors, new mobs, elites and power-ups, balance, endless floors, score, high scores, slot machine, shop, pits, Rattlebone (see [CHANGELOG.md](CHANGELOG.md)) |
 | Next | planned | More weapon families, breakable walls and secrets, shop machine, bosses, music, further polish |
 
 ## Risks we watch

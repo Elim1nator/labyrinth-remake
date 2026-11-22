@@ -3,6 +3,20 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.9: shop, slot rework, pits, Rattlebone (388 checks)
+- Slot machine: 3 coins a spin, no per-floor limit. Odds: 62% nothing, 14% +5 coins, 8% heart, 6% power-up, 2% jackpot (25 coins spray into the room), 8% three skulls (spawns 1 + 1 monster per 3 floors, capped at 8). Expected return about 0.40× the cost.
+- Balloon throw cooldown 0.42 s → 0.80 s.
+- Power-ups last the whole floor, shown as a HUD icon row. Rebalanced: Sneakers ×1.35, Freeze 60% speed, Shield absorbs 3 hits.
+- Merchant Old Murkle on every even floor from 2. Permanent items: Red balloons 35 (faster, longer range), Green 45 (poison ticks), Yellow 50 (a splash puddle that only hurts mobs), Backpack 30 (a second item slot). Two power-ups at 10 coins each, once per floor.
+- Balloon type switches with R / 1–4 / LB / BALL; backpack slots with F / RB / a tap.
+- Secret room on every generated floor behind a cracked wall that opens after 3 balloon hits.
+- No empty rooms. 8 decoration kinds with no hitbox.
+- Pits from L3 (max 6). Fatal; ground mobs avoid them, fliers cross them.
+- Rattlebone skeleton from L6: becomes a bone pile, gives a tell at 3 s and reforms at 4.5 s unless the pile is smashed.
+- Hazewisp passes through doors.
+- Known issues: the shop panel covers the top-left HUD while open; in crowded rooms a decoration can sit diagonally next to a door.
+- QA build `m1.9-qa` (debug hook on).
+
 ## M1.8: endless floors, score, high scores, slot machine (325 checks)
 - Endless floors: every exit leads to the next floor, up to floor 10,000. Floors 1–8 keep their M1.7 layouts.
 - Scaling caps past floor 8: up to 22 mobs (L13), 30 coins, mob HP +6% per floor up to ×1.6 (L18), elite chance capped at 60%, two modifiers from L8.

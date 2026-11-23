@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Labyrinth">
-<title>Labyrinth Remake (M1.11 prototype)</title>
+<title>Labyrinth Remake (M1.11.1 prototype)</title>
 <link rel="icon" id="icon" href="data:,">
 <link rel="manifest" id="manifest" href="data:application/manifest+json,%7B%7D">
 <style>
@@ -62,7 +62,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Labyrinth Remake - M1.11 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
+   Labyrinth Remake - M1.11.1 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
@@ -342,16 +342,29 @@ function sprClunk(f){var s=new Pix(48,48,1.5),B1=HEX('#3f7ad8'),B2=HEX('#2c5cb0'
 /* Zapfly: yellow light-bulb bug with curly antennae and buzzing fly wings. Frames: wing beat. */
 /* M1.11 Comedy and Tragedy masks (replace the Zapfly): a floating golden theatre mask with black eye holes and a wide black mouth.
    comedy=true: smiling (harmless, unkillable, follows you); false: frowning Tragedy (attacks like any mob). Frames: ribbon flutter + tilt. */
-function sprMask(f,comedy){var s=new Pix(40,44,1.5),G1=HEX('#ffd84a'),G2=HEX('#ecb830'),G3=HEX('#9a6a0c'),GH=HEX('#fff2a8'),K=HEX('#0c0806'),RB=comedy?HEX('#3ac0e8'):HEX('#c8304a'),RD=comedy?HEX('#1e7aa0'):HEX('#7a1428');
-  var tilt=[0,1,.4,-1][f]*.06,cx=20,cy=21,flap=[0,1.6,.7,-1.6][f];
-  [-1,1].forEach(function(sd){var x0=cx+sd*15,y0=cy-3;s.thick(x0,y0,x0+sd*4,y0+7+flap*sd,1.1,RB);s.thick(x0+sd*3,y0+3,x0+sd*6,y0+12-flap*sd,.9,RD);});
-  s.rell(cx,cy,15.5,18.5,tilt,function(x,y,u,v){var t=u*.55+v*.75;return t<-.6?GH:t<.35?G1:t<.8?G2:G3;});
-  s.rell(cx-6,cy-12,4,1.6,tilt-.4,GH);
-  var eyeY=cy-4;[-1,1].forEach(function(sd){var ex=cx+sd*6.2;s.rell(ex,eyeY,4,3,sd*(comedy?-.3:.35),K);s.thick(ex-4.6,eyeY-5-(comedy?1:-sd*1.6),ex+4.6,eyeY-5-(comedy?1:sd*1.6),.7,G3);});
-  if(comedy){s.ell(cx,cy+6,10,7,function(x,y){return y>cy+5.2?K:0;});s.ell(cx,cy+5,8.6,2.2,function(x,y){return y>cy+5?K:0;});s.rect(cx-7,cy+6.4,14,1.1,HEX('#f4e8d0'));}
-  else{s.ell(cx,cy+12.5,9.5,6.5,function(x,y){return y<cy+12?K:0;});s.ell(cx,cy+13.6,7.5,3.2,function(x,y){return y<cy+12.6?G2:0;});s.set(cx+5,cy+3,HEX('#7ac8ff'));s.set(cx+5,cy+4,HEX('#7ac8ff'));}
-  s.ell(cx-11,cy+3,2.4,1.6,comedy?HEX('#ff9a6a'):G2);s.ell(cx+11,cy+3,2.4,1.6,comedy?HEX('#ff9a6a'):G2);
-  return s.outline(HEX('#2a1a04'));}
+function sprMask(f,comedy){var s=new Pix(40,44,1.5),k=s.k,G0=HEX('#fff8c8'),G1=HEX('#ffe050'),G2=HEX('#f4b828'),G3=HEX('#d08a10'),G4=HEX('#9a5a08'),K=HEX('#0c0604');
+  var tilt=[-.07,0,.07,0][f]*(comedy?1:-1),sh=f===3?2:0,ca=Math.cos(tilt),sa=Math.sin(tilt);
+  /* shield-shaped face: wide brow with pointed top corners, tapering to a round chin */
+  var face=[[2,3],[8,5.5],[14,6.5],[20,8],[26,6.5],[32,5.5],[38,3],[38.5,12],[37,22],[33,31],[27,38.5],[20,42],[13,38.5],[7,31],[3,22],[1.5,12]];
+  function inPoly(x,y){var c=false;for(var i=0,j=face.length-1;i<face.length;j=i++){var A=face[i],B=face[j];if((A[1]>y)!==(B[1]>y)&&x<(B[0]-A[0])*(y-A[1])/(B[1]-A[1])+A[0])c=!c;}return c;}
+  function el(x,y,cx,cy,rx,ry){var dx=(x-cx)/rx,dy=(y-cy)/ry;return dx*dx+dy*dy<=1;}
+  function rel(x,y,cx,cy,rx,ry,a){var c=Math.cos(a),n=Math.sin(a),dx=x-cx,dy=y-cy;return el(dx*c+dy*n,-dx*n+dy*c,0,0,rx,ry);}
+  function hole(x,y){
+    if(comedy){ /* smiling crescent eyes (arched up) and a wide grin */
+      for(var sd=-1;sd<=1;sd+=2){var ex=20+sd*8.5;if(rel(x,y,ex,17,5.8,4.2,sd*.18)&&!rel(x,y,ex,19.4,5.2,3.2,sd*.18))return true;}
+      return el(x,y,20,27.5,12.5,9.5)&&!el(x,y,20,22.8,12.8,8)&&y>24;}
+    for(var sd2=-1;sd2<=1;sd2+=2){var tx=20+sd2*8.5;if(rel(x,y,tx,18.2,5.6,4,-sd2*.42)&&!rel(x,y,tx,15.4,5.6,2.6,-sd2*.42))return true;} /* drooping sad eyes */
+    return el(x,y,20,37,8,6.4)&&!el(x,y,20,40.4,8.6,6)&&y<37.5;} /* the frown */
+  for(var Y=0;Y<s.h;Y++)for(var X=0;X<s.w;X++){var px=(X+.5)/k-20,py=(Y+.5)/k-22,x=px*ca+py*sa+20,y=-px*sa+py*ca+22;if(!inPoly(x,y))continue;
+    if(hole(x,y)){s.raw(X,Y,K);continue;}
+    var u=(x-20)/19,v=(y-22)/20,t=u*.45+v*.7,c=t<-.55?G1:t<.1?G2:t<.55?G3:G4;
+    if(y<9.5+Math.abs(x-20)*.06&&y>5)c=G1; /* brow rim catches the light */
+    if(Math.abs(x-20+(comedy?.5:-.5))<1.4&&y>10&&y<24)c=y<20?G0:G1; /* nose ridge */
+    if(Math.abs(x-20)>1.4&&Math.abs(x-20)<3&&y>12&&y<24)c=G3;
+    if(comedy&&(el(x,y,10,24,3.4,2.4)||el(x,y,30,24,3.4,2.4)))c=G1; /* lifted cheeks */
+    if(el(x,y,11+sh,9.5,3,1.2)||el(x,y,33-sh,8.4,2,.9))c=G0;
+    s.raw(X,Y,c);}
+  return s.outline(HEX('#5a3004'));}
 
 /* ---------- assets ---------- */
 var TEX=[texBrick(),texStone(),texWood(),texTile(),texMoss(),texDoor(),texLocked(),texFence(),texBasalt(),texRust(),texCrystal(),texGlyph(),texVoid()]; /* M18: 8-12 are the deep wall styles */
@@ -1997,7 +2010,7 @@ function fmtTime(t){var s=Math.floor(t),m=Math.floor(s/60);s%=60;return m+':'+(s
 function drawTitle(){var t=G.time,Y1=HEX('#ffe27a'),OR=HEX('#ff9a3a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0');
   blend(0,0,W,H,HEX('#0d0a1e'),.55);
   drawTextC('LABYRINTH',W/2,22,Y1,4,HEX('#5a2a08'));drawTextC('REMAKE',W/2,60,OR,3,HEX('#3a1404'));
-  drawTextC('M1.11 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
+  drawTextC('M1.11.1 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
   var sp=SPR.screamer[flapFrame(t)];blit(sp,Math.round(W/2-sp.w),102+Math.sin(t*3)*3,2);
   for(var i=0;i<G.menuItems.length;i++){var it=G.menuItems[i],sel=i===G.menuSel,lbl=it.label,w=textW(lbl,2),x=Math.round(W/2-w/2),y=212+i*21;it.rect=[x,y,w,14];
     if(sel){blend(x-12,y-4,w+24,22,HEX('#3a2a70'),.7);drawText('>',x-15+((t*4|0)&1),y,Y1,2);}drawText(lbl,x,y,sel?Y1:W1,2);}
@@ -2211,7 +2224,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.11-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.11.1-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

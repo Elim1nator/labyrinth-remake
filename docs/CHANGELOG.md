@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.14.2: tougher Treasure Knight, shield slam
+- Knight HP 25 + 3 per floor (no cap). Shield slam within ~2 cells: 0.6 s tell, crack ring, 2 damage + knockback, 5 s cooldown.
+- QA build `m1.14.2-qa` (debug hook on).
+
 ## M1.14.1: pit shafts, centred coin toss, lectern shatters
 - Pits render as stone shafts fading into darkness; tossed coins land dead centre and fall in; the lectern breaks when the King appears.
 - QA build `m1.14.1-qa` (debug hook on).

@@ -488,6 +488,11 @@ async function m112Tests(){
     const c0=G.state().player.coins;G.use();let s=G.advance(0.05);const one={coins:c0-s.player.coins,pit:G.pitCoins(),saved:s.save.perm.pit};
     G.setPit(9);G.use();s=G.advance(0.05);const m10=s.msg;G.startLevel(8);const next={pit:G.pitCoins(),lvl:G.spiderLvl()};return {near,one,m10,next};},PIT.toString());
   check('M1.12 next to a pit, E tosses one coin in; the count is saved and carries over to every floor',pt.near&&pt.near.kind==='pit'&&pt.one.coins===1&&pt.one.pit===1&&pt.one.saved===1&&pt.next.pit===10,JSON.stringify(pt));
+  if(atLeast('1.14.1')){const ct=await G(page,(PITs)=>{const PIT=eval(PITs),G=__game;G.setSeed(777);G.startLevel(7,{hearts:5,coins:5,perm:{}});G.clearMobs();PIT();G.advance(0.05);const n=G.nearUse();G.use();G.advance(1.2);const c=G.state().stats.lastPitCoin;return {n,c};},PIT.toString());
+    check('M1.14.1 a tossed coin lands on the centre of the pit and drops down the shaft',ct.c&&Math.abs(ct.c.x-ct.n.x-.5)<0.05&&Math.abs(ct.c.y-ct.n.y-.5)<0.05&&Math.abs(ct.c.z)<0.1,JSON.stringify(ct));
+    const sh=await G(page,(PITs)=>{const PIT=eval(PITs),G=__game;G.setSeed(777);G.startLevel(7,{hearts:5,coins:5,perm:{}});G.clearMobs();PIT();G.setPitch(-110);G.advance(0.05);G.render();const cols=new Set();let dark=0;for(let y=150;y<300;y+=2)for(let x=0;x<480;x+=2){const c=G.pixelAt(x,y);cols.add(c.join());if(c[0]+c[1]+c[2]<40)dark++;}return {cols:cols.size,dark};},PIT.toString());
+    check('M1.14.1 pits are drawn as shafts with stone walls fading into darkness (not flat black squares)',sh.cols>60&&sh.dark>20,JSON.stringify(sh));
+    await shot(page,'pit_shaft');}
   check('M1.12 10 coins in the pits unlocks the skittering spiders on later floors',/SKITTERS/.test(pt.m10)&&pt.next.lvl===1,JSON.stringify(pt));
   const sk=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(8,{hearts:5,coins:0,perm:{pit:10}});G.clearMobs();const p=G.state().player;const i=G.spawn('skitter',p.x+Math.cos(p.ang)*2.2,p.y+Math.sin(p.ang)*2.2,true,[]);let s,hit=null;
     for(let k=0;k<30&&!hit;k++){s=G.advance(0.1);if(G.faceT()>0)hit={t:k*0.1,hearts:s.player.hearts,face:G.faceT(),gone:s.enemies[i].gone};}window.__fh=true;return hit;});
@@ -603,9 +608,9 @@ async function m114Tests(){
     G.teleport(A.x+.5,A.y+.5);let s=G.advance(0.3);const before={mode:s.mode,locked:G.arenaDoors().some(d=>d.bossLock),dorm:G.dormant(),bar:!!s.stats.bossBar};
     const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];const face=()=>{for(const d of dirs){const x=l.x+d[0],y=l.y+d[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);return true;}}return false;};face();G.advance(0.05);G.use();s=G.advance(0.1);const noScript=s.msg;
     const sa=l.scriptAt;G.teleport(sa.x+.5,sa.y+.5);s=G.advance(0.1);const got=G.lectern().script;face();G.advance(0.05);G.use();s=G.advance(0.2);const intro={mode:s.mode,dorm:G.dormant()};s=G.advance(1.8);const locked=G.arenaDoors().every(d=>d.bossLock);s=G.advance(3.5);
-    return {before,noScript,got,intro,locked,after:{mode:s.mode,woke:G.boss().ent.woke,called:G.lectern().called}};});
+    return {before,noScript,got,intro,locked,after:{mode:s.mode,woke:G.boss().ent.woke,called:G.lectern().called,gone:G.lectern().gone,cellT:G.lectern().cellT}};});
   check('M1.14 walking into his hall without the script does nothing; the lectern waits for it',sm.before.mode==='play'&&!sm.before.locked&&sm.before.dorm&&!sm.before.bar&&/WAITS/.test(sm.noScript),JSON.stringify(sm));
-  check('M1.14 placing the play script on the lectern summons him: cut scene, doors lock, then the fight',sm.got&&sm.intro.mode==='intro'&&!sm.intro.dorm&&sm.locked&&sm.after.mode==='play'&&sm.after.woke&&sm.after.called,JSON.stringify(sm));
+  check('M1.14 placing the play script on the lectern summons him: cut scene, doors lock, then the fight (M1.14.1: the lectern shatters)',sm.got&&sm.intro.mode==='intro'&&!sm.intro.dorm&&sm.locked&&sm.after.mode==='play'&&sm.after.woke&&sm.after.called&&(!atLeast('1.14.1')||(sm.after.gone&&sm.after.cellT===0)),JSON.stringify(sm));
   await shot(page,'king_in_yellow');
   const at=await G(page,()=>{const G=__game,r={};const start=()=>{G.bossIntro=false;G.setSeed(777);G.startLevel(19,{hearts:5,coins:0,perm:{}});const l=G.lectern();G.teleport(l.scriptAt.x+.5,l.scriptAt.y+.5);G.advance(0.05);
       const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];for(const d of dirs){const x=l.x+d[0],y=l.y+d[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);break;}}G.advance(0.05);G.use();G.advance(0.1);G.state().enemies.forEach((e,i)=>{if(e.type!=='yellow')G.damageMob(i,99);});G.faceBoss(3);G.advance(0.1);};
@@ -2603,7 +2608,7 @@ async function m19Tests(){
       __game.setPitch(-40);__game.seeAll();__game.advance(0.05);let dark=0;for(let y=170;y<300;y+=2)for(let x=150;x<330;x+=2){const p=__game.pixelAt(x,y);if(p[0]+p[1]+p[2]<40)dark++;}
       const R=__game.hudRects().map;let blk=0;for(let y=R[1]+2;y<R[1]+R[3]-2;y++)for(let x=R[0]+2;x<R[0]+R[2]-2;x++){const p=__game.pixelAt(x,y);if(p[0]+p[1]+p[2]===0)blk++;}return {used,dark,blk};});
     await shot(page,'pit_in_floor_and_minimap');
-    check('M1.9 pits render as dark holes in the floor and show black (with a rim) on the minimap',rv.used&&rv.dark>150&&rv.blk>=9,JSON.stringify(rv));
+    check('M1.9 pits render as dark holes in the floor (M1.14.1: shafts with walls) and show black (with a rim) on the minimap',rv.used&&rv.dark>(atLeast('1.14.1')?60:150)&&rv.blk>=9,JSON.stringify(rv));
     await G(page,()=>{__game.openMap();__game.advance(0.05);});await shot(page,'pit_full_map_legend');await G(page,()=>{__game.closeMap();});
     // mobs: ground mobs path around, flyers go over
     const mv=await G(page,()=>{const out={};for(const sd of [777,4242,99991,31337,2026,9]){__game.setSeed(sd);__game.startLevel(7);const P=__game.pits();for(const q of P){for(const [dx,dy] of [[1,0],[0,1]]){const a=[q.x-dx*2,q.y-dy*2],b=[q.x+dx*2,q.y+dy*2],ok=[[q.x-dx,q.y-dy],[q.x+dx,q.y+dy],a,b].every(c=>__game.cellType(c[0],c[1])===0);if(!ok)continue;

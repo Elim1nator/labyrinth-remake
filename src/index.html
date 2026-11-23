@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Labyrinth">
-<title>Labyrinth Remake (M1.14 prototype)</title>
+<title>Labyrinth Remake (M1.14.1 prototype)</title>
 <link rel="icon" id="icon" href="data:,">
 <link rel="manifest" id="manifest" href="data:application/manifest+json,%7B%7D">
 <style>
@@ -62,7 +62,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Labyrinth Remake - M1.14 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
+   Labyrinth Remake - M1.14.1 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
@@ -1299,13 +1299,14 @@ function nearUseFind(){var p=G.p,L=G.L,cx=Math.floor(p.x),cy=Math.floor(p.y),pit
   for(var j=-1;j<=1;j++)for(var i=-1;i<=1;i++){var c=cellAt(cx+i,cy+j);if(!c)continue;var d=Math.hypot(c.x+.5-p.x,c.y+.5-p.y);if(c.t===9&&!c.open&&d<1.1)return {kind:'trap',c:c};if(c.t===6&&d<PITS.reach&&(!pit||d<pit.d))pit={kind:'pit',c:c,d:d};}
   return pit;}
 function nearUseDo(n){var p=G.p;if(n.kind==='trap'){if(p.coins<TRAP.cost){setMsg('THE TRAPDOOR WANTS '+TRAP.cost+' COINS',2);SFX.locked();return;}p.coins-=TRAP.cost;n.c.open=true;p.x=n.c.x+.5;p.y=n.c.y+.5;G.trapFall=true;G.mode='fall';G.modeT=0;resetInputs();SFX.buy();SFX.fall();stats.trapdoors++;return;}
-  if(n.kind==='pit'){if(p.coins<1){setMsg('NO COINS TO TOSS',1.4);SFX.locked();return;}p.coins--;G.perm.pit=permN('pit')+1;permSave();var c=n.c,dx=c.x+.5-p.x,dy=c.y+.5-p.y;
-    G.parts.push({kind:'coin',x:p.x+dx*.3,y:p.y+dy*.3,z:.45,vx:dx*1.4,vy:dy*1.4,vz:1.2,life:.9,g:4.5,max:.9});SFX.coin();tone(1500,.05,'sine',.04,1200,.75);stats.pitTosses++;
+  if(n.kind==='pit'){if(p.coins<1){setMsg('NO COINS TO TOSS',1.4);SFX.locked();return;}p.coins--;G.perm.pit=permN('pit')+1;permSave();var c=n.c,dx=c.x+.5-p.x,dy=c.y+.5-p.y,dl=Math.hypot(dx,dy)||1,sx0=p.x+dx/dl*.25,sy0=p.y+dy/dl*.25,T=.55,g9=4.5; /* M1.14.1: the coin lands dead centre, then drops down the shaft */
+    G.parts.push({kind:'coin',pit:true,x:sx0,y:sy0,z:.45,vx:(c.x+.5-sx0)/T,vy:(c.y+.5-sy0)/T,vz:(.5*g9*T*T-.45)/T,life:T+.9,g:g9,max:T+.9,stopAt:T});SFX.coin();tone(1500,.05,'sine',.04,1200,T+.45);stats.pitTosses++;
     var n2=G.perm.pit,ms=PITS.milestones.indexOf(n2);if(ms===0)setMsg('10 COINS... SOMETHING SKITTERS IN THE DARK BELOW',3.5);else if(ms===1)setMsg('50 COINS... BIG LEGS CLIMB IN THE PITS',3.5);else if(ms===2)setMsg('100 COINS! THE BROODMOTHER AWAKENS ON FLOOR 15',3.5);else setMsg(n2+' COINS IN THE PITS',1.4);
     if(ms>=0){SFX.bossRoar();G.shake=.3;}}}
 function trapLand(){var p=G.p;G.trapFall=false;startLevel(Math.min(MAX_FLOOR-1,G.levelIdx+1),{hearts:p.hearts,coins:p.coins,item:p.item,item2:p.item2,sel:p.sel,ball:p.ball});setMsg('THUD! YOU DROPPED DOWN A FLOOR',2.5);SFX.thud();}
 function lecternUse(c){var L=G.L;if(L.kingCalled){setMsg('THE PLAY HAS BEGUN',1.6);return;}if(!G.p.script){setMsg('THE LECTERN WAITS FOR A PLAY SCRIPT',2.2);SFX.locked();return;}
-  G.p.script=false;L.kingCalled=true;c.open=1;var k=null;G.ents.forEach(function(e){if(e.type==='yellow')k=e;});SFX.bossRoar();sparkle(c.x+.5,c.y+.5,.7,'spark',16);stats.kingSummons++;
+  G.p.script=false;L.kingCalled=true;c.t=0;L.lecternGone=L.lectern;L.lectern=null;G.distT=0;SFX.crumble();SFX.slam();G.shake=.35; /* M1.14.1: the lectern shatters as he appears */
+  for(var q9=0;q9<14;q9++){var a9=q9/14*Math.PI*2,sp9=.6+Math.random()*1.4;G.parts.push({kind:'puff',x:c.x+.5,y:c.y+.5,z:.3+Math.random()*.3,vx:Math.cos(a9)*sp9,vy:Math.sin(a9)*sp9,vz:Math.random(),life:.6,g:2,max:.7});}sparkle(c.x+.5,c.y+.5,.5,'spark',10);var k=null;G.ents.forEach(function(e){if(e.type==='yellow')k=e;});SFX.bossRoar();sparkle(c.x+.5,c.y+.5,.7,'spark',16);stats.kingSummons++;
   if(k){k.dormant=false;for(var q=0;q<12;q++){var a=q/12*Math.PI*2;G.parts.push({kind:'puff',x:k.x,y:k.y,z:.4,vx:Math.cos(a),vy:Math.sin(a),vz:.3,life:.8,g:0,max:.9});}if(api.bossIntro&&!k.introDone)startBossIntro(k,null);else bossWake(k);}}
 function shrineUse(c){var p=G.p;if(c.used){setMsg('THE SHRINE IS SILENT NOW',1.8);return;}if(p.coins<SHRINE.cost){setMsg('THE SHRINE ASKS FOR '+SHRINE.cost+' COINS',2);SFX.locked();return;}
   p.coins-=SHRINE.cost;c.used=true;stats.shrineUses++;var r=Math.random();sparkle(c.x+.5,c.y+.5,.6,'spark',14);
@@ -1582,7 +1583,7 @@ function updateFx(dt){
     else if(s.z>=.97){s.z=.97;hit=true;stats.ceilingHits++;} // M12-A1 safety net: splash on the ceiling
     else for(var j=0;j<G.ents.length;j++){var e=G.ents[j];if(e.gone||e.state==='dead')continue;var M=MOBS[e.type],ez=mobZ(e);var sc=e.scale||1,pl=e.state==='pile',hr=pl?.36:M.hitR*sc,hh=pl?.3:(e.hh||M.h)*sc;if(Math.hypot(e.x-s.x,e.y-s.y)<hr+(s.giant?.25:0)&&s.z>ez-.10&&s.z<ez+hh+.12){hitEnemy(e,s);hit=true;break;}}
     if(hit||s.life<=0){if(s.rock||s.ball==='mirror'){sparkle(s.x,s.y,s.z,'spark',5);if(s.rock)SFX.rockHit();}else splash(s.x,s.y,s.z);if(s.giant)giantSplash(s.x,s.y);if(s.ball==='yellow')addYPud(s.x,s.y);G.shots.splice(i,1);}}
-  for(i=G.parts.length-1;i>=0;i--){var q=G.parts[i];q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vz-=q.g*dt;q.life-=dt;if(q.kind==='puff'||q.kind==='steam'){q.vx*=.92;q.vy*=.92;}if(q.z>.95){q.z=.95;q.vz=0;}if(q.z<0){q.z=0;q.vz=0;q.vx*=.5;q.vy*=.5;}if(q.life<=0)G.parts.splice(i,1);}
+  for(i=G.parts.length-1;i>=0;i--){var q=G.parts[i];if(q.pit&&q.max-q.life>=q.stopAt&&q.vx!==0){q.vx=0;q.vy=0;stats.lastPitCoin={x:q.x,y:q.y,z:q.z};} /* straight down once over the centre */q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vz-=q.g*dt;q.life-=dt;if(q.kind==='puff'||q.kind==='steam'){q.vx*=.92;q.vy*=.92;}if(q.z>.95){q.z=.95;q.vz=0;}if(q.z<0&&!q.pit){q.z=0;q.vz=0;q.vx*=.5;q.vy*=.5;}if(q.life<=0||q.z<-PIT_DEEP)G.parts.splice(i,1);}
 }
 /* M13-A3: fences stop balloons, but a ghost (Hazewisp) sitting inside a fence cell is checked first, so it can be hit there
    (it can bite from there too). The balloon hits if its path passes within the mob's hit radius; otherwise the fence stops it. */
@@ -2099,7 +2100,13 @@ function renderWorld(){
   if(L.pits||L.traps){var rx0=cam.dx-cam.px,ry0=cam.dy-cam.py,rx1=cam.dx+cam.px,ry1=cam.dy+cam.py,RIM=shade(fl,.5),P0=HEX('#16101e'),P1=HEX('#020104'); /* M19: pits are dark holes cast into the floor */
     for(y=Math.max(0,Math.ceil(HZ));y<H;y++){var dd=cam.z*PROJ/Math.max(.5,y+.5-HZ);if(dd>14)continue;var sx=(rx1-rx0)*dd/W,sy=(ry1-ry0)*dd/W,wx=cam.x+rx0*dd+sx*.5,wy=cam.y+ry0*dd+sy*.5,oo=y*W,ft=fogT(dd);
       for(x=0;x<W;x++,wx+=sx,wy+=sy){var gx=Math.floor(wx),gy=Math.floor(wy);if(gx<0||gy<0||gx>=L.w||gy>=L.h)continue;var gc=L.cells[gy*L.w+gx];if(gc.t===9){var u9=wx-gx,v9=wy-gy,ed9=Math.min(u9,1-u9,v9,1-v9);if(ed9<.08)continue;var plank=((u9*5)|0)&1,pc9=ed9<.13?TRAPC[2]:Math.abs(u9-.5)<.12&&Math.abs(v9-.5)<.05?TRAPC[3]:TRAPC[plank];buf[oo+x]=fogMix(pc9,ft);depth[oo+x]=dd;continue;}if(gc.t!==6)continue;
-        var ed=Math.min(wx-gx,gx+1-wx,wy-gy,gy+1-wy),pc=ed<.07?RIM:mix(P0,P1,Math.min(1,(ed-.07)/.22));buf[oo+x]=fogMix(pc,ft);depth[oo+x]=dd;}}}
+        /* M1.14.1 pits are real shafts: follow the sight line below the floor until it meets an inner pit wall (stone, darker with depth) or the dark bottom */
+        var rdx=(wx-cam.x)/dd,rdy=(wy-cam.y)/dd,cxp=gx,cyp=gy,qx=wx,qy=wy,tAcc=dd,pc=P1,hd=-1,hu=0,hs=false;
+        for(var stp=0;stp<4;stp++){var tx=rdx>0?(cxp+1-qx)/rdx:rdx<0?(cxp-qx)/rdx:1e9,ty=rdy>0?(cyp+1-qy)/rdy:rdy<0?(cyp-qy)/rdy:1e9,tm=Math.min(tx,ty);tAcc+=tm;qx+=rdx*tm;qy+=rdy*tm;var dB=cam.z*(tAcc-dd)/dd;if(dB>PIT_DEEP)break;
+          var xs=tx<ty,nx=cxp+(xs?(rdx>0?1:-1):0),ny=cyp+(xs?0:(rdy>0?1:-1)),nc=(nx<0||ny<0||nx>=L.w||ny>=L.h)?null:L.cells[ny*L.w+nx];if(nc&&nc.t===6){cxp=nx;cyp=ny;continue;}
+          hd=dB;hu=xs?qy-Math.floor(qy):qx-Math.floor(qx);hs=xs;break;}
+        if(hd>=0){var PT=TEX[1],tcx=Math.min(TS-1,(hu*TS)|0),tcy=Math.min(TS-1,((hd%1)*TS)|0),tc=(hs?PT.dark:PT).px[tcy*TS+tcx];pc=hd<.035?RIM:shade(tc,Math.max(.04,.62-hd*.42));}
+        buf[oo+x]=fogMix(pc,fogT(tAcc));depth[oo+x]=hd>=0?tAcc:tAcc+1;}}}
   stats.rays=0;stats.wallPx=0;stats.fencePx=0;stats.wallTop=null;stats.wallBot=null;stats.enemyRect=null;
   var masked=[];
   for(x=0;x<W;x++){var camX=2*x/W-1,rdx=cam.dx+cam.px*camX,rdy=cam.dy+cam.py*camX,mx=Math.floor(cam.x),my=Math.floor(cam.y);
@@ -2239,6 +2246,7 @@ var GOLDTEX_C=null;function GOLDTEX(){if(GOLDTEX_C)return GOLDTEX_C;var c=new Pi
     var base=mortar(row,((x+off)/32)|0);c.px[y*TS+x]=mort?MO:shade(base,.78*(1-.1*((by-2)/14))+.06*(R()-.5)+(bx<4||by<4?.12:0));}
   function mortar(r,b){var h=h2(r*7+b,b*13+r),cols=['#d8a830','#c89620','#e0b440','#b8861a'];return HEX(cols[(h*4)|0]);}c.dark=c.darken(.74);GOLDTEX_C=c;return c;} /* M1.14 darkened gold brick for the King's floor */
 var COINTEX_C=null;function COINTEX(){if(COINTEX_C)return COINTEX_C;var t=TEX[6],c=new Pix(TS,TS,1);c.px=t.px.slice();for(var y=0;y<TS;y++)for(var x=0;x<TS;x++){var d=Math.hypot(x-32,y-30);if(d<13)c.px[y*TS+x]=d>11?HEX('#7a5208'):d<9&&Math.abs(x-32)<2.2&&Math.abs(y-30)<6?HEX('#7a5208'):HEX(d<6?'#ffe27a':'#f0b820');}c.dark=c.darken(.74);COINTEX_C=c;return c;} /* coin door: a big coin where the keyhole was */
+var PIT_DEEP=2.4; /* M1.14.1: how deep the pit walls are drawn before the dark bottom */
 var PITC=HEX('#000000'),PITR=HEX('#7a7498'),MONC='#ff3020'; /* M1.11: every monster (bosses too) shows as the same red mark on both maps */
 function drawMinimap(ghost){var L=G.L,p=G.p,R=MAP_RECT,cs=6,n=12,ox=R[0]+3,oy=R[1]+3,cx0=Math.floor(p.x)-6,cy0=Math.floor(p.y)-6;
   blend(R[0],R[1],R[2],R[3],HEX('#0d0a1e'),ghost?.2:.7);frameBox(R[0],R[1],R[2],R[3],HEX('#4a4470'));
@@ -2289,7 +2297,7 @@ function fmtTime(t){var s=Math.floor(t),m=Math.floor(s/60);s%=60;return m+':'+(s
 function drawTitle(){var t=G.time,Y1=HEX('#ffe27a'),OR=HEX('#ff9a3a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0');
   blend(0,0,W,H,HEX('#0d0a1e'),.55);
   drawTextC('LABYRINTH',W/2,22,Y1,4,HEX('#5a2a08'));drawTextC('REMAKE',W/2,60,OR,3,HEX('#3a1404'));
-  drawTextC('M1.14 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
+  drawTextC('M1.14.1 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
   var sp=SPR.screamer[flapFrame(t)];blit(sp,Math.round(W/2-sp.w),102+Math.sin(t*3)*3,2);
   for(var i=0;i<G.menuItems.length;i++){var it=G.menuItems[i],sel=i===G.menuSel,lbl=it.label,w=textW(lbl,2),x=Math.round(W/2-w/2),y=212+i*21;it.rect=[x,y,w,14];
     if(sel){blend(x-12,y-4,w+24,22,HEX('#3a2a70'),.7);drawText('>',x-15+((t*4|0)&1),y,Y1,2);}drawText(lbl,x,y,sel?Y1:W1,2);}
@@ -2507,14 +2515,14 @@ api.spiders=SPIDERS;api.faceT=function(){return G.faceT||0;};api.slowT=function(
 /* M1.13 hooks */
 api.floorHp=floorHp;api.mods=MODS;api.worms=function(){return (G.L.worms||[]).map(function(w){return {x:w.x,y:w.y,col:w.col};});};api.bombs=function(){return G.bombs.length;};
 /* M1.14 hooks */
-api.kiy=KIY;api.lectern=function(){return G.L.lectern?{x:G.L.lectern.x,y:G.L.lectern.y,called:!!G.L.kingCalled,script:!!G.p.script,scriptAt:G.L.scriptAt||null}:null;};api.carcosa=function(){return G.carcosaT;};api.confuse=function(){return G.p.confuseT||0;};
+api.kiy=KIY;api.lectern=function(){var l=G.L.lectern||G.L.lecternGone;return l?{x:l.x,y:l.y,called:!!G.L.kingCalled,gone:!G.L.lectern,cellT:cellAt(l.x,l.y).t,script:!!G.p.script,scriptAt:G.L.scriptAt||null}:null;};api.carcosa=function(){return G.carcosaT;};api.confuse=function(){return G.p.confuseT||0;};
 api.signs=function(){return G.signs.map(function(s){return {x:s.x,y:s.y,t:s.t};});};api.halis=function(){return G.halis.map(function(h){return {x:h.x,y:h.y,life:h.life};});};api.goldWalls=function(){return !!G.L.goldWalls;};
 api.kingForce=function(k){G.ents.forEach(function(e){if(e.type==='yellow'){e.atkCD=0;e.next=k;e.tele=.01;e.last=null;}});};api.dormant=function(){var d=null;G.ents.forEach(function(e){if(e.type==='yellow')d=!!e.dormant;});return d;};
 api.bossIntro=true; /* tests may switch the cut scene off to start fights at once */
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.14-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.14.1-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

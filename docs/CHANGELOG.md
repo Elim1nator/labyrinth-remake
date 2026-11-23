@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.17: fog of war, sight items, ambience, damage indicators
+- 5-cell view in a per-floor haze; minimap fills only what you've seen. Torch (+3), Flare (8 s), Owl Eyes (+1 each, max 3), Candle Lantern now +2.
+- Per-floor eerie ambience. Red damage numbers, directional blood splotches, "-x" under the hearts.
+- QA build `m1.17-qa` (debug hook on).
+
 ## M1.16: cheat console
 - Type `cheat` to open a console: jump N, heal, god, coins N, give/gold/perm ITEM, kill, boss, pit N. Cheated runs are not submitted to the high scores.
 - Fix: Golden Wonder purchase on a brand-new game.

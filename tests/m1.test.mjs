@@ -27,6 +27,7 @@ const V112=atLeast('1.12'); // M1.12+: coins into pits (spiders, floor-15 bosses
 const V113=atLeast('1.13'); // M1.13+: +1 mob HP per floor, 6 more elite modifiers, googly worms, sprawled face-hug image
 const V114=atLeast('1.14'); // M1.14+: the King in Yellow on floor 20
 const V116=atLeast('1.16'); // M1.16+: cheat console (type "cheat")
+const V117=atLeast('1.17'); // M1.17+: fog of war, sight items, ambience, damage indicators
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -42,13 +43,14 @@ function check(name,cond,detail=''){results.push({name,ok:!!cond,detail});if(!co
 const browser=await chromium.launch();
 const consoleProblems=[];const badRequests=[];
 async function newPage(opts={}){
-  const {query='',...copts}=opts;
+  const {query='',noFog=false,...copts}=opts;
   const ctx=await browser.newContext({viewport:{width:1280,height:720},...copts});
   const page=await ctx.newPage();
   page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')consoleProblems.push(`[${opts.label||'desktop'}] ${m.type()}: ${m.text()}`);});
   page.on('pageerror',e=>consoleProblems.push(`[${opts.label||'desktop'}] pageerror: ${e.message}`));
   page.on('request',r=>{const u=r.url();if(!(u.split('?')[0]===URL||u.split('?')[0]===REL_URL||u.startsWith('data:')))badRequests.push(u);});
   await page.goto(URL+query);await page.waitForFunction(()=>!!window.__game);
+  if(noFog)await page.evaluate(()=>{__game.viewOverride=14;}); /* M1.17: checks that look further than the fog */
   return {ctx,page};
 }
 const G=(page,fn,arg)=>page.evaluate(fn,arg);
@@ -468,7 +470,7 @@ async function m111Tests(){
     p=fresh();__game.spawnItem('perm','arm',p.x,p.y);__game.advance(0.05);const ai=__game.spawn('clunk',p.x+Math.cos(p.ang)*1.4,p.y+Math.sin(p.ang)*1.4,true,[]);__game.shoot(0);for(let i=0;i<10;i++){__game.setHearts(5);s=__game.advance(0.05);}r.arm=s.enemies[ai].maxHp-s.enemies[ai].hp;
     p=fresh();__game.spawnItem('perm','quick',p.x,p.y);__game.advance(0.05);__game.shoot();r.quick=__game.state().player.throwT;
     return r;});
-  check(`M1.11 more items: ${it.count.pu} power-ups (8 new) and ${it.count.perm} permanent items`,it.count.pu===14&&it.count.perm===3,JSON.stringify(it.count));
+  check(`M1.11 more items: ${it.count.pu} power-ups (8 new) and ${it.count.perm} permanent items`,it.count.pu===(atLeast('1.17')?16:14)&&it.count.perm===(atLeast('1.17')?4:3),JSON.stringify(it.count));
   check('M1.11 Thorn Vest: a bite does no harm, the biter takes 3 damage and is knocked back, and the vest is used up',it.thorns.hearts===5&&it.thorns.clunkHp===it.thorns.max-3&&it.thorns.dist>0.9&&!it.thorns.on,JSON.stringify(it.thorns));
   check('M1.11 Rock Sack: rocks instead of balloons, 2 damage a hit; Strong Arm: +1 damage; Quick Hands: 20% shorter throw cooldown',it.rocks&&it.rockDmg===2&&it.arm===2&&Math.abs(it.quick-0.64)<0.02,JSON.stringify({rd:it.rockDmg,arm:it.arm,q:it.quick}));
   check('M1.11 Lucky Clover doubles coins, Healing Herb gives 2 hearts, Mirror Charm bounces a shot back, Candle Lantern lights the whole map',it.clover===2&&it.herb===4&&it.mirror.hearts===5&&it.mirror.b===1&&it.lantern===it.total,JSON.stringify({c:it.clover,h:it.herb,m:it.mirror,l:it.lantern,t:it.total}));
@@ -563,7 +565,7 @@ async function m112Tests(){
   const rw=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(1,{hearts:5,coins:400,perm:{}});G.faceShop();G.openShop();const r0=G.shopRows();const mi=r0.findIndex(r=>r.id==='more');G.shopBuy(mi);const r1=G.shopRows();
     const hc=r1.findIndex(r=>r.id==='r_hp'),p0=r1[hc].price;G.shopBuy(hc);const r2=G.shopRows();const mh=G.maxHearts();const gi=r2.findIndex(r=>r.id==='r_gold');G.shopBuy(gi);const gold=Object.keys(G.state().perm.gold).length;
     const bi=r2.findIndex(r=>r.id==='r_box');G.shopBuy(bi);const back=G.shopRows().findIndex(r=>r.id==='back');G.shopBuy(back);return {page:G.shopPage(),names:r1.map(r=>r.name),p0,p1:r2[hc].price,mh,gold,coins:G.state().player.coins};});
-  check('M1.12 Old Murkle has a second page of rare wares: Heart Container, Strong Arm, Quick Hands (pricier each time), Piggy Bank, a Golden Wonder and a Mystery Box',rw.names.length===8&&rw.p0===60&&rw.p1===90&&rw.mh===6&&rw.gold===1&&rw.page===0,JSON.stringify(rw));
+  check('M1.12 Old Murkle has a second page of rare wares: Heart Container, Strong Arm, Quick Hands (pricier each time), Piggy Bank, a Golden Wonder and a Mystery Box',rw.names.length===(atLeast('1.17')?9:8)&&rw.p0===60&&rw.p1===90&&rw.mh===6&&rw.gold===1&&rw.page===0,JSON.stringify(rw));
   await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(1,{hearts:5,coins:400,perm:{}});G.faceShop();G.openShop();G.shopBuy(G.shopRows().findIndex(r=>r.id==='more'));G.render();});await shot(page,'rare_wares');
   await G(page,()=>{const G=__game;G.closeShop&&G.closeShop();G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:0}});G.faceBoss(3);G.advance(0.3);});await shot(page,'grand_masque');
   await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});G.faceBoss(3);G.advance(0.3);});await shot(page,'broodmother');
@@ -655,6 +657,32 @@ async function m116Tests(){
   await ctx.close();
 }
 
+// ---------- M1.17: fog of war, sight items, floor ambience, damage indicators ----------
+async function m117Tests(){
+  const shot=async(page,name)=>page.screenshot({path:`${SHOTS}/m117_${name}.png`});
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m117'});
+  const corr=`(()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:0,perm:{}});G.clearMobs();G.setEffect(null);let best=null;const s0=G.state();for(let y=1;y<s0.mapH-1;y++)for(let x=1;x<s0.mapW-1;x++){for(const [dx,dy,a] of [[1,0,0],[-1,0,Math.PI],[0,1,Math.PI/2],[0,-1,-Math.PI/2]]){let n=0;while(!G.solidAt(x+.5+dx*(n+1),y+.5+dy*(n+1))&&n<14)n++;if(!G.solidAt(x+.5,y+.5)&&(!best||n>best.n))best={x,y,a,n,dx,dy};}}G.teleport(best.x+.5,best.y+.5,best.a);return best;})()`;
+  const fog=await G(page,(corr)=>{const G=__game,b=eval(corr),px=(d)=>{G.clearMobs();G.spawn('clunk',b.x+.5+b.dx*d,b.y+.5+b.dy*d,false,[]);G.advance(0.02);G.render();return G.state().stats.enemyBoxes.length?G.state().stats.spritePx:0;};
+    const v=G.viewDist(),near=px(3),far=px(7);G.give('torch');G.useItem();const vt=G.viewDist(),farT=px(7);return {n:b.n,v,near,far,vt,farT};},corr);
+  check('M1.17 fog of war: you see about 5 cells; a monster 3 cells away shows, one 7 cells away is lost in the haze',fog.v===5&&fog.near>200&&fog.far<20,JSON.stringify(fog));
+  check('M1.17 a Torch pushes the haze back (+3 cells), so the far monster shows',fog.vt===8&&fog.farT>50,JSON.stringify(fog));
+  await shot(page,'fog');
+  const sg=await G(page,()=>{const G=__game,r={};G.setSeed(777);G.startLevel(6,{hearts:5,coins:0,perm:{owl:2}});r.owl=G.viewDist();G.setEffect(null);G.give('lantern');G.useItem();r.lantern=G.viewDist();G.setEffect(null);G.give('flare');G.useItem();r.flare=G.viewDist();G.advance(8.2);r.after=G.viewDist();
+    G.startLevel(6,{hearts:5,coins:0,perm:{}});G.advance(0.05);const fi=G.fogInfo(),tot=G.state().mapW*G.state().mapH;r.seen=fi.seen;r.tot=tot;r.names=['torch','flare'].map(k=>G.pu[k].name).concat([G.permItems.owl.name]);return r;});
+  check('M1.17 sight items: Owl Eyes +1 each (permanent), Candle Lantern +2, Flare lights up everything for 8 s',sg.owl===7&&sg.lantern===9&&sg.flare>=16&&sg.after===7&&sg.names.join()==='TORCH,FLARE,OWL EYES',JSON.stringify(sg));
+  check('M1.17 the map only learns cells you could actually see (a small patch at the floor start)',sg.seen>0&&sg.seen<sg.tot*.25,JSON.stringify(sg));
+  const amb=await G(page,()=>{const r=new Set();for(let f=2;f<12;f++)r.add(__game.ambDescribe(777,f,false));return {kinds:r.size,boss:__game.ambDescribe(777,5,true)<__game.ambDescribe(777,5,false)};});
+  check('M1.17 every floor gets its own ambience (drone pitch and sounds from the floor seed); boss floors sit lower',amb.kinds>=4&&amb.boss,JSON.stringify(amb));
+  const dm=await G(page,(corr)=>{const G=__game,b=eval(corr);const i=G.spawn('clunk',b.x+.5+b.dx*2,b.y+.5+b.dy*2,false,[]);G.damageMob(i,1);G.advance(0.1);G.render();let red=0;for(let y=40;y<220;y++)for(let x=120;x<360;x++){const c=G.pixelAt(x,y);if(c[0]>230&&c[1]<70&&c[2]<70)red++;}const nums=G.dmgFx().nums;
+    G.clearMobs();const p=G.state().player;G.setHearts(5);G.spawn('kettle',p.x-Math.sin(p.ang)*.35,p.y+Math.cos(p.ang)*.35,true,[]);let s;for(let k=0;k<6;k++){s=G.advance(0.05);if(s.player.hearts<5)break;}G.render();const fx=G.dmgFx();
+    let right=0,left=0;for(let y=60;y<240;y++){for(let x=440;x<480;x++){const c=G.pixelAt(x,y);if(c[0]>90&&c[1]<30&&c[2]<30)right++;}for(let x=0;x<40;x++){const c=G.pixelAt(x,y);if(c[0]>90&&c[1]<30&&c[2]<30)left++;}}
+    let hud=0;for(let y=8;y<44;y++)for(let x=60;x<90;x++){const c=G.pixelAt(x,y);if(c[0]>230&&c[1]<70&&c[2]<70)hud++;}return {red,nums,hearts:s.player.hearts,splat:fx.splats,right,left,hudN:fx.hud,hud};},corr);
+  check('M1.17 hitting a monster pops a small red "-1" above it',dm.nums>=1&&dm.red>10,JSON.stringify(dm));
+  check('M1.17 getting hit splashes red blood on the side of the screen the hit came from, and a "-1" drops from your hearts',dm.hearts<5&&dm.splat.length===1&&dm.splat[0]>1&&dm.right>200&&dm.right>dm.left*3&&dm.hudN===1&&dm.hud>5,JSON.stringify(dm));
+  await shot(page,'damage');
+  await ctx.close();
+}
+
 // ONLY=m19,m110 node m1.test.mjs <build> runs just those groups (names as in the function names, 'regression' for the M1.1 set)
 const ONLY=(process.env.ONLY||'').split(',').filter(Boolean),want=n=>!ONLY.length||ONLY.includes(n);
 if(NEW&&want('regression')){ await regressionTests(); }
@@ -673,6 +701,7 @@ if(V112&&want('m112')){ await m112Tests(); }
 if(V113&&want('m113')){ await m113Tests(); }
 if(V114&&want('m114')){ await m114Tests(); }
 if(V116&&want('m116')){ await m116Tests(); }
+if(V117&&want('m117')){ await m117Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -1846,7 +1875,7 @@ async function m16Tests(){
       const hsv=p=>{const [r,g,b]=p.map(v=>v/255),mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d+6)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;}return [h*60,mx?d/mx:0,mx];};
       const hd=(a,b)=>{const d=Math.abs(a-b)%360;return Math.min(d,360-d);};
       const grab=()=>{const a=[];for(let y=0;y<D.H;y++)for(let x=0;x<D.W;x++)a.push(__game.pixelAt(x,y));return a;};
-      const set=(t,m)=>{__game.manual=true;__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.setHearts(99);__game.teleport(7.5,1.5,0);__game.freeze=true;if(t)__game.spawn(t,13.5,1.5,false,m?[m]:[]);__game.advance(0.02);};
+      const set=(t,m)=>{__game.manual=true;__game.viewOverride=14; /* M1.17: this check looks 6 cells away, past the fog */__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.setHearts(99);__game.teleport(7.5,1.5,0);__game.freeze=true;if(t)__game.spawn(t,13.5,1.5,false,m?[m]:[]);__game.advance(0.02);};
       set(null);const wall=grab();let br=[0,0,0],bn=0;for(let y=60;y<140;y++)for(let x=0;x<150;x++){const q=wall[y*D.W+x];br[0]+=q[0];br[1]+=q[1];br[2]+=q[2];bn++;}br=br.map(v=>Math.round(v/bn));
       const out={brick:br};for(const [m,t] of pairs){const c=hx(cols[m]),hc=hsv(c);const like=q=>{const h=hsv(q);return h[1]>(hc[1]>.35?.3:.15)&&h[2]>.55&&(!V17||(q[0]+q[1]+q[2])/3>115)&&(hc[1]<.35?h[1]<hc[1]+.25:true)&&hd(h[0],hc[0])<20;};
         set(t,null);const A=grab();set(t,m);const B=grab();let ring=0,dark=0,inWall=0;
@@ -1879,7 +1908,7 @@ c.save('${SHOTS}/m16_elite_icons_at_distance6_brick.png')`]);}catch(e){consolePr
   }
   // ---------- internal review: new Screamer next to the reference (test-output only) ----------
   {
-    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m16-review'});
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m16-review',noFog:true});
     savePng('_tmp_screamer16_6x.png',await G(page,()=>__game.spriteSheet(6,'screamer')));
     await ctx.close();
     fs.unlinkSync(`${SHOTS}/_tmp_screamer16_6x.png`);
@@ -1896,7 +1925,7 @@ async function m17Tests(){
   const corridor=(t,m,d,pitch)=>{__game.manual=true;__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.setHearts(99);__game.teleport(13.5-d,1.5,0);__game.freeze=true;__game.setPitch(pitch||0);__game.spawn(t,13.5,1.5,false,m);const s=__game.advance(0.02).stats;return {mode:s.iconMode,ic:s.iconRects||[],eb:s.enemyBoxes||[],px:s.iconPx};};
   // ---------- M16-A1: icons never drawn over the sprite ----------
   {
-    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m17-a1'});
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m17-a1',noFog:true});
     const cases=[];for(const t of ['wisp','clunk','screamer','zapfly','springle','kettle'])for(const m of [['beefy'],['beefy','ranged'],['regen'],['ranged','slime']])for(const d of [1.5,3,6,9])for(const pitch of [-80,0,80])cases.push([t,m,d,pitch]);
     const res=await G(page,({cases,cs})=>{const corridor=eval(cs);return cases.map(([t,m,d,pitch])=>{const r=corridor(t,m,d,pitch);return {t,m:m.join('+'),d,pitch,mode:r.mode,n:r.ic.length,mob:r.eb.length,px:r.px,ic:r.ic,eb:r.eb};});},{cases,cs:corridor.toString()});
     const bad=[],missing=[],small=[],modes={above:0,side:0};

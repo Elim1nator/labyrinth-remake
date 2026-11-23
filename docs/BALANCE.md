@@ -1,4 +1,4 @@
-# Balance (M1.14)
+# Balance (M1.17)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -110,6 +110,10 @@ floor.
 The four permanent items cost 160 coins together. Floors 2–8 place 200 coins if you collect
 every coin and pop every mob (before elite loot, secret-room bags and the slot), so a full
 shop spend is a long-run investment rather than a first-shop impulse buy.
+
+## Sight (M1.17)
+
+- View distance 5 cells (fog starts at 30% of it, fully hazy at 100%). Owl Eyes +1 each (max 3, rare wares 45 + 30n), Torch +3 (floor), Candle Lantern +2 (floor), Flare: 16 for 8 s.
 
 ## The King in Yellow (M1.14)
 

@@ -1,4 +1,4 @@
-# Controls and features (M1.16)
+# Controls and features (M1.18)
 
 ## Keyboard and mouse
 
@@ -134,6 +134,10 @@ CONTINUE on a boss floor restarts the fight.
 - The HIGH SCORES page (also on the title) uses the same-origin API
   ([research/highscore-api.md](research/highscore-api.md)); otherwise a LOCAL top 10
   (`labyrinthRemake.localScores.v1`).
+
+## Revive (M1.18)
+
+On the death screen, R (gamepad X/Y, or tap the button) revives you for 10 coins × your deaths this run.
 
 ## Cheat console (M1.16)
 

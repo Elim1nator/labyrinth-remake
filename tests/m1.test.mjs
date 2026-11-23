@@ -28,6 +28,7 @@ const V113=atLeast('1.13'); // M1.13+: +1 mob HP per floor, 6 more elite modifie
 const V114=atLeast('1.14'); // M1.14+: the King in Yellow on floor 20
 const V116=atLeast('1.16'); // M1.16+: cheat console (type "cheat")
 const V117=atLeast('1.17'); // M1.17+: fog of war, sight items, ambience, damage indicators
+const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -683,6 +684,24 @@ async function m117Tests(){
   await ctx.close();
 }
 
+// ---------- M1.18: per-floor music, revive ----------
+async function m118Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
+  const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
+    return {uniq:new Set(songs).size,same:JSON.stringify(G.song(777,7,false))===JSON.stringify(G.song(777,7,false)),modes:[...modes],boss,bpm:G.song(777,3,false).bpm};});
+  check('M1.18 every floor gets its own song (same seed + floor = same song), slow and in minor modes; boss floors use darker modes',mu.uniq===30&&mu.same&&mu.modes.every(m=>['aeolian','phrygian','harmonic','dorian'].includes(m))&&mu.boss.every(m=>['phrygian','locrian','harmonic'].includes(m))&&mu.bpm<=82,JSON.stringify(mu));
+  const rv=await G(page,()=>{const G=__game;G.manual=true;localStorage.clear();G.setSeed(777);G.menuPick(0);G.startLevel(3,{hearts:5,coins:35,perm:{}});G.clearMobs();const die=()=>{G.setHearts(1);G.setEffect(null);const p=G.state().player;G.spawn('clunk',p.x+.3,p.y,true,[]);let s;for(let i=0;i<60;i++){s=G.advance(0.1);if(s.mode==='dead')break;}G.clearMobs();return s.mode;}; /* revive gives 2 s of safety */
+    const r={};r.d1=die();r.cost1=G.reviveCost();G.advance(0.6);r.ok1=G.revive();let s=G.state();r.after1={mode:s.mode,hearts:s.player.hearts,coins:s.player.coins,save:!!s.save,inv:s.player.inv>1};
+    r.d2=die();r.cost2=G.reviveCost();G.advance(0.6);r.ok2=G.revive();s=G.state();r.after2={coins:s.player.coins};r.d3=die();r.cost3=G.reviveCost();G.advance(0.6);r.ok3=G.revive();s=G.advance(0.05);r.after3={mode:s.mode,coins:s.player.coins};
+    G.confirm();s=G.advance(0.1);r.next=s.mode;return r;});
+  check('M1.18 after a death you can revive for 10 coins x deaths this run (10, 20, 30...): full hearts, a moment of safety, the floor saved again',rv.d1==='dead'&&rv.cost1===10&&rv.ok1&&rv.after1.mode==='play'&&rv.after1.hearts===5&&rv.after1.coins===25&&rv.after1.save&&rv.after1.inv&&rv.cost2===20&&rv.ok2&&rv.after2.coins===5,JSON.stringify(rv));
+  check('M1.18 without enough coins revive is refused; continuing goes to name entry as before',rv.cost3===30&&!rv.ok3&&rv.after3.mode==='dead'&&rv.next==='name',JSON.stringify(rv));
+  const pit=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(7,{hearts:5,coins:50,perm:{}});G.clearMobs();const pp=G.pits()[0];G.teleport(pp.x+.5,pp.y+.5);let s;for(let i=0;i<20;i++){s=G.advance(0.1);if(s.mode==='dead')break;}G.advance(0.6);const ok=G.revive();s=G.advance(0.1);return {ok,mode:s.mode,inPit:G.pitUnder(s.player.x,s.player.y,0)};});
+  check('M1.18 reviving after a pit fall puts you back on solid ground',pit.ok&&pit.mode==='play'&&!pit.inPit,JSON.stringify(pit));
+  await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(3,{hearts:1,coins:40,perm:{}});G.clearMobs();const p=G.state().player;G.spawn('clunk',p.x+.3,p.y,true,[]);for(let i=0;i<30;i++){if(G.advance(0.1).mode==='dead')break;}G.advance(0.6);});await page.screenshot({path:`${SHOTS}/m118_revive.png`});
+  await ctx.close();
+}
+
 // ONLY=m19,m110 node m1.test.mjs <build> runs just those groups (names as in the function names, 'regression' for the M1.1 set)
 const ONLY=(process.env.ONLY||'').split(',').filter(Boolean),want=n=>!ONLY.length||ONLY.includes(n);
 if(NEW&&want('regression')){ await regressionTests(); }
@@ -702,6 +721,7 @@ if(V113&&want('m113')){ await m113Tests(); }
 if(V114&&want('m114')){ await m114Tests(); }
 if(V116&&want('m116')){ await m116Tests(); }
 if(V117&&want('m117')){ await m117Tests(); }
+if(V118&&want('m118')){ await m118Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

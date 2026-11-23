@@ -63,11 +63,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.17.1. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.18. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.17.1'; /* set by tools/release.mjs */
+var VERSION='M1.18'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=64;
 var SAVE_KEY='labyrinthRemake.save.v1';
 var MAX_HEARTS=5;
@@ -944,16 +944,16 @@ function startLevel(idx,carry){
   G.stats={coins0:G.p.coins,coinsTotal:r.items.filter(function(i){return i.kind==='coin';}).length+r.ents.length,enemiesTotal:r.ents.length,defeated:0};
   G.stats.elites=rollLevelElites(idx+1);G.stats.powerups=placePowerups(idx);G.stats.knight=carry.knight===idx?null:spawnKnight(idx);G.stats.extras=addFloorExtras(idx);G.L.worms=spawnWorms(idx);if(G.L.lectern)placeScript(idx);G.nearUse=null;G.L.spiderLvl=pitLevel(permN('pit'));p9.confuseT=0;p9.script=false;G.skitT=6+Math.random()*6;G.bigT=12+Math.random()*8;G.faceT=0;p9.slowT=0; /* M1.11: after the elite and power-up rolls, so those stay as they were */
   G.levelTime=0;G.mode='play';G.modeT=0;G.dist=null;G.distG=null;G.distT=0;
-  if(carry.run)G.run={kills:carry.run.kills|0,elites:carry.run.elites|0,coins:carry.run.coins|0,deepest:Math.max(1,carry.run.deepest|0),cheated:!!carry.run.cheated};if(!G.run)G.run=newRun();G.run.deepest=Math.max(G.run.deepest,Math.min(MAX_FLOOR,idx+1));
+  if(carry.run)G.run={kills:carry.run.kills|0,elites:carry.run.elites|0,coins:carry.run.coins|0,deepest:Math.max(1,carry.run.deepest|0),cheated:!!carry.run.cheated,deaths:carry.run.deaths|0};if(!G.run)G.run=newRun();G.run.deepest=Math.max(G.run.deepest,Math.min(MAX_FLOOR,idx+1));
   G.slot={spins:0,anim:null,show:0,last:null};G.final=null;if(nameIn&&nameIn.className)closeName();
-  writeSave({v:1,knight:G.stats.knight===null&&carry.knight===idx?idx:undefined,level:idx,hearts:G.p.hearts,coins:G.p.coins,seed:G.seed,item:G.p.item,item2:G.p.item2,sel:G.p.sel,ball:G.p.ball,perm:permCopy(),secret:G.L.secretOpen?idx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated},t:Date.now()});
+  writeSave({v:1,knight:G.stats.knight===null&&carry.knight===idx?idx:undefined,level:idx,hearts:G.p.hearts,coins:G.p.coins,seed:G.seed,item:G.p.item,item2:G.p.item2,sel:G.p.sel,ball:G.p.ball,perm:permCopy(),secret:G.L.secretOpen?idx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0},t:Date.now()});
   setMsg(idx===0?'FIND THE GOLD KEY, THEN THE EXIT!':(idx+1===TIER_FLOORS[texTier(idx+1)]&&idx>0&&texTier(idx+1)>0?'DEEPER! NEW WALLS: '+DEEP_THEMES[texTier(idx+1)-1].name:(G.L.def.boss?(G.L.bossType==='yellow'?'FIND THE PLAY SCRIPT. HIS LECTERN WAITS...':'BOSS FLOOR! '+bossName()+' GUARDS THE PORTAL'):'NEW MAZE! KEY FIRST, THEN THE EXIT.')),3.5);
   SFX.start();
 }
 function attract(){var r=loadLevel(0);G.L=r.L;G.items=r.items;G.ents=r.ents;G.shots=[];G.parts=[];G.eshots=[];G.puddles=[];G.p=null;}
 function setMsg(m,t){G.msg=m;G.msgT=t||2.5;}
 function buildMenu(){var s=loadSave(),link=URL_SEED!==null&&s&&s.seed!==undefined&&s.seed!==URL_SEED;G.menuItems=s?[{id:'cont',label:'CONTINUE - LEVEL '+(s.level+1)+(link?' (SEED '+s.seed+')':'')},{id:'new',label:'NEW GAME'}]:[{id:'new',label:'START GAME'}];G.menuItems.push({id:'scores',label:'HIGH SCORES'});if(G.menuSel>=G.menuItems.length)G.menuSel=0;}
-function toTitle(){G.god=false;ambStop();if(nameIn&&nameIn.className)closeName();G.mode='title';G.modeT=0;pendingFS=false;G.menuSel=0;attract();buildMenu();var sv0=loadSave();if(URL_SEED!==null&&(!sv0||sv0.seed!==URL_SEED))G.menuSel=newIdx(); /* M18: NEW GAME, not HIGH SCORES */ /* M16-A5: only a different seed preselects NEW GAME */ /* M1.5-B7: a ?seed= link defaults to NEW GAME (CONTINUE still offered) */}
+function toTitle(){G.god=false;ambStop();musicStop();if(nameIn&&nameIn.className)closeName();G.mode='title';G.modeT=0;pendingFS=false;G.menuSel=0;attract();buildMenu();var sv0=loadSave();if(URL_SEED!==null&&(!sv0||sv0.seed!==URL_SEED))G.menuSel=newIdx(); /* M18: NEW GAME, not HIGH SCORES */ /* M16-A5: only a different seed preselects NEW GAME */ /* M1.5-B7: a ?seed= link defaults to NEW GAME (CONTINUE still offered) */}
 function newIdx(){for(var i=0;i<G.menuItems.length;i++)if(G.menuItems[i].id==='new')return i;return 0;}
 function menuPick(i){var it=G.menuItems[i];if(!it)return;audioInit();if(it.id==='scores'){openScores('',null);return;}if(it.id==='cont'){var s=loadSave();if(s){if(s.seed!==undefined)G.seed=s.seed;G.run=null;G.perm=permFrom(s.perm);if(!s.run)s.run={kills:0,elites:0,coins:0,deepest:s.level+1};startLevel(s.level,s);return;}}clearSave();G.seed=URL_SEED!==null?URL_SEED:randomSeed();G.run=newRun();G.perm=permFrom({}); /* M1.16: start with an empty golden list too (the Golden Wonder and cheats need it) */startLevel(0,{hearts:MAX_HEARTS,coins:0});}
 
@@ -1113,6 +1113,7 @@ addEventListener('keydown',function(e){
     else if(e.code==='Enter'||e.code==='Space')pauseAct(G.pauseSel);
     else if(e.code==='Escape'||e.code==='KeyP')resume();
     return;}
+  if(G.mode==='dead'&&e.code==='KeyR'){tryRevive();return;} /* M1.18 */
   if(e.code==='Enter'||e.code==='Space')inp.confirm=true;
 });
 addEventListener('keyup',function(e){keys[e.code]=false;delete suppressed[e.code];});
@@ -1135,6 +1136,7 @@ function onMouseDown(e){
   if(G.mode==='shop'){shopClick(p);if(G.mode==='play')requestLock();return;}
   if(G.mode==='play'){if(!locked){if(G.minimap&&inRect(p,MAP_RECT)){openMap();return;}requestLock();}else{inp.throwMouse=true;inp.throwQueued=true;}return;}
   if(G.mode==='pause'){pauseClick(p);return;}
+  if(G.mode==='dead'&&inRect(p,REVIVE_RECT)){tryRevive();return;}
   inp.confirm=true;
 }
 cv.addEventListener('mousedown',onMouseDown);
@@ -1159,6 +1161,7 @@ cv.addEventListener('pointerdown',function(e){
   if(G.mode==='pause'){pauseClick(p);return;}
   if(G.mode==='map'){if(G.modeT>=.15)closeMap();return;}
   if(G.mode==='shop'){shopClick(p);return;}
+  if(G.mode==='dead'&&inRect(p,REVIVE_RECT)){tryRevive();return;}
   if(G.mode!=='play')inp.confirm=true;
 });
 /* M1.1-A1: a tap or click on the letterbox bars (outside the canvas) resumes from pause */
@@ -1225,12 +1228,13 @@ function pollPad(){var pads=navigator.getGamepads?navigator.getGamepads():[],gp=
   else if(G.mode==='pause'){if(G.modeT>=.15){var n=pauseItems().length;if(mv&&mv!==padPrev.mv){G.pauseSel=(G.pauseSel+mv+n)%n;SFX.menu();}
       if(mh&&mh!==padPrev.mh)pauseAdjust(pauseItems()[G.pauseSel].id,mh);
       if(edge('a'))pauseAct(G.pauseSel);else if(edge('start')||edge('bb'))resume();}}
+  else if(G.mode==='dead'&&(edge('x')||edge('y')))tryRevive();
   else if(edge('a')||edge('start'))inp.confirm=true;
   if(padBlock&&!s.a&&!s.rt)padBlock=false;if(G.mode==='play'&&padModePrev!=='play'&&(s.a||s.rt))padBlock=true; /* M16-A1: A/RT that closed the map or resumed stays swallowed until released */
   padModePrev=G.mode;inp.throwPad=G.mode==='play'&&!padBlock&&(s.a||s.rt);pad=s;padPrev=s;}
 
 /* ---------- M1.17 ambience: a quiet, eerie bed for each floor (drone + air + rare distant sounds), all synthesized, picked from the floor seed ---------- */
-var AMB={on:null,floor:-1,next:0,kinds:[],vol:.08,oct:4}; /* M1.17.1: drone moved up into the range small speakers can play */
+var AMB={on:null,floor:-1,next:0,kinds:[],vol:.06,oct:4}; /* M1.18: a little lower so the music sits on top */ /* M1.17.1: drone moved up into the range small speakers can play */
 function ambStart(){ambStop();if(!AC||AC.state!=='running'||!G.L)return;var floor=G.levelIdx+1,R=rng(hashSeed(G.seed+':'+floor+':amb')),boss=!!G.L.def.boss,t=AC.currentTime;
   var roots=[41.2,43.65,46.25,49,51.9,55,58.3],root=roots[(R()*roots.length)|0]*(boss?.75:1),ivs=boss?[1,1.414,2.02]:[[1,1.5,2.003],[1,1.2,1.79],[1,1.335,2.01]][(R()*3)|0];
   var g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(AMB.vol,t+3);g.connect(master);
@@ -1248,6 +1252,33 @@ function ambTick(dt){if(!AC||AC.state!=='running')return;if(!AMB.on||AMB.floor!=
   else if(k==='wind'){noise(2.6,.06,300,1100,0,'bandpass');}
   else if(k==='whisper'){noise(.9,.04,2400,4200,0,'bandpass');noise(.8,.03,2800,3600,.6,'bandpass');}
   else{tone(r*8,2.4,'sine',.035,r*7.96);}}
+/* ---------- M1.18 music: an original, quiet 8-bit song for every floor, composed from the floor seed ----------
+   minor-ish mode, slow tempo, a 4-chord loop: soft bass, a pulse arpeggio, a sparse triangle melody (ABAB' phrases), quiet noise ticks.
+   Boss floors use darker modes and lower keys. Everything is synthesized; nothing is loaded. */
+var MUSIC={vol:.05,song:null,gain:null,next:0,step:0,floor:-1};
+var MODES={aeolian:[0,2,3,5,7,8,10],phrygian:[0,1,3,5,7,8,10],harmonic:[0,2,3,5,7,8,11],dorian:[0,2,3,5,7,9,10],locrian:[0,1,3,5,6,8,10]};
+function midiF(m){return 440*Math.pow(2,(m-69)/12);}
+function composeSong(seed,floor,boss){var R=rng(hashSeed(seed+':'+floor+':song')),pick=function(a){return a[Math.floor(R()*a.length)];};
+  var modeN=boss?pick(['phrygian','locrian','harmonic']):pick(['aeolian','phrygian','harmonic','dorian','aeolian']),mode=MODES[modeN],key=(boss?40:45)+Math.floor(R()*7);
+  var progs=[[0,5,3,4],[0,3,5,4],[0,5,6,4],[0,1,0,4],[0,3,0,4],[0,6,5,4]],prog=boss?pick([[0,1,0,4],[0,1,5,1],[0,6,1,0]]):pick(progs);
+  var deg=function(d,oct){var o=Math.floor(d/7),k=((d%7)+7)%7;return key+mode[k]+12*(o+(oct||0));};
+  var bpm=boss?58+Math.floor(R()*10):62+Math.floor(R()*20),arp=pick([[0,2,4,2],[0,4,2,4],[0,2,4,7],[4,2,0,2]]);
+  var phrase=function(){var out=[],d=pick([4,2,0,7]);for(var i=0;i<16;i++){if(R()<(i%4===0?.75:.3)){d+=pick([-2,-1,-1,1,1,2,0,3,-3]);d=Math.max(-1,Math.min(11,d));out.push(d);}else out.push(null);}return out;};
+  var A=phrase(),B=phrase(),A2=A.map(function(n){return n!==null&&R()<.3?n+pick([-1,1,2]):n;});
+  return {mode:modeN,key:key,bpm:bpm,prog:prog,arp:arp,mel:[A,B,A2,B],deg:deg,boss:boss,hat:R()<.6,bell:R()<.5,name:modeN+' '+key+' '+bpm};}
+function musicStart(){musicStop();if(!AC||AC.state!=='running'||!G.L)return;var t=AC.currentTime,g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(MUSIC.vol,t+2.5);g.connect(master);
+  MUSIC.gain=g;MUSIC.song=composeSong(G.seed,G.levelIdx+1,!!G.L.def.boss);MUSIC.next=t+.3;MUSIC.step=0;MUSIC.floor=G.levelIdx;stats.songs++;}
+function musicStop(){if(!MUSIC.gain||!AC)return;var g=MUSIC.gain,t=AC.currentTime;try{g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(Math.max(.0001,g.gain.value),t);g.gain.exponentialRampToValueAtTime(.0001,t+.6);setTimeout(function(){try{g.disconnect();}catch(e){}},900);}catch(e){}MUSIC.gain=null;MUSIC.song=null;}
+function mnote(f,t,dur,type,vol,slide){var o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(f*slide,t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.015);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(MUSIC.gain);o.start(t);o.stop(t+dur+.05);}
+function mnoise(t,dur,vol,f){var sN=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();sN.buffer=noiseBuf;fl.type='highpass';fl.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);sN.connect(fl);fl.connect(g);g.connect(MUSIC.gain);sN.start(t);sN.stop(t+dur+.02);}
+function musicTick(){if(!AC||AC.state!=='running')return;if(!MUSIC.song||MUSIC.floor!==G.levelIdx){musicStart();return;}var S=MUSIC.song,st=60/S.bpm/4; /* 16th notes */
+  while(MUSIC.next<AC.currentTime+.25){var i=MUSIC.step,t=MUSIC.next,bar=Math.floor(i/16)%4,pos=i%16,chord=S.prog[bar],ph=Math.floor(i/16)%4;
+    if(pos%8===0)mnote(midiF(S.deg(chord,-2)),t,st*7,'triangle',.5); /* bass */
+    if(pos%2===0){var ad=S.arp[(pos/2)%4];mnote(midiF(S.deg(chord+ad,0)),t,st*1.6,'square',.07);} /* arpeggio */
+    var m=S.mel[ph][pos];if(m!==null&&m!==undefined)mnote(midiF(S.deg(m,1)),t,st*3.2,'triangle',.22); /* melody */
+    if(S.hat&&pos%4===2)mnoise(t,.04,.05,6000);if(pos===0&&bar===0)mnoise(t,.12,.08,800);
+    if(S.bell&&pos===0&&bar===3)mnote(midiF(S.deg(chord+4,2)),t,st*14,'sine',.06,.995);
+    MUSIC.step++;MUSIC.next+=st;}}
 /* ---------- update ---------- */
 var STEP=1/60;
 function update(dt){
@@ -1269,7 +1300,7 @@ function update(dt){
   inp.use=false;inp.pause=false;inp.item=false;
 }
 function updatePlay(dt){
-  var p=G.p;G.levelTime+=dt;ambTick(dt);if(G.shake>0)G.shake-=dt;updateSlot(dt);
+  var p=G.p;G.levelTime+=dt;ambTick(dt);musicTick();if(G.shake>0)G.shake-=dt;updateSlot(dt);
   if(inp.pause){inp.pause=false;resetInputs();pauseGame();if(locked&&document.exitPointerLock){hadLock=false;document.exitPointerLock();}return;}
   // turning
   var turn=0;if(keys.ArrowLeft)turn-=1;if(keys.ArrowRight)turn+=1;if(pad)turn+=pad.rx;
@@ -1466,7 +1497,7 @@ function hurtPlayerBy(dmg,sx,sy,why,src){var p=G.p;if(p.inv>0||G.god)return fals
     SFX.thorns();sparkle(src.x,src.y,.4,'spark',10);setMsg('THORNS! THE BITE BITES BACK',2);stats.thornHits++;return false;} /* M1.11 Thorn Vest: absorbs one bite, 3 damage + knockback to the biter, then it is used up for the floor */
   if(effectIs('shield')){p.inv=.6;stats.shieldBlocks++;SFX.bonk();sparkle(p.x,p.y,.45,'spark',6);p.shieldHits=(p.shieldHits>0?p.shieldHits:PU_FLOOR.shieldHits)-1;if(p.shieldHits<=0){dropEffect('shield');setMsg('SHIELD BUBBLE POPPED',1.8);SFX.fizzle();}return false;} /* M19: the floor-long Shield Bubble blocks 3 hits, then pops */
   p.hearts-=dmg;p.inv=1;p.hurtT=.35;G.hudDmg.push({v:dmg,t:1.1,hx:Math.max(0,p.hearts)});var sa9=Math.atan2(sy-p.y,sx-p.x)-p.ang;sa9=Math.atan2(Math.sin(sa9),Math.cos(sa9));if(Math.hypot(sx-p.x,sy-p.y)<.05)sa9=0;G.splats.push({a:sa9,t:1.4,seed:(Math.random()*1000)|0}); /* M1.17 blood splotch on the side the hit came from */SFX.hurt();vib(60);var dx=p.x-sx,dy=p.y-sy,d=Math.hypot(dx,dy)||1;if(why==='bite')for(var k=0;k<16;k++)moveBody(p,dx/d*.05,dy/d*.05,.22,'g'); /* M19: knockback never shoves you into a pit */
-  if(p.hearts<=0){p.hearts=0;ambStop();G.mode='dead';G.modeT=0;onRunOver();SFX.die();if(locked&&document.exitPointerLock){hadLock=false;document.exitPointerLock();}}return true;}
+  if(p.hearts<=0){p.hearts=0;ambStop();musicStop();if(G.run)G.run.deaths=(G.run.deaths|0)+1;G.reviveMsg='';G.mode='dead';G.modeT=0;onRunOver();SFX.die();if(locked&&document.exitPointerLock){hadLock=false;document.exitPointerLock();}}return true;}
 
 /* ---------- M19 slot machine: in-game coins only, NO spin limit, 3 coins a spin. Odds per spin (fixed, printed on the machine):
    nothing 62% | three coins +5 14% | heart 8% (1 coin if full) | power-up 6% | JACKPOT 2%: 25 coins spray out across the room |
@@ -1544,6 +1575,14 @@ function runCheat(line){var w=String(line||'').trim().split(/\s+/),c=(w[0]||'').
 cheatIn.addEventListener('keydown',function(e){e.stopPropagation();if(e.key==='Enter'){e.preventDefault();var v=cheatIn.value;cheatIn.value='';runCheat(v);}else if(e.key==='Escape'||e.key==='`'){e.preventDefault();closeCheat();}});
 function drawCheat(){var Y1=HEX('#ffe27a'),GR=HEX('#a8a4c0');blend(0,0,W,H,HEX('#07051a'),.6);panel(40,40,400,200);drawTextC('CHEAT CONSOLE',W/2,50,Y1,2);drawTextC('CHEATED RUNS ARE NOT SENT TO THE HIGH SCORES',W/2,72,HEX('#ff9a7a'),1);
   var src=G.cheatLog.length?G.cheatLog:['TYPE HELP AND PRESS ENTER'],lines=[];src.forEach(function(l){var cur='';l.split(' ').forEach(function(w){if((cur+' '+w).trim().length>60){lines.push(cur);cur=(l.charAt(0)==='>'?'':'  ')+w;}else cur=(cur?cur+' ':'')+w;});lines.push(cur);});lines.slice(-12).forEach(function(l,i){drawText(l,52,92+i*11,l.charAt(0)==='>'?GR:HEX('#ffffff'),1);});drawTextC('ENTER: RUN   ESC: CLOSE',W/2,226,GR,1);}
+/* M1.18 revive: after a death, pay 10 coins x the number of times you have died this run to stand back up with full hearts */
+var REVIVE_RECT=[150,150,180,22],REVIVE_COST=10;
+function reviveCost(){return REVIVE_COST*Math.max(1,(G.run&&G.run.deaths)|0);}
+function tryRevive(){if(G.mode!=='dead'||G.modeT<.4)return false;var p=G.p,c=reviveCost();if(p.coins<c){G.reviveMsg='YOU NEED '+c+' COINS';SFX.locked();return false;}
+  p.coins-=c;p.hearts=maxHearts();p.inv=2;p.hurtT=0;if(G.fellPit){var sp=safeSpot(p.x,p.y);p.x=sp.x;p.y=sp.y;G.fellPit=false;}G.final=null;G.mode='play';G.modeT=0;resetInputs();
+  G.eshots=[];G.puddles=[];G.halis=[];G.signs=[];G.splats=[];G.hudDmg=[];G.ents.forEach(function(e){if(!e.gone&&Math.hypot(e.x-p.x,e.y-p.y)<1.5&&!MOBS[e.type].boss)for(var k=0;k<10;k++)moveBody(e,(e.x-p.x||.1)*.08,(e.y-p.y||.1)*.08,.28,'g');});
+  writeSave({v:1,level:G.levelIdx,hearts:p.hearts,coins:p.coins,seed:G.seed,item:p.item,item2:p.item2,sel:p.sel,ball:p.ball,perm:permCopy(),secret:G.L.secretOpen?G.levelIdx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0},t:Date.now()});
+  SFX.portalOpen();SFX.heart();sparkle(p.x,p.y,.5,'spark',20);setMsg('REVIVED! (-'+c+' COINS)',2.5);stats.revives++;if(G.lastInput==='kb')requestLock();return true;}
 function onRunOver(){var r=G.run||newRun();G.final={cheated:!!r.cheated,score:scoreOf(r),floor:Math.max(1,Math.min(MAX_FLOOR,r.deepest|0)),seed:String(G.seed),kills:r.kills|0,coins:r.coins|0};clearSave();}
 var NAME_CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _.-';
 var NAME_FIELD=[140,124,200,24],NAME_OK=[140,170,96,32],NAME_SKIP=[244,170,96,32];
@@ -1869,7 +1908,7 @@ function critSpawn(n){var cells=critCells(n),floor=G.levelIdx+1,pool=poolFor(flo
 function pitUnder(x,y,m){var c=cellAt(Math.floor(x),Math.floor(y));if(!c||c.t!==6)return false;var fx=x-Math.floor(x),fy=y-Math.floor(y);m=m||0;return fx>m&&fx<1-m&&fy>m&&fy<1-m;}
 function pitLine(ax,ay,bx,by){var d=Math.hypot(bx-ax,by-ay),n=Math.ceil(d/.1);for(var i=1;i<n;i++){var t=i/n,c=cellAt(Math.floor(ax+(bx-ax)*t),Math.floor(ay+(by-ay)*t));if(c&&c.t===6)return true;}return false;}
 function startFall(){if(G.god){var sp=safeSpot(G.p.x,G.p.y);G.p.x=sp.x;G.p.y=sp.y;return;}G.mode='fall';G.modeT=0;G.fellPit=true;resetInputs();stats.falls++;SFX.fall();}
-function fallDeath(){ambStop();var p=G.p;p.hearts=0;G.mode='dead';G.modeT=0;onRunOver();SFX.die();if(locked&&document.exitPointerLock){hadLock=false;document.exitPointerLock();}}
+function fallDeath(){ambStop();musicStop();if(G.run)G.run.deaths=(G.run.deaths|0)+1;G.reviveMsg='';var p=G.p;p.hearts=0;G.mode='dead';G.modeT=0;onRunOver();SFX.die();if(locked&&document.exitPointerLock){hadLock=false;document.exitPointerLock();}}
 /* ---- secret room: 3 balloon hits break the cracked wall ---- */
 function crackHit(x,y){var c=cellAt(Math.floor(x),Math.floor(y));if(!c||!c.crack||c.t!==1)return false;c.hits++;stats.crackHits++;sparkle(x,y,.5,'spark',5);
   if(c.hits>=SECRET.hits)openSecret(c,true);else{SFX.crack();setMsg(c.hits===1?'THE WALL CREAKS...':'THE CRACK WIDENS!',1.6);}return true;}
@@ -2158,7 +2197,7 @@ SPR.glow={};SPR.glowT={};SPR.glowD={};['screamer','screamerO','springle','kettle
 /* ---------- renderer ---------- */
 function viewDist(){var p=G.p;if(!p||G.mode==='title')return 12;var v=VIEW.base+permN('owl')+(effectIs('torch')?3:0)+(effectIs('lantern')?2:0);if(G.flareT>0)v=Math.max(v,16);return v;}
 function setCam(x,y,ang,z,pitch){VIEW.cur=api.viewOverride||viewDist();cam.hz=HALF+(pitch||0);cam.x=x;cam.y=y;cam.ang=ang;cam.z=z;cam.dx=Math.cos(ang);cam.dy=Math.sin(ang);cam.px=-cam.dy*PLANE;cam.py=cam.dx*PLANE;}
-var stats={slotSpins:0,slotSpent:0,slotWon:0,slotRefused:0,slotSfx:0,slotResults:{},hsRequests:[],hsPosts:0,hs429:0,hsLocalSaves:0,mapOpens:0,fullMap:null,fenceHits:0,eshotsFired:0,eshotsBlocked:0,shotHits:0,puddles:0,gooHits:0,eliteKills:0,powerDrops:0,powerPicks:0,powerSwaps:0,powerUses:0,shieldBlocks:0,telegraphs:0,regens:0,giantSplashes:0,recenters:0,charges:0,steam:0,ceilingHits:0,voices:{},enemyBoxes:[],hudGhost:null,rays:0,wallPx:0,fencePx:0,spritePx:0,frames:0,throws:0,screams:0,enemyRect:null,wallTop:null,wallBot:null};['poisonTicks','pilesSmashed','reforms','collapses','poisoned','bags','ballSwitches','coinSprays','sprayCoins','crackHits','secretsOpened','critSpawned','falls','itemsResettled','shopBuys','shopOpens','shopRefused','shopSpent','slotSwitches','ypudHits','ypuds','arenaLocks','bossIntros','ambStarts','ambSounds','cheatOpens','cheatsRun','knightSlamAttacks','knightSlamHits','kingSummons','kingAttacks','signHits','haliHits','modShields','vampHeals','frostBites','blinks','splits','explosions','masqueBlocks','webHits','pitSpawns','faceHugs','eggs','eggPops','coinDoors','pitTosses','trapdoors','shrineUses','shrineCurses','piggyPicks','piggyThrows','comedyHits','knightWakes','knightBlocks','knightShields','knightCharges','knightSlams','knightKills','dents','cloverCoins','bellStuns','permPicks','goldPicks','thornHits','mirrorBounces','bossShots','bossWakes','bossEnrages','bossMinions','caseBursts','bossKills'].forEach(function(k){if(stats[k]==null)stats[k]=0;}) /* M19 counters */;
+var stats={slotSpins:0,slotSpent:0,slotWon:0,slotRefused:0,slotSfx:0,slotResults:{},hsRequests:[],hsPosts:0,hs429:0,hsLocalSaves:0,mapOpens:0,fullMap:null,fenceHits:0,eshotsFired:0,eshotsBlocked:0,shotHits:0,puddles:0,gooHits:0,eliteKills:0,powerDrops:0,powerPicks:0,powerSwaps:0,powerUses:0,shieldBlocks:0,telegraphs:0,regens:0,giantSplashes:0,recenters:0,charges:0,steam:0,ceilingHits:0,voices:{},enemyBoxes:[],hudGhost:null,rays:0,wallPx:0,fencePx:0,spritePx:0,frames:0,throws:0,screams:0,enemyRect:null,wallTop:null,wallBot:null};['poisonTicks','pilesSmashed','reforms','collapses','poisoned','bags','ballSwitches','coinSprays','sprayCoins','crackHits','secretsOpened','critSpawned','falls','itemsResettled','shopBuys','shopOpens','shopRefused','shopSpent','slotSwitches','ypudHits','ypuds','arenaLocks','bossIntros','revives','songs','ambStarts','ambSounds','cheatOpens','cheatsRun','knightSlamAttacks','knightSlamHits','kingSummons','kingAttacks','signHits','haliHits','modShields','vampHeals','frostBites','blinks','splits','explosions','masqueBlocks','webHits','pitSpawns','faceHugs','eggs','eggPops','coinDoors','pitTosses','trapdoors','shrineUses','shrineCurses','piggyPicks','piggyThrows','comedyHits','knightWakes','knightBlocks','knightShields','knightCharges','knightSlams','knightKills','dents','cloverCoins','bellStuns','permPicks','goldPicks','thornHits','mirrorBounces','bossShots','bossWakes','bossEnrages','bossMinions','caseBursts','bossKills'].forEach(function(k){if(stats[k]==null)stats[k]=0;}) /* M19 counters */;
 function renderWorld(){
   setFogCol(G.mode==='title'||!G.L.haze?HEX('#0c0a16'):(G.carcosaT>0?mix(G.L.haze,HEX('#5a4a10'),.5):G.L.haze));
   var L=G.L,fl=L.floor,ce=L.ceil,y,x,i;
@@ -2418,8 +2457,9 @@ function render(){
         if(items[i].id==='look'){LOOK_ARROWS.dec[1]=LOOK_ARROWS.inc[1]=y-3;drawArrowBox(LOOK_ARROWS.dec,-1,settings.look>0);drawArrowBox(LOOK_ARROWS.inc,1,settings.look<LOOKS.length-1);}}
       G.prompt=usePad?'A: CHOOSE  </>: ADJUST  START: RESUME':(G.touch?'TAP AN OPTION':'ENTER: CHOOSE  </>: ADJUST  ESC: RESUME');
       drawTextC(G.prompt,W/2,240,GR,1);if(!G.touch&&!usePad)drawTextC('Q: ITEM  F: SLOT  R/1-4: BALLOON  M: MAP  N: MUTE',W/2,252,HEX('#6e6a90'),1);}
-    else if(G.mode==='dead'){var fz=G.final||{score:0,floor:1,kills:0,coins:0};blend(0,0,W,H,HEX('#400818'),.5);panel(80,74,320,140);drawTextC(fz.cheated?'(CHEATS USED)':'',W/2,200,HEX('#ff9a7a'),1);drawTextC(G.fellPit?'YOU FELL IN A PIT!':'OUT OF HEARTS!',W/2,88,HEX('#ff7080'),2);drawTextC('RUN OVER ON FLOOR '+fz.floor,W/2,112,W1,1);
-      drawTextC('SCORE '+fmtNum(fz.score),W/2,128,Y1,2);drawTextC('MONSTERS '+fz.kills+'   COINS '+fz.coins,W/2,152,GR,1);G.prompt=usePad?'PRESS A TO CONTINUE':(G.touch?'TAP TO CONTINUE':'PRESS ENTER TO CONTINUE');if(G.modeT>.5)drawTextC(G.prompt,W/2,170,Y1,1);drawTextC('NEXT: NAME ENTRY AND HIGH SCORES',W/2,190,GR,1);}
+    else if(G.mode==='dead'){var fz=G.final||{score:0,floor:1,kills:0,coins:0};blend(0,0,W,H,HEX('#400818'),.5);panel(80,64,320,184);drawTextC(fz.cheated?'(CHEATS USED)':'',W/2,236,HEX('#ff9a7a'),1);drawTextC(G.fellPit?'YOU FELL IN A PIT!':'OUT OF HEARTS!',W/2,74,HEX('#ff7080'),2);drawTextC('RUN OVER ON FLOOR '+fz.floor,W/2,98,W1,1);
+      var rc=reviveCost(),ok9=p.coins>=rc,RR=REVIVE_RECT;blend(RR[0],RR[1],RR[2],RR[3],ok9?HEX('#3a2a70'):HEX('#2a2236'),.9);frameBox(RR[0],RR[1],RR[2],RR[3],ok9?Y1:HEX('#5a5678'));drawTextC('REVIVE: '+rc+' COINS'+(G.touch?'':usePad?' (X)':' (R)'),RR[0]+RR[2]/2,RR[1]+8,ok9?Y1:GR,1);if(G.reviveMsg)drawTextC(G.reviveMsg,W/2,RR[1]+26,HEX('#ff9a7a'),1); /* M1.18 */
+      drawTextC('SCORE '+fmtNum(fz.score),W/2,112,Y1,2);drawTextC('MONSTERS '+fz.kills+'   COINS '+fz.coins+'   YOU HAVE '+p.coins,W/2,134,GR,1);G.prompt=usePad?'PRESS A TO CONTINUE':(G.touch?'TAP TO CONTINUE':'PRESS ENTER TO CONTINUE');if(G.modeT>.5)drawTextC(G.prompt,W/2,198,Y1,1);drawTextC('NEXT: NAME ENTRY AND HIGH SCORES',W/2,216,GR,1);}
     else if(G.mode==='name'){drawNameEntry(usePad);}
     else if(G.mode==='scores'){drawScores();}
     else if(G.mode==='clear'){var st=G.stats;panel(84,69,312,150);drawTextC('LEVEL '+(G.levelIdx+1)+' CLEAR!',W/2,84,Y1,2);if(st.bossName)drawTextC(st.bossName+' DEFEATED!',W/2,103,HEX('#ff9a3a'),1);
@@ -2597,6 +2637,9 @@ api.signs=function(){return G.signs.map(function(s){return {x:s.x,y:s.y,t:s.t};}
 api.pitSpider=function(t){var p=G.p,e=spawnSpider(t,p.x+1.5,p.y,'pit');return G.ents.indexOf(e);};
 api.cheat=function(line){return runCheat(line);};api.cheatOpen=function(){return G.mode==='cheat';};api.cheated=function(){return !!(G.run&&G.run.cheated);};api.god=function(){return !!G.god;};
 api.audioLevel=function(){if(!AC||!master)return null;if(!api._an){api._an=AC.createAnalyser();api._an.fftSize=2048;master.connect(api._an);}var d=new Float32Array(2048);api._an.getFloatTimeDomainData(d);var sq=0;for(var i=0;i<d.length;i++)sq+=d[i]*d[i];return {rms:Math.sqrt(sq/d.length),state:AC.state};};
+api._recStart=function(){var d=AC.createMediaStreamDestination();master.connect(d);var r=new MediaRecorder(d.stream),ch=[];r.chunks=ch;r.ondataavailable=function(e){ch.push(e.data);};r.start(500);return r;}; /* QA: record the game's audio */
+api.revive=function(){return tryRevive();};api.reviveCost=function(){return reviveCost();};api.reviveRect=function(){return REVIVE_RECT.slice();};api.deaths=function(){return (G.run&&G.run.deaths)|0;};
+api.song=function(seed,floor,boss){var S=composeSong(seed,floor,!!boss);return {mode:S.mode,key:S.key,bpm:S.bpm,prog:S.prog.join(),mel:S.mel.map(function(p){return p.map(function(n){return n===null?'.':n;}).join(',');}).join('|')};};api.music=function(){return MUSIC.song?{floor:MUSIC.floor,name:MUSIC.song.name}:null;};
 api.amb=function(){return {on:!!AMB.on,floor:AMB.floor,kinds:AMB.kinds.slice(),root:AMB.root||0};};api.ambDescribe=function(seed,floor,boss){var R=rng(hashSeed(seed+':'+floor+':amb'));var roots=[41.2,43.65,46.25,49,51.9,55,58.3];return roots[(R()*roots.length)|0]*(boss?.75:1);};api.view=function(){return VIEW.cur;};api.viewDist=function(){return viewDist();};api.dmgFx=function(){return {nums:G.dmgNums.length,splats:G.splats.map(function(s){return s.a;}),hud:G.hudDmg.length};};api.flareT=function(){return G.flareT;};
 api.bossForce=function(k){G.ents.forEach(function(e){if(MOBS[e.type].boss&&!e.gone){e.atkCD=0;e.next=k;e.tele=.01;e.last=null;}});};
 api.kingForce=function(k){G.ents.forEach(function(e){if(e.type==='yellow'){e.atkCD=0;e.next=k;e.tele=.01;e.last=null;}});};api.dormant=function(){var d=null;G.ents.forEach(function(e){if(e.type==='yellow')d=!!e.dormant;});return d;};
@@ -2604,7 +2647,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.17.1-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.18-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

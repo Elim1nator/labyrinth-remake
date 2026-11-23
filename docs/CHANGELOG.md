@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.18: music for every floor, revive
+- Original seed-composed 8-bit song per floor (quiet; darker on boss floors).
+- Revive after death for 10 coins x deaths this run (full hearts, 2 s safety).
+- QA build `m1.18-qa` (debug hook on).
+
 ## M1.17.1: audible ambience, gentler first knight
 - Ambience drone moved to ~165-235 Hz, louder occasional sounds. Treasure Knight HP 10 + 3 per floor after floor 2.
 - QA build `m1.17.1-qa` (debug hook on).

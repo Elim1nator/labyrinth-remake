@@ -305,7 +305,7 @@ async function m110Tests(){
   // ---- 2. the fight: seal, wake, arena leash, attacks, phases, death, loot, portal
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m110-fight'});
-    const seal=await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.startLevel(4);const s0=__game.state(),b=__game.boss();const ex=s0.exit;
+    const seal=await G(page,()=>{__game.manual=true;if('bossIntro' in __game)__game.bossIntro=false; /* M1.10.2: the cut scene has its own test */localStorage.clear();__game.setSeed(777);__game.startLevel(4);const s0=__game.state(),b=__game.boss();const ex=s0.exit;
       __game.teleport(ex.x+.5,ex.y+.5,0);let s=__game.advance(0.3);const still=s.mode,msg=s.msg;return {msg0:s0.msg,sealed:b.sealed,idle:b.ent.state,still,msg,hp:b.ent.hp,save:s0.save&&s0.save.level};});
     check('M1.10 floor 5: "BOSS FLOOR!" message, the portal is sealed, and stepping into it does nothing but say who to beat',/BOSS FLOOR! KING GLOOP/.test(seal.msg0)&&seal.sealed&&seal.still==='play'&&/SEALED! DEFEAT KING GLOOP/.test(seal.msg),JSON.stringify(seal));
     // each boss: wakes, stays in its arena, attacks, can hurt you
@@ -368,10 +368,26 @@ async function m110Tests(){
     check('M1.10 CONTINUE on a boss floor starts it fresh: the boss is back and the portal sealed',cont.level===9&&cont.sealed&&cont.alive,JSON.stringify(cont));
     await ctx.close();
   }
+  // ---- 2b. M1.10.2 cut scene: opening the arena door pulls you in, slams the doors, shows VS <BOSS> for 5 s, then the fight starts
+  if(atLeast('1.10.2')){
+    const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m1102-intro'});
+    const r=await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.startLevel(9);__game.state().enemies.forEach((e,i)=>{if(!__game.bosses[e.type])__game.damageMob(i,99);});__game.advance(0.3);
+      const A=__game.boss().def.room,d=__game.arenaDoors()[0];__game.teleport(d.x+.5-(d.x<A.x?1:d.x>=A.x+A.w?-1:0),d.y+.5-(d.y<A.y?1:d.y>=A.y+A.h?-1:0),0);__game.render();__game.use();
+      const out=[];for(let i=0;i<=56;i++){__game.setHearts(5);const s=__game.advance(0.1),I=__game.intro(),p=s.player,inA=p.x>A.x&&p.x<A.x+A.w&&p.y>A.y&&p.y<A.y+A.h;
+        out.push({t:+(i*0.1).toFixed(1),mode:s.mode,inA,locked:__game.arenaDoors().every(q=>q.bossLock),open:Math.max(...__game.arenaDoors().map(q=>q.open)),woke:__game.boss().ent.woke,shots:s.eshots.length,hearts:p.hearts,ang:p.ang,face:Math.abs(Math.atan2(Math.sin(Math.atan2(__game.boss().ent.y-p.y,__game.boss().ent.x-p.x)-p.ang),Math.cos(Math.atan2(__game.boss().ent.y-p.y,__game.boss().ent.x-p.x)-p.ang)))});
+        if(i===30)window.__introShot=true;}return out;});
+    const at=t=>r.find(x=>Math.abs(x.t-t)<0.05);
+    check('M1.10.2 opening the boss room door starts a 5 s cut scene: you are pulled inside, the doors slam and lock behind you',at(0.5).mode==='intro'&&at(2).inA&&at(2).locked&&at(2.5).open<0.1&&at(4.5).mode==='intro',JSON.stringify([at(0.5),at(2),at(4.5)]));
+    check('M1.10.2 during the cut scene the view turns to the boss and nothing attacks you; at 5 s the fight starts',at(3).face<0.15&&r.filter(x=>x.mode==='intro').every(x=>x.hearts===5&&x.shots===0&&!x.woke)&&at(5.5).mode==='play'&&at(5.5).woke,JSON.stringify([at(3),at(4.9),at(5.5)]));
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const A=__game.boss().def.room,d=__game.arenaDoors()[0];__game.teleport(d.x+.5-(d.x<A.x?1:d.x>=A.x+A.w?-1:0),d.y+.5-(d.y<A.y?1:d.y>=A.y+A.h?-1:0),0);__game.render();__game.use();__game.advance(3);});await shot(page,'intro_vs');
+    const again=await G(page,()=>{__game.advance(3);const A=__game.boss().def.room;const s=__game.advance(0.1);return {mode:s.mode,intros:s.stats.bossIntros};});
+    check('M1.10.2 the cut scene plays once per fight',again.mode==='play',JSON.stringify(again));
+    await ctx.close();
+  }
   // ---- 3. phone: the bar lives in the band, so no touch button can cover it
   {
     const {ctx,page}=await newPage({viewport:{width:844,height:390},hasTouch:true,isMobile:true,label:'m110-phone'});
-    const r=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.6);__game.advance(0.3);const l=__game.layout(),R=__game.bossBar();return {l,R};});
+    const r=await G(page,()=>{__game.manual=true;if('bossIntro' in __game)__game.bossIntro=false;__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.6);__game.advance(0.3);const l=__game.layout(),R=__game.bossBar();return {l,R};});
     const c=r.l.canvas,s=c.w/480,bar={x:c.x+r.R[0]*s,y:c.y+r.R[1]*s,w:r.R[2]*s,h:r.R[3]*s},ov=(a,b)=>a.visible!==false&&a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
     const hits=['throwBtn','useBtn','pauseBtn','itemBtn','mapBtn','ballBtn'].filter(k=>r.l[k].visible&&ov(r.l[k],bar));
     check('M1.10 phone 844x390: no touch button covers the boss health bar',hits.length===0,hits.join(','));

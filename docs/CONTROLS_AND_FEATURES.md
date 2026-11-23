@@ -99,8 +99,8 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 Every 5th floor a boss guards the portal: King Gloop (5, 20, 35, ...), Luggernaut (10, 25, ...)
 and Coghoot (15, 30, ...). The band says "BOSS FLOOR!" at the start. The portal is barred and
 dim (also on both maps) until the boss falls; the exit door itself needs no key. The boss stays
-in its arena room and wakes when you walk in. Once you are inside, every door into the arena
-locks until the boss falls. While it fights, its name and a health bar show
+in its arena room and wakes when you walk in. Opening its door plays a 5-second cut scene: you are pulled
+inside, every door slams and locks until the boss falls, and "VS <BOSS>" comes up. While it fights, its name and a health bar show
 in the message band. Beat it for coins, a heart and a power-up, and the portal opens.
 CONTINUE on a boss floor restarts the fight.
 

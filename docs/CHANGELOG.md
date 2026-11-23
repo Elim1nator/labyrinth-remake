@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.10.2: boss cut scene (416 checks)
+- Opening a boss room door plays a 5 s cut scene: you are pulled in, the doors slam and lock (sound + shake), the view turns to the boss with "VS <NAME>". Then the fight starts.
+- QA build `m1.10.2-qa` (debug hook on).
+
 ## M1.10.1: boss arenas lock (413 checks)
 - Entering a boss arena locks all its doors until the boss falls; keys don't open them.
 - QA build `m1.10.1-qa` (debug hook on).

@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Labyrinth">
-<title>Labyrinth Remake (M1.10.1 prototype)</title>
+<title>Labyrinth Remake (M1.10.2 prototype)</title>
 <link rel="icon" id="icon" href="data:,">
 <link rel="manifest" id="manifest" href="data:application/manifest+json,%7B%7D">
 <style>
@@ -62,7 +62,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Labyrinth Remake - M1.10.1 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
+   Labyrinth Remake - M1.10.2 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
@@ -807,7 +807,7 @@ function startLevel(idx,carry){
   var r=loadLevel(idx);G.levelIdx=idx;G.L=r.L;G.items=r.items;G.ents=r.ents;G.shots=[];G.parts=[];G.eshots=[];G.puddles=[];
   G.p={x:r.L.start.x,y:r.L.start.y,ang:r.L.def.ang,hearts:Math.max(1,Math.min(MAX_HEARTS,carry.hearts)),coins:carry.coins|0,keys:0,hurtT:0,inv:0,throwT:0,throwAnim:0,bob:0,moving:0,pitch:0,recenter:false,riseT:0,prevFrame:'idle',item:carry.item&&PU[carry.item]?carry.item:null,effect:null,goopT:0};
   if(carry.perm)G.perm=permFrom(carry.perm);if(!G.perm)G.perm={};var p9=G.p;p9.effects=[];p9.item2=carry.item2&&PU[carry.item2]&&G.perm.pack?carry.item2:null;p9.sel=carry.sel===1&&G.perm.pack?1:0;p9.ball=carry.ball&&(carry.ball==='blue'||G.perm[carry.ball])?carry.ball:'blue';p9.shieldHits=0;
-  G.ypuds=[];G.slotForce=null;G.shopState=null;G.fellPit=false;G.boss=null;G.sealMsgT=0;if(carry.secret===idx&&G.L.crack)openSecret(G.L.crack,false); /* M19: a broken secret wall stays open on CONTINUE */
+  G.ypuds=[];G.slotForce=null;G.shopState=null;G.fellPit=false;G.boss=null;G.sealMsgT=0;G.intro=null;G.shake=0;if(carry.secret===idx&&G.L.crack)openSecret(G.L.crack,false); /* M19: a broken secret wall stays open on CONTINUE */
   G.stats={coins0:G.p.coins,coinsTotal:r.items.filter(function(i){return i.kind==='coin';}).length+r.ents.length,enemiesTotal:r.ents.length,defeated:0};
   G.stats.elites=rollLevelElites(idx+1);G.stats.powerups=placePowerups(idx);
   G.levelTime=0;G.mode='play';G.modeT=0;G.dist=null;G.distG=null;G.distT=0;
@@ -903,6 +903,7 @@ var SFX={
  sockFire:function(){noise(.12,.2,1800,600);tone(500,.08,'triangle',.06,250);},
  caseBurst:function(){noise(.45,.35,1600,200);tone(130,.3,'square',.1,60);for(var i=0;i<6;i++)tone(800+i*120,.05,'square',.04,0,.1+i*.04);},
  hoot:function(){tone(420,.22,'sine',.12,360);tone(420,.32,'sine',.12,330,.3);tone(1200,.05,'square',.03,0,.02);},
+ slam:function(){noise(.5,.5,900,90);tone(55,.5,'sine',.25,32);tone(90,.2,'square',.12,50);noise(.12,.3,3000,800,.02,'bandpass');},
  gearFire:function(){for(var i=0;i<5;i++)tone(1400-i*120,.03,'square',.05,0,i*.035);noise(.15,.08,5000,2000,0,'highpass');}
 };
 
@@ -1087,6 +1088,7 @@ function update(dt){
   if(G.mode==='title'){cam.ang=G.time*.18;inp.confirm=false;return;}
   if(G.mode==='name'||G.mode==='scores'){if(G.mode==='scores'&&inp.confirm&&G.modeT>.3)leaveScores();inp.confirm=false;inp.use=false;inp.pause=false;inp.item=false;inp.throwQueued=false;return;} /* M18 */
   if(G.mode==='map'||G.mode==='shop'){inp.confirm=false;inp.use=false;inp.pause=false;inp.item=false;inp.throwQueued=false;return;} /* full-screen map / M19 shop menu: the game is paused */
+  if(G.mode==='intro'){updateIntro(dt);inp.confirm=false;inp.use=false;inp.pause=false;inp.item=false;inp.throwQueued=false;inp.lookDX=0;inp.lookDY=0;return;} /* M1.10.2 boss cut scene */
   if(G.mode==='fall'){updateFx(dt);if(G.modeT>=FALL_T)fallDeath();inp.confirm=false;inp.use=false;inp.pause=false;inp.item=false;inp.throwQueued=false;return;}
   if(G.mode==='play'){updatePlay(dt);}
   else{updateFx(dt);
@@ -1099,7 +1101,7 @@ function update(dt){
   inp.use=false;inp.pause=false;inp.item=false;
 }
 function updatePlay(dt){
-  var p=G.p;G.levelTime+=dt;updateSlot(dt);
+  var p=G.p;G.levelTime+=dt;if(G.shake>0)G.shake-=dt;updateSlot(dt);
   if(inp.pause){inp.pause=false;resetInputs();pauseGame();if(locked&&document.exitPointerLock){hadLock=false;document.exitPointerLock();}return;}
   // turning
   var turn=0;if(keys.ArrowLeft)turn-=1;if(keys.ArrowRight)turn+=1;if(pad)turn+=pad.rx;
@@ -1148,7 +1150,7 @@ function findUse(){var p=G.p,ca=Math.cos(p.ang),sa=Math.sin(p.ang);for(var d=.1;
 function doUse(){var d=G.useTarget;if(!d){return;}if(d.t===5){slotUse();return;}if(d.t===7){openShop();return;}
   if(d.bossLock){setMsg('LOCKED UNTIL '+bossName()+' FALLS!',2.5);SFX.locked();return;}
   if(d.locked){if(G.p.keys>0){G.p.keys--;d.locked=false;d.tex=5;d.state='opening';setMsg('UNLOCKED!',2);SFX.unlock();SFX.door();}else{setMsg('LOCKED! FIND THE GOLD KEY.',2.5);SFX.locked();}return;}
-  if(d.state==='closed'||d.state==='closing'){d.state='opening';SFX.door();}}
+  if(d.state==='closed'||d.state==='closing'){d.state='opening';SFX.door();var be=introBossFor(d);if(be)startBossIntro(be,d);}}
 function cellOccupied(d){function ov(x,y,r){return x+r>d.x&&x-r<d.x+1&&y+r>d.y&&y-r<d.y+1;}if(ov(G.p.x,G.p.y,.25))return true;for(var i=0;i<G.ents.length;i++){var e=G.ents[i];if(!e.gone&&e.state!=='dead'&&ov(e.x,e.y,.3))return true;}return false;}
 function updateDoors(dt){G.L.doors.forEach(function(d){
   if(d.state==='opening'){d.open+=dt*1.8;if(d.open>=1){d.open=1;d.state='open';d.timer=4;}}
@@ -1545,9 +1547,9 @@ function bossFan(e,n,spread,spd,kind,home){var a0=Math.atan2(G.p.y-e.y,G.p.x-e.x
 function bossRing(e,n,spd,kind){var a0=Math.random()*Math.PI;for(var i=0;i<n;i++)bossShot(e,a0+i/n*Math.PI*2,spd,kind,0);}
 function bossWake(e){var M=MOBS[e.type];e.woke=true;if(e.state==='idle')e.state='chase';G.boss=e;e.sndT=2.5;setMsg(M.name+' AWAKENS!',2.5);SFX.bossRoar();stats.bossWakes++;}
 function updateBoss(e,dt,p){var M=MOBS[e.type],A=e.arena,dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1e-6;
-  if(!e.woke){var inA=A&&p.x>A.x-.3&&p.x<A.x+A.w+.3&&p.y>A.y-.3&&p.y<A.y+A.h+.3;if(inA||e.state==='chase'||(d<7&&los(e.x,e.y,p.x,p.y)))bossWake(e);else return;}
+  if(!e.woke){var inA=A&&p.x>A.x-.3&&p.x<A.x+A.w+.3&&p.y>A.y-.3&&p.y<A.y+A.h+.3;if(inA&&!e.introDone&&api.bossIntro){startBossIntro(e,null);return;}if(inA||e.state==='chase'||(d<7&&los(e.x,e.y,p.x,p.y)))bossWake(e);else return;}
   if(!G.boss)G.boss=e;
-  if(!e.doorsLocked&&A&&p.x>A.x+.3&&p.x<A.x+A.w-.3&&p.y>A.y+.3&&p.y<A.y+A.h-.3)arenaLock(e,true);
+  if(!e.doorsLocked&&A&&p.x>A.x+.3&&p.x<A.x+A.w-.3&&p.y>A.y+.3&&p.y<A.y+A.h-.3){if(!e.introDone&&api.bossIntro){startBossIntro(e,null);return;}arenaLock(e,true);}
   e.sndT-=dt;if(e.sndT<=0&&d<12)voice(e);
   if(e.atkT>0)e.atkT-=dt;
   if(!e.enraged&&e.hp<=e.maxHp/2){e.enraged=true;setMsg(M.name+' IS FURIOUS!',2);SFX.bossRoar();stats.bossEnrages++;}
@@ -1593,7 +1595,28 @@ function bossDying(e,dt){e.deadT+=dt;if(Math.random()<dt*14){var a=Math.random()
 function arenaDoors(A){return G.L.doors.filter(function(d){var inX=d.x>=A.x&&d.x<A.x+A.w,inY=d.y>=A.y&&d.y<A.y+A.h;return (inX&&(d.y===A.y-1||d.y===A.y+A.h))||(inY&&(d.x===A.x-1||d.x===A.x+A.w));});}
 function arenaLock(e,on){var A=e.arena;if(!A)return 0;var n=0;arenaDoors(A).forEach(function(d){if(on){if(d.bossLock)return;d.bossLock=true;d.wasLocked=d.locked;d.locked=true;d.tex=6;d.state=d.open>0?'closing':'closed';n++;}
     else if(d.bossLock){d.bossLock=false;d.locked=!!d.wasLocked;d.tex=d.locked?6:5;n++;}});
-  e.doorsLocked=on;if(on&&n){SFX.door();SFX.locked();setMsg(MOBS[e.type].name+' LOCKS YOU IN!',2.5);stats.arenaLocks++;}return n;}
+  e.doorsLocked=on;if(on&&n){SFX.slam();G.shake=.6;setMsg(MOBS[e.type].name+' LOCKS YOU IN!',2.5);stats.arenaLocks++;}return n;}
+/* M1.10.2 boss cut scene (5 s, game paused): opening an arena door pulls you into the room, the doors slam and lock behind you
+   (shake + slam), the view turns to the boss and "VS <NAME>" comes up between letterbox bars. Then the fight starts. */
+var INTRO={T:5,walk:1.3,slam:1.4,pan:[1.5,2.4],vs:1.7};
+function introBossFor(d){var b=null;G.ents.forEach(function(o){if(MOBS[o.type].boss&&!o.gone&&o.state!=='dead'&&!o.introDone)b=o;});if(!b||!b.arena||!api.bossIntro)return null;return arenaDoors(b.arena).indexOf(d)>=0?b:null;}
+function startBossIntro(e,door){var p=G.p,A=e.arena,tx=p.x,ty=p.y,via=null;e.introDone=true;
+  if(door){var dir=door.x<A.x?[1,0]:door.x>=A.x+A.w?[-1,0]:door.y<A.y?[0,1]:[0,-1];via={x:door.x+.5,y:door.y+.5};tx=door.x+.5+dir[0]*1.6;ty=door.y+.5+dir[1]*1.6;if(solidAt(tx,ty)||pitUnder(tx,ty,0)){tx=door.x+.5+dir[0];ty=door.y+.5+dir[1];}}
+  resetInputs();G.intro={e:e,door:door,x0:p.x,y0:p.y,via:via,x1:tx,y1:ty,a0:p.ang,p0:p.pitch,slammed:false,roared:false};G.mode='intro';G.modeT=0;G.eshots=[];stats.bossIntros++;}
+function introLerpAng(a,b,t){var d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*t;}
+function updateIntro(dt){var I=G.intro,p=G.p,e=I&&I.e,t=G.modeT;if(!I){G.mode='play';return;}
+  updateDoors(dt);updateFx(dt);e.ph+=dt;if(G.shake>0)G.shake-=dt;
+  var w=Math.min(1,t/INTRO.walk),ease=w*w*(3-2*w);if(I.via){var h=.45;if(ease<h){var k=ease/h;p.x=I.x0+(I.via.x-I.x0)*k;p.y=I.y0+(I.via.y-I.y0)*k;}else{var k2=(ease-h)/(1-h);p.x=I.via.x+(I.x1-I.via.x)*k2;p.y=I.via.y+(I.y1-I.via.y)*k2;}p.bob+=dt*9*(w<1?1:0);p.moving=w<1?1:Math.max(0,p.moving-dt*4);}
+  if(!I.slammed&&t>=INTRO.slam){I.slammed=true;arenaLock(e,true);}
+  var ab=Math.atan2(e.y-p.y,e.x-p.x),pt=Math.max(0,Math.min(1,(t-INTRO.pan[0])/(INTRO.pan[1]-INTRO.pan[0])));if(t<INTRO.pan[0]){if(I.via){var aw=Math.atan2(I.y1-I.y0,I.x1-I.x0);p.ang=introLerpAng(I.a0,aw,Math.min(1,t/.5));}}else{p.ang=introLerpAng(p.ang,ab,pt<1?Math.min(1,dt*6+pt*pt*.2):1);if(pt>=1)p.ang=ab;}p.pitch*=Math.max(0,1-dt*4);
+  if(!I.roared&&t>=INTRO.vs){I.roared=true;voice(e);SFX.bossRoar();G.shake=.45;}
+  if(t>=INTRO.T){G.mode='play';G.modeT=0;G.intro=null;p.ang=ab;bossWake(e);e.atkCD=Math.max(e.atkCD,1.2);e.atkT=Math.max(e.atkT||0,1);if(G.lastInput==='kb')requestLock();}}
+function drawIntro(){var I=G.intro;if(!I)return;var t=G.modeT,e=I.e,M=MOBS[e.type],bar=Math.round(Math.min(1,t/.5)*44),Y1=HEX('#ffe27a'),OR=HEX('#ff9a3a');
+  blend(0,0,W,bar,HEX('#000000'),1);blend(0,H-bar,W,bar,HEX('#000000'),1);
+  if(t>=INTRO.vs){var k=Math.min(1,(t-INTRO.vs)/.35),fade=t>INTRO.T-.4?Math.max(0,(INTRO.T-t)/.4):1;if(fade<=0)return;
+    var vx=Math.round(W/2-(1-k)*W*.6);blend(0,198,W,56,HEX('#14081e'),.6*fade);blend(0,198,W,2,OR,.8*fade);blend(0,252,W,2,OR,.8*fade); /* below the boss, so it stays in view */
+    drawTextC('VS',vx,203,HEX('#ff3a3a'),3,HEX('#3a0008'));var nx=Math.round(W/2+(1-k)*W*.6);drawTextC(M.name,nx,228,Y1,3,HEX('#5a2a08'));}
+  drawTextC('BOSS FLOOR '+(G.levelIdx+1),W/2,Math.max(4,bar-14),HEX('#a8a4c0'),1);}
 function bossDefeated(e){var lp=lootSpot(e.x,e.y),L=G.L;arenaLock(e,false);SFX.pop();SFX.bossDie();
   for(var k=0;k<16;k++){var a=k/16*Math.PI*2;G.parts.push({kind:'puff',x:e.x,y:e.y,z:.35,vx:Math.cos(a)*1.4,vy:Math.sin(a)*1.4,vz:.5,life:.8,g:0,max:.9});}sparkle(e.x,e.y,.5,'spark',20);
   coinBurst(lp.x,lp.y,BOSS_LOOT.coins);G.items.push({kind:'heart',x:lp.x,y:lp.y,ph:0});G.items.push({kind:'power',ptype:PU_IDS[(Math.random()*PU_IDS.length)|0],x:lp.x,y:lp.y,ph:0});
@@ -1665,7 +1688,7 @@ SPR.glow={};SPR.glowT={};SPR.glowD={};['screamer','screamerO','springle','kettle
 
 /* ---------- renderer ---------- */
 function setCam(x,y,ang,z,pitch){cam.hz=HALF+(pitch||0);cam.x=x;cam.y=y;cam.ang=ang;cam.z=z;cam.dx=Math.cos(ang);cam.dy=Math.sin(ang);cam.px=-cam.dy*PLANE;cam.py=cam.dx*PLANE;}
-var stats={slotSpins:0,slotSpent:0,slotWon:0,slotRefused:0,slotSfx:0,slotResults:{},hsRequests:[],hsPosts:0,hs429:0,hsLocalSaves:0,mapOpens:0,fullMap:null,fenceHits:0,eshotsFired:0,eshotsBlocked:0,shotHits:0,puddles:0,gooHits:0,eliteKills:0,powerDrops:0,powerPicks:0,powerSwaps:0,powerUses:0,shieldBlocks:0,telegraphs:0,regens:0,giantSplashes:0,recenters:0,charges:0,steam:0,ceilingHits:0,voices:{},enemyBoxes:[],hudGhost:null,rays:0,wallPx:0,fencePx:0,spritePx:0,frames:0,throws:0,screams:0,enemyRect:null,wallTop:null,wallBot:null};['poisonTicks','pilesSmashed','reforms','collapses','poisoned','bags','ballSwitches','coinSprays','sprayCoins','crackHits','secretsOpened','critSpawned','falls','itemsResettled','shopBuys','shopOpens','shopRefused','shopSpent','slotSwitches','ypudHits','ypuds','arenaLocks','bossShots','bossWakes','bossEnrages','bossMinions','caseBursts','bossKills'].forEach(function(k){if(stats[k]==null)stats[k]=0;}) /* M19 counters */;
+var stats={slotSpins:0,slotSpent:0,slotWon:0,slotRefused:0,slotSfx:0,slotResults:{},hsRequests:[],hsPosts:0,hs429:0,hsLocalSaves:0,mapOpens:0,fullMap:null,fenceHits:0,eshotsFired:0,eshotsBlocked:0,shotHits:0,puddles:0,gooHits:0,eliteKills:0,powerDrops:0,powerPicks:0,powerSwaps:0,powerUses:0,shieldBlocks:0,telegraphs:0,regens:0,giantSplashes:0,recenters:0,charges:0,steam:0,ceilingHits:0,voices:{},enemyBoxes:[],hudGhost:null,rays:0,wallPx:0,fencePx:0,spritePx:0,frames:0,throws:0,screams:0,enemyRect:null,wallTop:null,wallBot:null};['poisonTicks','pilesSmashed','reforms','collapses','poisoned','bags','ballSwitches','coinSprays','sprayCoins','crackHits','secretsOpened','critSpawned','falls','itemsResettled','shopBuys','shopOpens','shopRefused','shopSpent','slotSwitches','ypudHits','ypuds','arenaLocks','bossIntros','bossShots','bossWakes','bossEnrages','bossMinions','caseBursts','bossKills'].forEach(function(k){if(stats[k]==null)stats[k]=0;}) /* M19 counters */;
 function renderWorld(){
   var L=G.L,fl=L.floor,ce=L.ceil,y,x,i;
   var HZ=cam.hz;for(y=0;y<H;y++){var d,c;if(y+.5<HZ){d=(1-cam.z)*PROJ/Math.max(.5,HZ-y-.5);c=fogMix(shade(ce,1+(HZ-y)/300),fogT(d));}else{d=cam.z*PROJ/Math.max(.5,y+.5-HZ);c=fogMix(fl,fogT(d));if(y>HZ+45&&((y>>1)&1))c=shade(c,1.03);}
@@ -1846,7 +1869,7 @@ function fmtTime(t){var s=Math.floor(t),m=Math.floor(s/60);s%=60;return m+':'+(s
 function drawTitle(){var t=G.time,Y1=HEX('#ffe27a'),OR=HEX('#ff9a3a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0');
   blend(0,0,W,H,HEX('#0d0a1e'),.55);
   drawTextC('LABYRINTH',W/2,22,Y1,4,HEX('#5a2a08'));drawTextC('REMAKE',W/2,60,OR,3,HEX('#3a1404'));
-  drawTextC('M1.10.1 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
+  drawTextC('M1.10.2 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
   var sp=SPR.screamer[flapFrame(t)];blit(sp,Math.round(W/2-sp.w),102+Math.sin(t*3)*3,2);
   for(var i=0;i<G.menuItems.length;i++){var it=G.menuItems[i],sel=i===G.menuSel,lbl=it.label,w=textW(lbl,2),x=Math.round(W/2-w/2),y=212+i*21;it.rect=[x,y,w,14];
     if(sel){blend(x-12,y-4,w+24,22,HEX('#3a2a70'),.7);drawText('>',x-15+((t*4|0)&1),y,Y1,2);}drawText(lbl,x,y,sel?Y1:W1,2);}
@@ -1875,8 +1898,9 @@ function drawScores(){var Y1=HEX('#ffe27a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0'),
 function render(){
   stats.frames++;G.frame++;
   if(G.mode==='title'||!G.p){setCam(2.5+Math.cos(G.time*.1)*.8,2.5,G.time*.25,.5);renderWorld();renderSprites();if(G.mode==='scores')drawScores();else drawTitle();}
-  else{var p=G.p,fz9=G.mode==='fall'?Math.min(1,G.modeT/FALL_T):0;setCam(p.x,p.y,p.ang,.5+Math.sin(p.bob*2)*.012*p.moving-fz9*.44,p.pitch+fz9*30);renderWorld();renderSprites();if(fz9)blend(0,0,W,H,HEX('#000000'),fz9*.85);
-    if(G.mode!=='map'){if(G.mode!=='fall')drawHand();drawEffectFx();drawHUD();if(G.mode==='play')stats.slotPanel=drawSlotPanel();} /* the full map covers the HUD */
+  else{var p=G.p,fz9=G.mode==='fall'?Math.min(1,G.modeT/FALL_T):0;var shk=G.shake>0?G.shake:0;setCam(p.x,p.y,p.ang+(shk?(Math.random()-.5)*.03*shk:0),.5+Math.sin(p.bob*2)*.012*p.moving-fz9*.44+(shk?(Math.random()-.5)*.03*shk:0),p.pitch+fz9*30+(shk?(Math.random()-.5)*14*shk:0));renderWorld();renderSprites();if(fz9)blend(0,0,W,H,HEX('#000000'),fz9*.85);
+    if(G.mode==='intro'){drawIntro();}
+    else if(G.mode!=='map'){if(G.mode!=='fall')drawHand();drawEffectFx();drawHUD();if(G.mode==='play')stats.slotPanel=drawSlotPanel();} /* the full map covers the HUD */
     var Y1=HEX('#ffe27a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0'),usePad=pad&&G.lastInput==='pad',cont=usePad?'PRESS A TO CONTINUE':(G.touch?'TAP TO CONTINUE':'CLICK OR PRESS ENTER');G.prompt='';
     if(G.mode==='map'){drawFullMap();}
     else if(G.mode==='shop'){drawShop();}
@@ -2047,9 +2071,11 @@ api.faceBoss=function(dist){var b=null;G.ents.forEach(function(o){if(MOBS[o.type
   [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(v){var x=b.x+v[0]*d,y=b.y+v[1]*d;if(A&&(x<A.x+.3||x>A.x+A.w-.3||y<A.y+.3||y>A.y+A.h-.3))return;if(!solidAt(x,y)&&!best)best=[x,y];});
   if(!best)best=[b.x+.6,b.y];G.p.x=best[0];G.p.y=best[1];G.p.ang=Math.atan2(b.y-best[1],b.x-best[0]);G.p.pitch=0;G.useTarget=findUse();render();return true;};
 api.hitBoss=function(n){var b=null;G.ents.forEach(function(o){if(MOBS[o.type].boss&&!o.gone)b=o;});if(!b)return false;for(var k=0;k<(n||1);k++)hitEnemy(b);return true;};
+api.bossIntro=true; /* tests may switch the cut scene off to start fights at once */
+api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.10.1-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.10.2-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

@@ -30,9 +30,9 @@ URL options: `?seed=<text>` plays a reproducible run; `?debug` exposes the test 
 
 | Path | What |
 |---|---|
-| `src/index.html` | The current game (M1.10.1 release build). The single file *is* the source. |
-| `builds/<milestone>/index.html` | Frozen builds M1 to M1.10.1, checksums in `builds/SHA256SUMS`. |
-| `builds/m1.7-qa` … `builds/m1.10.1-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
+| `src/index.html` | The current game (M1.10.2 release build). The single file *is* the source. |
+| `builds/<milestone>/index.html` | Frozen builds M1 to M1.10.2, checksums in `builds/SHA256SUMS`. |
+| `builds/m1.7-qa` … `builds/m1.10.2-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
 | `tools/release.mjs` | Freezes `src/` into a release + QA build pair (see Release below). |
 | `tests/` | Playwright test suite, local high score API stub. |
 | `docs/` | Plan, changelog, controls and features, balance, research notes, API contract. |
@@ -46,8 +46,8 @@ Needs Node 18+.
 cd tests
 npm ci
 npx playwright install chromium
-npm test                     # full suite against builds/m1.10.1 (+ builds/m1.10.1-qa)
-node m1.test.mjs m1.8        # any older milestone: m1, m1.1 ... m1.10.1
+npm test                     # full suite against builds/m1.10.2 (+ builds/m1.10.2-qa)
+node m1.test.mjs m1.8        # any older milestone: m1, m1.1 ... m1.10.2
 ```
 
 Results and screenshots go to `test-output/<build>/` (gitignored). From M1.7 on, the
@@ -56,7 +56,7 @@ High score tests use the local stub `tests/hs_stub.mjs` (loopback only), never a
 To preview with the stub API: `cd tests && npm run stub`, then open `localhost:8787` in a browser.
 
 Expected results: m1 54, m1.1 83, m1.2 106, m1.3 158, m1.4 195, m1.5 217, m1.6 238,
-m1.7 256, m1.8 325, m1.9 388, m1.9.1 390, m1.10 412, m1.10.1 413 checks, all passing.
+m1.7 256, m1.8 325, m1.9 388, m1.9.1 390, m1.10 412, m1.10.1 413, m1.10.2 416 checks, all passing.
 
 ## Release
 

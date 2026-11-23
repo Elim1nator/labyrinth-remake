@@ -25,17 +25,16 @@ if (!target || !(target === 'dev' || /^m\d+(\.\d+){0,2}$/.test(target))) {
 }
 
 let src = fs.readFileSync(SRC, 'utf8');
-const cur = (src.match(/<title>Labyrinth Remake \((M[\d.]+) prototype\)<\/title>/) || [])[1];
-if (!cur) { console.error('src/index.html: no "<title>Labyrinth Remake (Mx.y prototype)</title>" line'); process.exit(1); }
+const cur = (src.match(/var VERSION='(M[\d.]+)';/) || [])[1];
+if (!cur) { console.error("src/index.html: no \"var VERSION='Mx.y';\" line"); process.exit(1); }
 const devVer = args.slice(1).find(a => /^m\d+(\.\d+){0,2}$/.test(a));
 const ver = target === 'dev' ? (devVer || cur.toLowerCase()) : target; // e.g. m1.10
 const VER = ver.toUpperCase(); // e.g. M1.10
 
 // Version strings that name the build. Each must occur exactly once.
 const VERSION_SITES = [
-  [/<title>Labyrinth Remake \(M[\d.]+ prototype\)<\/title>/, `<title>Labyrinth Remake (${VER} prototype)</title>`],
-  [/'M[\d.]+ PROTOTYPE - PLACEHOLDER TITLE'/, `'${VER} PROTOTYPE - PLACEHOLDER TITLE'`],
-  [/Labyrinth Remake - M[\d.]+ prototype/, `Labyrinth Remake - ${VER} prototype`],
+  [/var VERSION='M[\d.]+';/, `var VERSION='${VER}';`],
+  [/Kersplat Labyrinth: The Descent - M[\d.]+\./, `Kersplat Labyrinth: The Descent - ${VER}.`],
   [/var QA_BUILD=false; \/\* the QA build \(build\/m[\d.]+-qa\) flips this to true \*\//, `var QA_BUILD=false; /* the QA build (build/${ver}-qa) flips this to true */`],
 ];
 for (const [re, rep] of VERSION_SITES) {
@@ -44,7 +43,7 @@ for (const [re, rep] of VERSION_SITES) {
   src = src.replace(re, rep);
 }
 const qa = src
-  .replace(`<title>Labyrinth Remake (${VER} prototype)</title>`, `<title>Labyrinth Remake (${VER} prototype, QA build)</title>`)
+  .replace(/<title>(.*?)<\/title>/, '<title>$1 (QA build)</title>')
   .replace(/var QA_BUILD=false;.*$/m, 'var QA_BUILD=true; /* QA build: the test hook is always on */');
 const diff = src.split('\n').filter((l, i) => l !== qa.split('\n')[i]).length;
 if (diff !== 2) { console.error(`QA build should differ in 2 lines, differs in ${diff}`); process.exit(1); }

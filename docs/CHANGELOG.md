@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.15: Kersplat Labyrinth: The Descent
+- New name on the title screen, page title and home-screen name; placeholder/prototype text removed (version shown small). `tools/release.mjs` now reads the version from `var VERSION`.
+- Pit spiders drop no coins or items.
+- QA build `m1.15-qa` (debug hook on).
+
 ## M1.14.2: tougher Treasure Knight, shield slam
 - Knight HP 25 + 3 per floor (no cap). Shield slam within ~2 cells: 0.6 s tell, crack ring, 2 damage + knockback, 5 s cooldown.
 - QA build `m1.14.2-qa` (debug hook on).

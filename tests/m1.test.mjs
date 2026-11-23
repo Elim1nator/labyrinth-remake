@@ -497,6 +497,10 @@ async function m112Tests(){
     const sh=await G(page,(PITs)=>{const PIT=eval(PITs),G=__game;G.setSeed(777);G.startLevel(7,{hearts:5,coins:5,perm:{}});G.clearMobs();PIT();G.setPitch(-110);G.advance(0.05);G.render();const cols=new Set();let dark=0;for(let y=150;y<300;y+=2)for(let x=0;x<480;x+=2){const c=G.pixelAt(x,y);cols.add(c.join());if(c[0]+c[1]+c[2]<40)dark++;}return {cols:cols.size,dark};},PIT.toString());
     check('M1.14.1 pits are drawn as shafts with stone walls fading into darkness (not flat black squares)',sh.cols>60&&sh.dark>20,JSON.stringify(sh));
     await shot(page,'pit_shaft');}
+  if(atLeast('1.15')){const nl=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(9,{hearts:5,coins:0,perm:{pit:60}});G.clearMobs();G.advance(0.05);const p=G.state().player;
+      const sp=G.pitSpider('bigspider'),sk=G.pitSpider('skitter');const n0=G.state().items.filter(i=>!i.taken).length;const flag=G.state().enemies[sp].noLoot;G.damageMob(sp,999);G.damageMob(sk,999);G.advance(0.5);const n1=G.state().items.filter(i=>!i.taken).length;
+      const c=G.spawn('bigspider',p.x+2,p.y,false,[]);G.damageMob(c,999);G.advance(0.5);const n2=G.state().items.filter(i=>!i.taken).length;return {n0,n1,n2,flag};});
+    check('M1.15 spiders that climb out of pits drop no coins or items (no farming); other spiders still do',nl.n1===nl.n0&&nl.flag&&nl.n2>nl.n1,JSON.stringify(nl));}
   check('M1.12 10 coins in the pits unlocks the skittering spiders on later floors',/SKITTERS/.test(pt.m10)&&pt.next.lvl===1,JSON.stringify(pt));
   const sk=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(8,{hearts:5,coins:0,perm:{pit:10}});G.clearMobs();const p=G.state().player;const i=G.spawn('skitter',p.x+Math.cos(p.ang)*2.2,p.y+Math.sin(p.ang)*2.2,true,[]);let s,hit=null;
     for(let k=0;k<30&&!hit;k++){s=G.advance(0.1);if(G.faceT()>0)hit={t:k*0.1,hearts:s.player.hearts,face:G.faceT(),gone:s.enemies[i].gone};}window.__fh=true;return hit;});
@@ -2045,7 +2049,7 @@ async function m18Tests(){
   {
     const rel=fs.readFileSync(REL_URL.replace('file://',''),'utf8'),qa=fs.readFileSync(FILE,'utf8');
     const dl=rel.split('\n').filter((l,i)=>l!==qa.split('\n')[i]).length;
-    check(`M1.8 release + QA builds are ${BUILD.toUpperCase()}; the QA build differs only in QA_BUILD and the title`,rel.includes(`'${BUILD.toUpperCase()} PROTOTYPE - PLACEHOLDER TITLE'`)&&rel.includes('var QA_BUILD=false;')&&qa.includes('var QA_BUILD=true;')&&dl===2,`differing lines ${dl}`);
+    check(`M1.8 release + QA builds are ${BUILD.toUpperCase()}; the QA build differs only in QA_BUILD and the title`,(atLeast('1.15')?rel.includes(`var VERSION='${BUILD.toUpperCase()}';`)&&rel.includes('<title>Kersplat Labyrinth: The Descent</title>'):rel.includes(`'${BUILD.toUpperCase()} PROTOTYPE - PLACEHOLDER TITLE'`))&&rel.includes('var QA_BUILD=false;')&&qa.includes('var QA_BUILD=true;')&&dl===2,`differing lines ${dl}`);
     const fetches=[...rel.matchAll(/fetch\(([^,)]*)/g)].map(m=>m[1].trim());
     check('M1.8 API client: one fetch call, base "/api/labyrinth" + relative path (no scheme or host)',fetches.length===1&&fetches[0]==='HS_API+path'&&rel.includes("var HS_API='/api/labyrinth'")&&!/https?:\/\/(?!www\.w3\.org\/2000\/svg)/i.test(rel),fetches.join(' | ')); // the only URL is the inline-SVG XML namespace (not a request)
     check('M1.8 no credentials in the game (no Authorization header, btoa, user:pass@ or stored tokens); credentials:"same-origin" only',!/authorization|btoa\(|\/\/[^\s'"]+:[^\s'"]+@|api[_-]?key|bearer/i.test(rel)&&rel.includes("credentials:'same-origin'")&&!/credentials:\s*'include'/.test(rel));

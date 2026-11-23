@@ -1,4 +1,4 @@
-# Labyrinth Remake: plan
+# Kersplat Labyrinth: The Descent — plan
 
 An original first-person maze shooter for the browser by Eliminator Productions, inspired by
 early-90s maze shooters. This is the public summary of the project plan; the research notes

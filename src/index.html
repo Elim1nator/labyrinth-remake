@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Labyrinth">
-<title>Labyrinth Remake (M1.12 prototype)</title>
+<title>Labyrinth Remake (M1.12.1 prototype)</title>
 <link rel="icon" id="icon" href="data:,">
 <link rel="manifest" id="manifest" href="data:application/manifest+json,%7B%7D">
 <style>
@@ -62,7 +62,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Labyrinth Remake - M1.12 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
+   Labyrinth Remake - M1.12.1 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
@@ -492,17 +492,26 @@ function sprKnight(f){var s=new Pix(32,46,1.5),S1=HEX('#e0b848'),S2=HEX('#b08a28
     else{s.rect(24,8,2.2,16,BL);s.rect(24,8,.8,16,HEX('#ffffff'));s.rect(22,23,6.4,2,Gd);s.rect(24.2,25,1.8,4,GD);}}
   return s.outline(K);}
 /* ---------- M1.12 sprites: spiders, egg sac, Broodmother, Grand Masque, shrine, piggy bank, golden web ---------- */
-function sprSpider(f,kind){var big=kind!=='skitter',boss=kind==='brood',s=new Pix(boss?60:big?44:30,boss?42:big?30:20,1.5),w=s.w/1.5,h=s.h/1.5,cx=w/2,
-    B1=HEX(boss?'#3a1a3a':big?'#2a1e24':'#1a1420'),B2=HEX(boss?'#5a2a5a':big?'#4a343c':'#3a2a48'),BH=HEX(boss?'#8a4a8a':big?'#7a5a64':'#6a4a88'),EY=HEX(boss?'#ff3a3a':big?'#ff5a2a':'#c8ff3a'),LG=HEX(boss?'#2a102a':'#140e18');
-  var by=h*.58,ar=w*.26,hr=w*.16,step=[0,1,0,-1][f];
-  for(var sd=-1;sd<=1;sd+=2)for(var l=0;l<4;l++){var wig=((l+(sd>0?1:0))&1?step:-step)*h*.04,bx=cx+sd*ar*.7,byy=by+(l-1.5)*h*.09,kx=cx+sd*w*(.3+.04*Math.abs(l-1.5)),ky=by-h*.3+(l-1.5)*h*.12+wig,fx=cx+sd*w*.48,fy=by+(l-1.5)*h*.26+h*.1-wig;s.thick(bx,byy,kx,ky,boss?1.2:big?.9:.6,LG);s.thick(kx,ky,fx,Math.min(h-.8,fy),boss?1:big?.75:.5,LG);}
-  s.ell(cx,by-h*.04,ar,h*.3,function(x,y,dx,dy){return dx+dy<-.5?BH:dy>.3?B1:B2;});
-  if(boss){s.ell(cx,by-h*.1,ar*.5,h*.12,HEX('#c03a6a'));for(var e2=0;e2<5;e2++)s.ell(cx-ar*.6+e2*ar*.3,by+h*.12,1.4,1.2,HEX('#f0e8d8'));}
-  else if(big)s.poly([[cx-2,by-h*.2],[cx+2,by-h*.2],[cx,by-h*.1],[cx+2,by],[cx-2,by]],HEX('#d02a2a'));
-  s.ell(cx,by+h*.2,hr,h*.16,B2);for(var e=0;e<(boss?6:4);e++){var ex=cx-hr*.6+e*(hr*1.2/((boss?6:4)-1));s.ell(ex,by+h*.18+(e&1)*1.2,boss?1.4:big?1:.7,boss?1.4:big?1:.7,EY);}
-  s.thick(cx-hr*.4,by+h*.32,cx-hr*.6,by+h*.42,boss?.9:.5,HEX('#e8e0d0'));s.thick(cx+hr*.4,by+h*.32,cx+hr*.6,by+h*.42,boss?.9:.5,HEX('#e8e0d0'));
-  if(boss){var cy0=by-h*.36;s.rect(cx-6,cy0-3,12,3,HEX('#f0c030'));for(var q=0;q<3;q++)s.poly([[cx-6+q*4,cy0-3],[cx-6+q*4+4,cy0-3],[cx-4+q*4,cy0-7]],HEX('#f0c030'));}
-  return s.outline(HEX('#08060a'));}
+/* M1.12.1 spiders, after the Broodmother reference: big round abdomen with a pale X pattern, a cluster of glowing red eyes, pale curved
+   fangs, thick spiked purple-black legs with pale tips. One drawing at three sizes: Skitter (0.5), Brood Spider (0.72), Broodmother (1). */
+function sprSpider(f,kind){var sc=kind==='brood'?1:kind==='big'?.72:.5,s=new Pix(Math.round(76*sc),Math.round(48*sc),1.5),K=HEX('#0e0a12'),D1=HEX('#241c2c'),D2=HEX('#3a3044'),D3=HEX('#564a62'),P1=HEX('#5e3480'),P2=HEX('#9658c0'),G1=HEX('#a49ab0'),G2=HEX('#dcd4e0'),R=HEX('#ff2a3a'),RH=HEX('#ffd8d8');
+  function X(v){return v*sc;}var cx=38,step=[0,1,0,-1][f];
+  function leg(sd,l){var lift=((l+(sd>0?1:0))&1?step:-step)*1.4,bx=cx+sd*6,by=26+l*1.8,kn=[[15,19],[23,8],[29,9],[34,15]][l],ft=[[12,46],[25,46.5],[32,45.5],[37,42]][l],kx=cx+sd*kn[0],ky=kn[1]+lift,fx=cx+sd*ft[0],fy=ft[1]-Math.max(0,lift);
+    var w1=l<2?2.4:2.1,w2=l<2?2:1.7;s.thick(X(bx),X(by),X(kx),X(ky),X(w1),D1);s.thick(X(kx),X(ky),X(fx),X(fy),X(w2),D1);
+    s.thick(X(bx),X(by-.8),X(kx),X(ky-.8),X(w1*.45),D3);s.thick(X(kx),X(ky-.6),X(fx-sd*.4),X(fy-1),X(w2*.4),D2);s.ell(X(kx),X(ky),X(w1*1.05),X(w1*.9),G1);s.ell(X(kx),X(ky-.3),X(w1*.5),X(w1*.4),G2);
+    var mx=(kx+fx)/2,my=(ky+fy)/2;s.thick(X(mx-sd*.5),X(my),X(mx+sd*.8),X(my+1.2),X(w2*.9),P1);
+    if(sc>.6){for(var q=1;q<3;q++){var t=q/3,px=bx+(kx-bx)*t,py=by+(ky-by)*t;s.poly([[X(px-1),X(py-.6)],[X(px+1),X(py-.6)],[X(px+sd*1.6),X(py-2.8)]],P2);}}
+    s.thick(X(fx-sd*1.4),X(fy-6),X(fx-sd*.2),X(fy-2),X(1.1),G1);s.thick(X(fx-sd*.2),X(fy-2),X(fx+sd*.3),X(fy),X(.7),G2);}
+  for(var l=3;l>=0;l--){leg(-1,l);leg(1,l);}
+  s.ell(X(cx),X(15),X(14.5),X(13.2),function(x,y,dx,dy){return dx+dy<-.9?D3:dy>.55?K:D1;});
+  if(sc>.45){var px9=function(x,y,c){s.set(X(x),X(y),c);};
+    s.thick(X(cx-8),X(8),X(cx+8),X(22),X(1.2),G1);s.thick(X(cx+8),X(8),X(cx-8),X(22),X(1.2),G1);s.ell(X(cx),X(5),X(2.4),X(1.6),G1);s.thick(X(cx-11),X(12),X(cx-7),X(16),X(.8),D3);s.thick(X(cx+11),X(12),X(cx+7),X(16),X(.8),D3);
+    s.thick(X(cx-12),X(17),X(cx-9),X(21),X(.7),D3);s.thick(X(cx+12),X(17),X(cx+9),X(21),X(.7),D3);s.ell(X(cx),X(15),X(2.4),X(2.4),D1);}
+  s.ell(X(cx),X(29),X(8.4),X(7),function(x,y,dx,dy){return dy<-.5?D3:dy<.2?D2:D1;});s.thick(X(cx),X(23),X(cx),X(28),X(.9),D3);
+  [[-1.2,.9,1.25],[1.2,.9,1.25]].forEach(function(e){s.ell(X(cx+e[0]*2.4),X(30+e[1]),X(e[2]),X(e[2]),R);s.set(X(cx+e[0]*2.4-.4),X(30+e[1]-.4),RH);});
+  [[-5,28.6],[5,28.6],[-5.3,31],[5.3,31],[-2.2,27.6],[2.2,27.6]].forEach(function(e,i){s.ell(X(cx+e[0]),X(e[1]),X(i<4?.85:.7),X(i<4?.85:.7),R);});
+  [-1,1].forEach(function(sd){s.thick(X(cx+sd*2.6),X(34),X(cx+sd*4),X(38.5),X(1.3),G1);s.thick(X(cx+sd*4),X(38.5),X(cx+sd*2.2),X(42.5),X(.9),G2);s.thick(X(cx+sd*.9),X(35),X(cx+sd*1),X(38),X(.5),D3);});
+  return s.outline(K);}
 function sprEggSac(f){var s=new Pix(24,24,1.5),Wt=HEX('#ece6d8'),Wd=HEX('#bcb4a0'),V=HEX('#9a8aa0');s.ell(12,13,9,10,function(x,y,dx,dy){return dx+dy<-.5?HEX('#ffffff'):dy>.4?Wd:Wt;});
   for(var k=0;k<5;k++)s.thick(4+k*4,4,6+k*3,22,.3,V);s.thick(3,10,21,12,.3,V);s.thick(4,17,20,16,.3,V);for(var q=0;q<f+1;q++)s.ell(9+q*2.5,12+(q&1)*3,1.4,1.4,HEX('#3a2a3a'));return s.outline(HEX('#4a4038'));}
 function sprMasque(f,happy){var m=sprMask(f,happy,2.2),k=2.2,s=new Pix(40,54,k),off=Math.round(10*k);for(var y=0;y<m.h;y++)for(var x=0;x<m.w;x++){var c=m.px[y*m.w+x];if(c>>>24)s.raw(x,y+off,c);}
@@ -2163,7 +2172,7 @@ function fmtTime(t){var s=Math.floor(t),m=Math.floor(s/60);s%=60;return m+':'+(s
 function drawTitle(){var t=G.time,Y1=HEX('#ffe27a'),OR=HEX('#ff9a3a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0');
   blend(0,0,W,H,HEX('#0d0a1e'),.55);
   drawTextC('LABYRINTH',W/2,22,Y1,4,HEX('#5a2a08'));drawTextC('REMAKE',W/2,60,OR,3,HEX('#3a1404'));
-  drawTextC('M1.12 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
+  drawTextC('M1.12.1 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
   var sp=SPR.screamer[flapFrame(t)];blit(sp,Math.round(W/2-sp.w),102+Math.sin(t*3)*3,2);
   for(var i=0;i<G.menuItems.length;i++){var it=G.menuItems[i],sel=i===G.menuSel,lbl=it.label,w=textW(lbl,2),x=Math.round(W/2-w/2),y=212+i*21;it.rect=[x,y,w,14];
     if(sel){blend(x-12,y-4,w+24,22,HEX('#3a2a70'),.7);drawText('>',x-15+((t*4|0)&1),y,Y1,2);}drawText(lbl,x,y,sel?Y1:W1,2);}
@@ -2382,7 +2391,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.12-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.12.1-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

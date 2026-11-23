@@ -509,7 +509,7 @@ async function m112Tests(){
   check('M1.12 the Grand Masque keeps shooting gold balls (happy or sad), calls in Tragedy masks and goes wild with a shot barrage',mq.gold>20&&mq.minions>=1&&mq.tStart!==null,JSON.stringify(mq));
   const br=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});G.faceBoss(3);G.advance(0.1);let web=0,slow=false,eggs=0,pops=0,skit=0;
     for(let k=0;k<300;k++){G.setHearts(5);const s=G.advance(0.1);if(G.slowT()>0)slow=true;web=s.stats.webHits;eggs=s.stats.eggs;pops=s.stats.eggPops;skit=Math.max(skit,s.enemies.filter(e=>(e.type==='skitter'||e.type==='bigspider')&&!e.gone).length);}
-    G.clearMobs();const pp=G.state().player;G.addShot('web',pp.x+Math.cos(pp.ang)*1.5,pp.y+Math.sin(pp.ang)*1.5,-Math.cos(pp.ang)*6,-Math.sin(pp.ang)*6);G.advance(0.4);slow=G.slowT()>2;
+    G.startLevel(6,{hearts:5,coins:0});G.clearMobs();const pp=G.state().player;G.addShot('web',pp.x+Math.cos(pp.ang)*1.5,pp.y+Math.sin(pp.ang)*1.5,-Math.cos(pp.ang)*6,-Math.sin(pp.ang)*6);G.advance(0.4);slow=G.slowT()>2;
     const x0=G.state().player;window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW'}));G.advance(0.5);window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW'}));const x1=G.state().player;const moved=Math.hypot(x1.x-x0.x,x1.y-x0.y);
     const eg=G.spawn('eggsac',G.state().player.x+1,G.state().player.y,true,[]);const egHp=G.state().enemies[eg].hp;G.damageMob(eg,4);const s2=G.advance(0.3);
     G.clearMobs();const e2=G.spawn('eggsac',3,3,true,[]);let popped=false;for(let k=0;k<110;k++){const s=G.advance(0.1);if(s.enemies[e2].gone){popped=true;break;}}const after=G.state().enemies.filter(e=>(e.type==='skitter'||e.type==='bigspider')&&!e.gone).length;

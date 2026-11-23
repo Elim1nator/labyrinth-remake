@@ -1,4 +1,4 @@
-# Controls and features (M1.12)
+# Controls and features (M1.14)
 
 ## Keyboard and mouse
 
@@ -108,6 +108,11 @@ monster is the same red mark.
 Next to a pit, E tosses a coin in (10 / 50 / 100 coins unlock pit spiders, big spiders and the
 Broodmother on floor 15). Coin doors, shrines and trapdoors ask for coins with E. Old Murkle's
 second page (RARE WARES >) sells permanent items, the Piggy Bank, a Golden Wonder and a Mystery Box.
+
+## The King in Yellow (floor 20)
+
+Find the torn play script on floor 20 and place it on the lectern in his hall (E / USE) to summon him.
+Step off the Yellow Sign quickly, out of the dark pools, and away from the twin suns.
 
 ## Boss floors
 

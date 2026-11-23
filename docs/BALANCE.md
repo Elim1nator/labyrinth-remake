@@ -1,4 +1,4 @@
-# Balance (M1.13)
+# Balance (M1.14)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -110,6 +110,10 @@ floor.
 The four permanent items cost 160 coins together. Floors 2–8 place 200 coins if you collect
 every coin and pop every mob (before elite loot, secret-room bags and the slot), so a full
 shop spend is a long-run investment rather than a first-shop impulse buy.
+
+## The King in Yellow (M1.14)
+
+- Floor 20 only. HP 70 × round bonus + 5 per floor (193). Attack every 2.4 s (1.6 s furious), 0.6 s tell. Sign: 1.1 s fuse, radius 0.75, 1 heart + 3 s reversed controls. Robes: 5 (7) rags, 1 heart + 1.5 s slow. Carcosa: 6 s, 2 homing suns. Hali: 3 (4) pools, radius 0.7 (0.9), 8 s, 1 heart per 1.2 s.
 
 ## Mob HP and elites (M1.13)
 

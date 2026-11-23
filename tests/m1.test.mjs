@@ -25,6 +25,7 @@ const V110=atLeast('1.10'); // M1.10+: a boss every 5th floor guards a sealed po
 const V111=atLeast('1.11'); // M1.11+: comedy/tragedy masks, Treasure Knight, golden + new items, one monster mark on the maps
 const V112=atLeast('1.12'); // M1.12+: coins into pits (spiders, floor-15 bosses), coin doors, shrines, trapdoors, piggy bank, rare wares
 const V113=atLeast('1.13'); // M1.13+: +1 mob HP per floor, 6 more elite modifiers, googly worms, sprawled face-hug image
+const V114=atLeast('1.14'); // M1.14+: the King in Yellow on floor 20
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -365,8 +366,8 @@ async function m110Tests(){
     await G(page,()=>{__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'luggernaut');
     await G(page,()=>{__game.setSeed(777);__game.startLevel(__game.bossType?29:14);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'coghoot');
     // a deeper boss is tougher; CONTINUE on a boss floor brings the boss back and the portal sealed
-    const deep=await G(page,()=>{__game.setSeed(4242);__game.startLevel(19);const a=__game.boss().ent;__game.startLevel(79);const b=__game.boss().ent;const B=__game.bosses;return {a:[a.type,a.maxHp,a.tier],b:[b.type,b.maxHp,b.tier,b.cdMul,b.spdMul],base:B.king.hp};});
-    check('M1.10 floor 20 King Gloop has 40% more HP than on floor 5 (M1.13.1: plus 5 per floor); by floor 80 x3 HP, attacks 1/0.6 as often, 1.3x speed (caps)',deep.a[0]==='king'&&deep.a[1]===Math.ceil(deep.base*1.4)+(atLeast('1.13.1')?5*19:0)&&deep.b[1]===deep.base*3+(atLeast('1.13.1')?5*79:0)&&deep.b[3]===0.6&&deep.b[4]===1.3,JSON.stringify(deep));
+    const deep=await G(page,()=>{__game.setSeed(4242);__game.startLevel(__game.kiy?34:19);const a=__game.boss().ent; /* M1.14: floor 20 is the King in Yellow; King Gloop's 3rd round is floor 35 */__game.startLevel(79);const b=__game.boss().ent;const B=__game.bosses;return {a:[a.type,a.maxHp,a.tier],b:[b.type,b.maxHp,b.tier,b.cdMul,b.spdMul],base:B.king.hp};});
+    check('M1.10 floor 20 King Gloop has 40% more HP than on floor 5 (M1.13.1: plus 5 per floor); by floor 80 x3 HP, attacks 1/0.6 as often, 1.3x speed (caps)',deep.a[0]==='king'&&deep.a[1]===(V114?Math.ceil(deep.base*1.8)+5*34:Math.ceil(deep.base*1.4)+(atLeast('1.13.1')?5*19:0))&&deep.b[1]===deep.base*3+(atLeast('1.13.1')?5*79:0)&&deep.b[3]===0.6&&deep.b[4]===1.3,JSON.stringify(deep));
     const cont=await G(page,()=>{localStorage.clear();__game.setSeed(777);__game.startLevel(9);__game.hitBoss(999);__game.advance(1.6);__game.toTitle();__game.menuPick(0);__game.advance(0.05);const b=__game.boss();return {level:__game.state().level,sealed:b.sealed,alive:!!(b.ent&&!b.ent.gone&&b.ent.hp===b.ent.maxHp)};});
     check('M1.10 CONTINUE on a boss floor starts it fresh: the boss is back and the portal sealed',cont.level===9&&cont.sealed&&cont.alive,JSON.stringify(cont));
     await ctx.close();
@@ -587,6 +588,39 @@ async function m113Tests(){
   await ctx.close();
 }
 
+// ---------- M1.14: the King in Yellow (floor 20) ----------
+async function m114Tests(){
+  const shot=async(page,name)=>page.screenshot({path:`${SHOTS}/m114_${name}.png`});
+  const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m114'});
+  await G(page,()=>{__game.manual=true;localStorage.clear();});
+  savePng('m114_sprites_4x.png',await G(page,()=>__game.spriteSheet(4,'m114')));
+  const fl=await G(page,()=>{const G=__game,out=[];for(const sd of [1,777,4242]){G.bossIntro=true;G.setSeed(sd);G.startLevel(19,{hearts:5,coins:0,perm:{}});const l=G.lectern(),b=G.boss(),A=b.def.room;
+      out.push({gold:G.goldWalls(),type:G.bossType(),dorm:G.dormant(),lect:!!l&&l.x>=A.x&&l.x<A.x+A.w&&l.y>=A.y&&l.y<A.y+A.h,script:!!l&&!!l.scriptAt,msg:G.state().msg,hp:b.ent.maxHp});}
+    G.setSeed(777);G.startLevel(18);const f19=G.goldWalls();G.startLevel(34);return {out,f19,f35:G.bossType()};});
+  check('M1.14 floor 20: gold brick walls, an empty lectern in the boss room, the play script somewhere on the floor, the King not yet there (HP 70 x1.4 + 5 per floor = 193)',fl.out.every(o=>o.gold&&o.type==='yellow'&&o.dorm&&o.lect&&o.script&&/PLAY SCRIPT/.test(o.msg)&&o.hp===Math.ceil(70*1.4)+95)&&!fl.f19&&fl.f35==='king',JSON.stringify(fl));
+  const sm=await G(page,()=>{const G=__game;G.bossIntro=true;G.setSeed(777);G.startLevel(19,{hearts:5,coins:0,perm:{}});const l=G.lectern(),A=G.boss().def.room;
+    G.teleport(A.x+.5,A.y+.5);let s=G.advance(0.3);const before={mode:s.mode,locked:G.arenaDoors().some(d=>d.bossLock),dorm:G.dormant(),bar:!!s.stats.bossBar};
+    const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];const face=()=>{for(const d of dirs){const x=l.x+d[0],y=l.y+d[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);return true;}}return false;};face();G.advance(0.05);G.use();s=G.advance(0.1);const noScript=s.msg;
+    const sa=l.scriptAt;G.teleport(sa.x+.5,sa.y+.5);s=G.advance(0.1);const got=G.lectern().script;face();G.advance(0.05);G.use();s=G.advance(0.2);const intro={mode:s.mode,dorm:G.dormant()};s=G.advance(1.8);const locked=G.arenaDoors().every(d=>d.bossLock);s=G.advance(3.5);
+    return {before,noScript,got,intro,locked,after:{mode:s.mode,woke:G.boss().ent.woke,called:G.lectern().called}};});
+  check('M1.14 walking into his hall without the script does nothing; the lectern waits for it',sm.before.mode==='play'&&!sm.before.locked&&sm.before.dorm&&!sm.before.bar&&/WAITS/.test(sm.noScript),JSON.stringify(sm));
+  check('M1.14 placing the play script on the lectern summons him: cut scene, doors lock, then the fight',sm.got&&sm.intro.mode==='intro'&&!sm.intro.dorm&&sm.locked&&sm.after.mode==='play'&&sm.after.woke&&sm.after.called,JSON.stringify(sm));
+  await shot(page,'king_in_yellow');
+  const at=await G(page,()=>{const G=__game,r={};const start=()=>{G.bossIntro=false;G.setSeed(777);G.startLevel(19,{hearts:5,coins:0,perm:{}});const l=G.lectern();G.teleport(l.scriptAt.x+.5,l.scriptAt.y+.5);G.advance(0.05);
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];for(const d of dirs){const x=l.x+d[0],y=l.y+d[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);break;}}G.advance(0.05);G.use();G.advance(0.1);G.state().enemies.forEach((e,i)=>{if(e.type!=='yellow')G.damageMob(i,99);});G.faceBoss(3);G.advance(0.1);};
+    start();G.kingForce('sign');let s=G.advance(0.1);const sg=G.signs();const p0=s.player;G.setHearts(5);for(let k=0;k<14;k++){G.kingForce&&0;s=G.advance(0.1);}r.sign={n:sg.length,at:sg[0]&&Math.hypot(sg[0].x-p0.x,sg[0].y-p0.y),hearts:s.player.hearts,conf:G.confuse()};
+    const q0=G.state().player;window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW'}));G.advance(0.3);window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW'}));const q1=G.state().player;r.sign.back=(q1.x-q0.x)*Math.cos(q0.ang)+(q1.y-q0.y)*Math.sin(q0.ang);
+    start();G.kingForce('robes');s=G.advance(0.1);r.rags=s.eshots.filter(q=>q.kind==='rag').length;
+    start();G.kingForce('carcosa');s=G.advance(0.1);r.carcosa={t:G.carcosa(),suns:s.eshots.filter(q=>q.kind==='sun').length};
+    start();G.kingForce('hali');s=G.advance(0.1);const hs=G.halis();G.setHearts(5);for(let k=0;k<12;k++){s=G.advance(0.1);}r.hali={n:hs.length,hearts:s.player.hearts};
+    return r;});
+  check('M1.14 the Yellow Sign brands the floor under you; still on it after a second, it costs a heart and reverses your controls for 3 s',at.sign.n===1&&at.sign.at<0.3&&at.sign.hearts<5&&at.sign.conf>2&&at.sign.back<-0.1,JSON.stringify(at.sign));
+  check('M1.14 tattered robes lash out in a fan; Carcosa tints the room, scrambles the map and text and sends twin suns; the Lake of Hali spreads pools that hurt',at.rags>=5&&at.carcosa.t>5&&at.carcosa.suns===2&&at.hali.n>=3&&at.hali.hearts<5,JSON.stringify(at));
+  await G(page,()=>{const G=__game;G.kingForce('carcosa');G.advance(0.4);});await shot(page,'carcosa');
+  await ctx.close();
+}
+
 // ONLY=m19,m110 node m1.test.mjs <build> runs just those groups (names as in the function names, 'regression' for the M1.1 set)
 const ONLY=(process.env.ONLY||'').split(',').filter(Boolean),want=n=>!ONLY.length||ONLY.includes(n);
 if(NEW&&want('regression')){ await regressionTests(); }
@@ -603,6 +637,7 @@ if(V110&&want('m110')){ await m110Tests(); }
 if(V111&&want('m111')){ await m111Tests(); }
 if(V112&&want('m112')){ await m112Tests(); }
 if(V113&&want('m113')){ await m113Tests(); }
+if(V114&&want('m114')){ await m114Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

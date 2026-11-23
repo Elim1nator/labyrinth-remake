@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.14: the King in Yellow (floor 20)
+- Gold-brick floor; find the play script, place it on the lectern to summon him. Attacks: Yellow Sign (reversed controls), tattered robes, Carcosa (tint, scrambled map and text, twin suns), Lake of Hali pools. King Gloop's 3rd round moves to floor 35.
+- QA build `m1.14-qa` (debug hook on).
+
 ## M1.13.1: bosses scale with depth
 - Boss HP + 5 per floor below the first (on top of +40% per round). Luggernaut on floor 10: 90 (was 45).
 - QA build `m1.13.1-qa` (debug hook on).

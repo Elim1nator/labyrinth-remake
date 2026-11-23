@@ -1,4 +1,4 @@
-# Balance (M1.12)
+# Balance (M1.13)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -110,6 +110,11 @@ floor.
 The four permanent items cost 160 coins together. Floors 2–8 place 200 coins if you collect
 every coin and pop every mob (before elite loot, secret-room bags and the slot), so a full
 shop spend is a long-run investment rather than a first-shop impulse buy.
+
+## Mob HP and elites (M1.13)
+
+- Regular mob max HP = base + (floor − 1); BEEFY = ceil(that × 2.5); SPLITTER children 1/3. Replaces the M1.8 ×1.06 per floor past 8 (`deepHpMul` is no longer applied).
+- Elite modifiers: RANGED 3, SLIME 3, BEEFY 3, FAST 2, REGEN 1, SHIELDED 2, SPLITTER 2, VAMPIRE 2, EXPLOSIVE 2, FROST 2 (floor 4+), BLINK 1 (floor 5+) (weights).
 
 ## Coins and pits (M1.12)
 

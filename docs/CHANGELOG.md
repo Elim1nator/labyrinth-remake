@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.13: +1 HP per floor, more elite modifiers, googly worms, face-hug image
+- Regular mobs +1 base HP per floor (replaces x1.06 past floor 8).
+- Elite modifiers SHIELDED, SPLITTER, VAMPIRE, EXPLOSIVE, BLINK, FROST (floor 4+).
+- 1-3 random-colour googly worms per floor (decoration).
+- New sprawled-spider face-hug overlay.
+- QA build `m1.13-qa` (debug hook on).
+
 ## M1.12.2: own looks for the small spiders
 - Skitter: small, mostly black, long thin legs. Brood Spider: glossy black widow with a red hourglass.
 - QA build `m1.12.2-qa` (debug hook on).

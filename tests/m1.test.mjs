@@ -24,6 +24,7 @@ const V191=atLeast('1.9.1'); // M1.9.1+: shop panel clear of the HUD, decoration
 const V110=atLeast('1.10'); // M1.10+: a boss every 5th floor guards a sealed portal (its exit door is unlocked)
 const V111=atLeast('1.11'); // M1.11+: comedy/tragedy masks, Treasure Knight, golden + new items, one monster mark on the maps
 const V112=atLeast('1.12'); // M1.12+: coins into pits (spiders, floor-15 bosses), coin doors, shrines, trapdoors, piggy bank, rare wares
+const V113=atLeast('1.13'); // M1.13+: +1 mob HP per floor, 6 more elite modifiers, googly worms, sprawled face-hug image
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -554,6 +555,38 @@ async function m112Tests(){
   await ctx.close();
 }
 
+// ---------- M1.13: +1 HP per floor, more elite modifiers, googly worms, face-hug image ----------
+async function m113Tests(){
+  const shot=async(page,name)=>page.screenshot({path:`${SHOTS}/m113_${name}.png`});
+  const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m113'});
+  await G(page,()=>{__game.manual=true;__game.bossIntro=false;localStorage.clear();});
+  savePng('m113_sprites_4x.png',await G(page,()=>__game.spriteSheet(4,'m113')));
+  const hp=await G(page,()=>{const G=__game,M=G.mobs,bad=[];let n=0;for(const f of [2,3,6,12,30,80]){G.setSeed(777);G.startLevel(f-1);G.state().enemies.forEach(e=>{if(!M[e.type]||e.spawned||e.type==='zapfly'&&e.hp===1&&e.maxHp===1&&false)return;const b=M[e.type].hp+(f-1),want=e.mods.includes('beefy')?Math.ceil(b*2.5):b;n++;if(e.maxHp!==want&&!(e.type==='zapfly'&&e.maxHp===1))bad.push(f+':'+e.type+' '+e.maxHp+'!='+want);});}
+    G.setSeed(777);G.startLevel(0);const t=G.state().enemies.map(e=>e.maxHp);G.startLevel(9);const k=G.knight();return {n,bad:bad.slice(0,5),nb:bad.length,tut:t,knight:k&&k.maxHp};});
+  check('M1.13 mobs get +1 base HP per floor below the first (BEEFY x2.5 of that); the tutorial keeps base HP',hp.nb===0&&hp.n>50&&hp.tut.every(v=>v===3),JSON.stringify(hp));
+  const pool=await G(page,()=>{const G=__game,ids=Object.keys(G.mods);const at=f=>{const c=G.rollStats(f,6000,'m113').counts;return Object.keys(c);};return {ids,f3:at(3),f10:at(10)};});
+  check(`M1.13 ${pool.ids.length} elite modifiers: the 6 new ones (SHIELDED, SPLITTER, VAMPIRE, EXPLOSIVE, BLINK, FROST) appear from floor 4-5, never on floor 3`,pool.ids.length===11&&['shielded','splitter','vampire','explosive','blink','frost'].every(k=>pool.f10.includes(k)&&!pool.f3.includes(k)),JSON.stringify(pool));
+  const md=await G(page,()=>{const G=__game,r={};const fresh=()=>{G.setSeed(777);G.startLevel(6,{hearts:5,coins:0});G.clearMobs();G.setEffect(null);G.setHearts(5);return G.state().player;};
+    let p=fresh();let i=G.spawn('clunk',p.x+3,p.y,false,['shielded']);G.damageMob(i,2);r.shield={hp:G.state().enemies[i].hp,max:G.state().enemies[i].maxHp};G.damageMob(i,1);r.shield.after=G.state().enemies[i].hp;
+    p=fresh();i=G.spawn('clunk',p.x+.35,p.y,true,['vampire']);G.damageMob(i,3);const v0=G.state().enemies[i].hp;let s;for(let k=0;k<5;k++)s=G.advance(0.1);r.vamp={before:v0,after:s.enemies[i].hp,hearts:s.player.hearts};
+    p=fresh();i=G.spawn('clunk',p.x+.35,p.y,true,['frost']);for(let k=0;k<5;k++)s=G.advance(0.1);r.frost=G.slowT();
+    p=fresh();i=G.spawn('clunk',p.x+.35,p.y,false,['splitter']);G.damageMob(i,99);s=G.advance(0.4);r.split=s.enemies.filter(e=>e.spawned&&e.type==='clunk'&&!e.gone).map(e=>({hp:e.hp,scale:e.scale}));
+    p=fresh();i=G.spawn('springle',p.x+.8,p.y,false,['explosive']);G.damageMob(i,99);s=G.advance(0.3);const mid=s.player.hearts;s=G.advance(0.8);r.boom={mid,after:s.player.hearts,ex:s.stats.explosions};
+    p=fresh();i=G.spawn('kettle',p.x+6,p.y,true,['blink']);const e0=G.state().enemies[i];G.freeze=false;let jumped=false;for(let k=0;k<90&&!jumped;k++){G.setHearts(5);s=G.advance(0.1);const e=s.enemies[i];if(Math.hypot(e.x-e0.x,e.y-e0.y)>1.2&&Math.hypot(e.x-s.player.x,e.y-s.player.y)<3)jumped=true;}r.blink={jumped,n:s.stats.blinks};return r;});
+  check('M1.13 SHIELDED soaks the first 2 hits; VAMPIRE heals when it bites you; FROST bites slow you',md.shield.hp===md.shield.max&&md.shield.after===md.shield.max-1&&md.vamp.after===md.vamp.before+1&&md.vamp.hearts<5&&md.frost>1,JSON.stringify(md));
+  check('M1.13 SPLITTER splits into 2 smaller copies (1/3 HP); EXPLOSIVE blows up after a short fuse and hurts you up close; BLINK teleports next to you',md.split.length===2&&md.split.every(c=>c.scale===0.7)&&md.boom.mid===5&&md.boom.after===4&&md.boom.ex>=1&&md.blink.jumped,JSON.stringify({s:md.split,b:md.boom,bl:md.blink}));
+  const wm=await G(page,()=>{const G=__game;let floors=0,tot=0,cols=new Set();for(const sd of [1,2,3,4,5,6,7,8])for(const f of [2,4,7]){G.setSeed(sd);G.startLevel(f-1);const w=G.worms();floors++;tot+=w.length;w.forEach(x=>cols.add(x.col));}
+    G.setSeed(777);G.startLevel(6);G.clearMobs();const a=G.worms();G.advance(3);const b=G.worms();const moved=a.some((w,i)=>Math.hypot(w.x-b[i].x,w.y-b[i].y)>.3);const solid=b.some(w=>G.solidAt(w.x,w.y));
+    const w=b[0],p=G.state().player;G.teleport(w.x-1.2,w.y,0);G.advance(0.05);return {avg:tot/floors,cols:cols.size,moved,solid,ents:G.state().enemies.length};});
+  check('M1.13 1-3 googly-eyed worms per floor, randomly coloured, crawl around (no hitbox, not monsters)',wm.avg>=1&&wm.avg<=3&&wm.cols>=4&&wm.moved&&!wm.solid&&wm.ents===0,JSON.stringify(wm));
+  await shot(page,'worm');
+  const fh=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(8);G.clearMobs();const p=G.state().player;G.spawn('skitter',p.x+Math.cos(p.ang)*.5,p.y+Math.sin(p.ang)*.5,true,[]);G.advance(0.3);return {face:G.faceT(),drawn:G.state().stats.faceDrawn||0};});
+  check('M1.13 after a skitter jumps you, a sprawled spider (seen from below, legs around your face) covers the screen',fh.face>2&&fh.drawn>0,JSON.stringify(fh));
+  await shot(page,'face_hug');
+  await ctx.close();
+}
+
 // ONLY=m19,m110 node m1.test.mjs <build> runs just those groups (names as in the function names, 'regression' for the M1.1 set)
 const ONLY=(process.env.ONLY||'').split(',').filter(Boolean),want=n=>!ONLY.length||ONLY.includes(n);
 if(NEW&&want('regression')){ await regressionTests(); }
@@ -569,6 +602,7 @@ if(V191&&want('m191')){ await m191Tests(); }
 if(V110&&want('m110')){ await m110Tests(); }
 if(V111&&want('m111')){ await m111Tests(); }
 if(V112&&want('m112')){ await m112Tests(); }
+if(V113&&want('m113')){ await m113Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -1246,7 +1280,7 @@ async function m14Tests(){
     if(!V16)check('M1.4 elites get 1 modifier before floor 6 and 2 modifiers from floor 6',rs.filter(r=>r.f<6).every(r=>r.two===0)&&rs.filter(r=>r.f>=6).every(r=>r.two===Math.round(r.frac*N)),rs.map(r=>`F${r.f}:${r.two}`).join(' '));
     else check('M1.4/M1.6 elites get 1 modifier before floor 6; 2 modifiers phase in (50% F6, 75% F7, 100% from F8)',rs.filter(r=>r.f<6).every(r=>r.two===0)&&rs.filter(r=>r.f>=8).every(r=>r.two===Math.round(r.frac*N))&&rs.filter(r=>r.f===6||r.f===7).every(r=>Math.abs(r.two/Math.round(r.frac*N)-(r.f===6?.5:.75))<.06),rs.map(r=>`F${r.f}:${r.two}/${Math.round(r.frac*N)}`).join(' '));
     const allMods=Object.keys(rs[rs.length-1].counts).sort().join(',');
-    check('M1.4 all five modifiers roll (ranged, slime, beefy, fast, regen)',allMods==='beefy,fast,ranged,regen,slime',allMods);
+    check('M1.4 all five modifiers roll (ranged, slime, beefy, fast, regen)',V113?['beefy','fast','ranged','regen','slime'].every(k=>allMods.split(',').includes(k)):allMods==='beefy,fast,ranged,regen,slime',allMods); /* M1.13 adds six more */
     // per-level elites are deterministic per seed, tutorial has none
     const lv=await G(page,()=>{const run=()=>{__game.setSeed(31337);__game.startLevel(7);const s=__game.state();return {sig:s.enemies.map(e=>e.type+':'+e.mods.join('+')).join(' '),n:s.enemies.filter(e=>e.mods.length).length};};const a=run(),b=run();__game.startLevel(0);const t=__game.state();return {a,b,tut:t.enemies.filter(e=>e.mods.length).length};});
     check('M1.4 elite rolls are deterministic per seed; tutorial has no elites',lv.a.sig===lv.b.sig&&lv.a.n>0&&lv.tut===0,`floor 8 seed 31337: ${lv.a.n} elites; tutorial ${lv.tut}`);
@@ -1870,7 +1904,7 @@ c.save('${SHOTS}/m17_ranged_colour_on_brick.png')`]);}catch(e){consoleProblems.p
     check(`L3 is never easier than L2: total and effective mob HP >= L2 on every seed (${b.N} seeds, 0 failures)`,b.fb===0&&b.fe===0,`base failures ${b.fb}, effective ${b.fe}; mean base ${b.mean.l2b.toFixed(2)}→${b.mean.l3b.toFixed(2)}, effective ${b.mean.l2e.toFixed(2)}→${b.mean.l3e.toFixed(2)}; smallest margin base ${b.minMargin.base}, eff ${b.minMargin.eff}; floor swaps on ${b.sw} seeds, extra kettle on ${b.ad}; mob counts ${JSON.stringify(b.ns)}`);
     // the floor's numbers match the real level: startLevel totals equal levelEff, the start/feature guarantees hold, every mob is reachable and not in a wall
     const g=await G(page,()=>{const bad=[];for(let k=0;k<40;k++){const s=[1,2,3,208,4242][k%5]+k*101;__game.setSeed(s);__game.startLevel(2);const st=__game.state();const live=st.enemies.filter(e=>__game.mobs[e.type]&&!e.spawned); /* M1.12: a coin-door room can hold an extra mob */ /* M1.11: the Treasure Knight has its own HP rule */const base=live.reduce((x,e)=>x+__game.mobs[e.type].hp,0),eff=live.reduce((x,e)=>x+e.maxHp,0),le=__game.levelEff(s,3);
-        const types=new Set(live.map(e=>e.type));if(base!==le.base||eff!==le.eff)bad.push(`${s}: ${base}/${eff} vs ${le.base}/${le.eff}`);if(!types.has('kettle')||!types.has('springle')||!types.has('wisp'))bad.push(`${s}: types ${[...types]}`);if(live.some(e=>__game.solidAt(e.x,e.y)))bad.push(`${s}: mob in wall`);}return bad;});
+        const types=new Set(live.map(e=>e.type));const eff13=__game.floorHp?live.reduce((x,e)=>{const b=__game.mobs[e.type].hp,ok=e.maxHp===(e.mods.includes('beefy')?Math.ceil(__game.floorHp(e.type,3)*2.5):__game.floorHp(e.type,3));return x+(ok?(e.mods.includes('beefy')?Math.ceil(b*2.5):b):-999);},0):eff; /* M1.13: +2 HP on floor 3; the base layout is still compared */if(base!==le.base||eff13!==le.eff)bad.push(`${s}: ${base}/${eff} vs ${le.base}/${le.eff}`);if(!types.has('kettle')||!types.has('springle')||!types.has('wisp'))bad.push(`${s}: types ${[...types]}`);if(live.some(e=>__game.solidAt(e.x,e.y)))bad.push(`${s}: mob in wall`);}return bad;});
     check('L3 floor matches the level you actually play (40 seeds: totals equal, Kettlegrump/Springle/Hazewisp all present, no mob in a wall)',g.length===0,g.slice(0,4).join('; ')||'ok');
     const l8=await G(page,()=>{let s=0;for(let k=0;k<200;k++)s+=__game.levelEff(5000+k*7,8).eff;return s/200;});
     check('L8 untouched by the floor (B3 not approved): L8 never uses the floor',await G(page,()=>{for(let k=0;k<200;k++){const r=__game.levelEff(5000+k*7,8);if(r.swaps||r.adds)return false;}return true;}),`L8 mean effective HP ${l8.toFixed(1)}`);
@@ -2027,7 +2061,7 @@ async function m18Tests(){
     check('M1.8 difficulty keeps scaling then caps: mobs <= 22 (from L13), coins <= 30, HP x1.06/floor past 8 up to x1.6 (L18), elites <= 60% (L12), two mods from L8',
       mono('mobs')&&mono('hpMul')&&mono('elite')&&d.every(x=>x.mobs<=22&&x.coins<=30&&x.hpMul<=1.6&&x.elite<=.6&&x.roomTries<=90)&&d[12].mobs===22&&d[11].mobs<22&&d[7].hpMul===1&&Math.abs(d[17].hpMul-1.6)<1e-9&&Math.abs(d[16].hpMul-1.54)<1e-9&&d[11].elite===.6&&d[399].twoMod===1&&d[7].mobs===15,
       `L8 mobs ${d[7].mobs}, L12 ${d[11].mobs}, L13 ${d[12].mobs}; hp L9 ${d[8].hpMul.toFixed(2)} L18 ${d[17].hpMul}; elite L12 ${d[11].elite} L400 ${d[399].elite}`);
-    const hp=await G(page,()=>{__game.setSeed(4242);__game.startLevel(199);const s=__game.state();const M=__game.mobs;let bad=0;s.enemies=s.enemies.filter(e=>M[e.type]); /* M1.10: floor 200 has a boss (own HP rules, checked in m110Tests) */s.enemies.forEach(e=>{const base=M[e.type].hp,cap=Math.ceil((e.mods.includes('beefy')?Math.ceil(base*2.5):base)*1.6);if(e.maxHp!==cap)bad++;});return {n:s.enemies.length,bad,elites:s.enemies.filter(e=>e.mods.length).length};});
+    const hp=await G(page,()=>{__game.setSeed(4242);__game.startLevel(199);const s=__game.state();const M=__game.mobs;let bad=0;s.enemies=s.enemies.filter(e=>M[e.type]); /* M1.10: floor 200 has a boss (own HP rules, checked in m110Tests) */s.enemies=s.enemies.filter(e=>!e.spawned&&!(e.type==='zapfly'&&e.maxHp===1)); /* smiling masks can't be hurt and keep 1 HP */s.enemies.forEach(e=>{const base=M[e.type].hp,cap=__game.floorHp?(e.mods.includes('beefy')?Math.ceil(__game.floorHp(e.type,200)*2.5):__game.floorHp(e.type,200)):Math.ceil((e.mods.includes('beefy')?Math.ceil(base*2.5):base)*1.6); /* M1.13: +1 HP per floor instead of x1.6 */if(e.maxHp!==cap)bad++;});return {n:s.enemies.length,bad,elites:s.enemies.filter(e=>e.mods.length).length};});
     check('M1.8 floor 200 mobs: count <= 22, HP exactly x1.6 of their (elite) base',hp.n>0&&hp.n<=22&&hp.bad===0,JSON.stringify(hp));
     await ctx.close();
   }

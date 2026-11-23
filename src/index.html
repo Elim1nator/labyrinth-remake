@@ -63,11 +63,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.17. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.17.1. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.17'; /* set by tools/release.mjs */
+var VERSION='M1.17.1'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=64;
 var SAVE_KEY='labyrinthRemake.save.v1';
 var MAX_HEARTS=5;
@@ -642,8 +642,8 @@ MOBS.brood={name:'THE BROODMOTHER',hp:60,speed:1.1,h:.78,hitR:.62,bodyR:.45,reac
 MOBS.yellow={name:'THE KING IN YELLOW',hp:70,speed:.8,h:.96,hitR:.55,bodyR:.4,reach:.8,dot:'#ff2a3a',voice:'kingVoice',ch:'*',boss:true,fly:true};
 var KIY={floor:20,cd:2.4,cdFury:1.6,signT:1.1,signR:.75,confuse:3,ragSlow:1.5,carcosa:6,suns:2,halis:3,haliLife:8,haliR:.7};
 var SPIDERS={skitEvery:[14,22],skitCap:1,bigEvery:[26,36],bigCap:2,face:3,egg:10,eggCap:3,webSlow:3,webMul:.5,goldWeb:2.5,goldWebMul:.55};
-var KNIGHT={hpBase:25,hpPerFloor:3,slamR:2.2,slamCD:5,slamTele:.6,slamDmg:2,hpMax:4,hpPer:.1,charge:6.5,tele:.7,chargeCD:4.2,shield:1.5,shieldCD:2.2,shieldChance:.7,daze:1.3,coins:5};
-function knightHp(floor){return KNIGHT.hpBase+KNIGHT.hpPerFloor*Math.max(1,(floor|0)-1);} /* M1.14.2: 25 + 3 per floor, no cap (28 on floor 2, 55 on floor 10) */
+var KNIGHT={hpBase:10,hpPerFloor:3,slamR:2.2,slamCD:5,slamTele:.6,slamDmg:2,hpMax:4,hpPer:.1,charge:6.5,tele:.7,chargeCD:4.2,shield:1.5,shieldCD:2.2,shieldChance:.7,daze:1.3,coins:5};
+function knightHp(floor){return KNIGHT.hpBase+KNIGHT.hpPerFloor*Math.max(0,(floor|0)-2);} /* M1.17.1: 10 on floor 2, +3 per floor */ /* M1.14.2: 25 + 3 per floor, no cap (28 on floor 2, 55 on floor 10) */
 /* boss n (floor 5n) is BOSS_ORDER[(n-1)%3]; every full round of three adds a tier: +40% HP (max x3), attacks 8% more often (max 1/0.6), +6% speed (max x1.3) */
 function bossFor(floor){if(floor<BOSS_EVERY||floor%BOSS_EVERY)return null;var n=floor/BOSS_EVERY,tier=Math.floor((n-1)/BOSS_ORDER.length);
   return {type:BOSS_ORDER[(n-1)%BOSS_ORDER.length],n:n,tier:tier,hpMul:Math.min(3,1+.4*tier),cdMul:Math.max(.6,1-.08*tier),spdMul:Math.min(1.3,1+.06*tier)};}
@@ -1230,24 +1230,24 @@ function pollPad(){var pads=navigator.getGamepads?navigator.getGamepads():[],gp=
   padModePrev=G.mode;inp.throwPad=G.mode==='play'&&!padBlock&&(s.a||s.rt);pad=s;padPrev=s;}
 
 /* ---------- M1.17 ambience: a quiet, eerie bed for each floor (drone + air + rare distant sounds), all synthesized, picked from the floor seed ---------- */
-var AMB={on:null,floor:-1,next:0,kinds:[],vol:.05};
+var AMB={on:null,floor:-1,next:0,kinds:[],vol:.08,oct:4}; /* M1.17.1: drone moved up into the range small speakers can play */
 function ambStart(){ambStop();if(!AC||AC.state!=='running'||!G.L)return;var floor=G.levelIdx+1,R=rng(hashSeed(G.seed+':'+floor+':amb')),boss=!!G.L.def.boss,t=AC.currentTime;
   var roots=[41.2,43.65,46.25,49,51.9,55,58.3],root=roots[(R()*roots.length)|0]*(boss?.75:1),ivs=boss?[1,1.414,2.02]:[[1,1.5,2.003],[1,1.2,1.79],[1,1.335,2.01]][(R()*3)|0];
   var g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(AMB.vol,t+3);g.connect(master);
-  var f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=260+R()*320;f.Q.value=3+R()*4;f.connect(g);
-  var lfo=AC.createOscillator(),lg=AC.createGain();lfo.frequency.value=.04+R()*.08;lg.gain.value=90+R()*120;lfo.connect(lg);lg.connect(f.frequency);lfo.start();
-  var nodes=[lfo];ivs.forEach(function(iv,i){var o=AC.createOscillator(),og=AC.createGain();o.type=i?'triangle':'sine';o.frequency.value=root*iv;o.detune.value=(R()-.5)*14;og.gain.value=i?.35:.6;o.connect(og);og.connect(f);o.start();nodes.push(o);});
+  var f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=700+R()*600;f.Q.value=3+R()*4;f.connect(g);
+  var lfo=AC.createOscillator(),lg=AC.createGain();lfo.frequency.value=.04+R()*.08;lg.gain.value=250+R()*250;lfo.connect(lg);lg.connect(f.frequency);lfo.start();
+  var nodes=[lfo];ivs.forEach(function(iv,i){var o=AC.createOscillator(),og=AC.createGain();o.type=i?'triangle':'sine';o.frequency.value=root*AMB.oct*iv;o.detune.value=(R()-.5)*14;og.gain.value=i?.35:.6;o.connect(og);og.connect(f);o.start();nodes.push(o);});
   var n=AC.createBufferSource(),nf=AC.createBiquadFilter(),ng=AC.createGain();n.buffer=noiseBuf;n.loop=true;nf.type='bandpass';nf.frequency.value=300+R()*600;nf.Q.value=.7;ng.gain.value=.25;n.connect(nf);nf.connect(ng);ng.connect(g);n.start();nodes.push(n);
   var all=['drip','chime','creak','wind','whisper','bell'];AMB.kinds=[];while(AMB.kinds.length<3){var k=all[(R()*all.length)|0];if(AMB.kinds.indexOf(k)<0)AMB.kinds.push(k);}
   AMB.on={g:g,nodes:nodes};AMB.floor=G.levelIdx;AMB.root=root;AMB.next=4+R()*5;stats.ambStarts++;}
 function ambStop(){if(!AMB.on||!AC)return;var o=AMB.on,t=AC.currentTime;try{o.g.gain.cancelScheduledValues(t);o.g.gain.setValueAtTime(Math.max(.0001,o.g.gain.value),t);o.g.gain.exponentialRampToValueAtTime(.0001,t+.8);o.nodes.forEach(function(nd){nd.stop(t+.9);});}catch(e){}AMB.on=null;}
-function ambTick(dt){if(!AC||AC.state!=='running')return;if(!AMB.on||AMB.floor!==G.levelIdx){ambStart();return;}AMB.next-=dt;if(AMB.next>0)return;AMB.next=5+Math.random()*10;var k=AMB.kinds[(Math.random()*AMB.kinds.length)|0],r=AMB.root;stats.ambSounds++;
-  if(k==='drip'){var f=1100+Math.random()*900;tone(f,.07,'sine',.03,f*.5);tone(f*.8,.06,'sine',.015,f*.4,.35);}
-  else if(k==='chime'){[r*8,r*9.6,r*12].forEach(function(f,i){tone(f,1.6,'triangle',.012,0,i*.25);});}
-  else if(k==='creak'){tone(r*1.6,1,'sawtooth',.012,r*1.2);}
-  else if(k==='wind'){noise(2.6,.03,250,900,0,'bandpass');}
-  else if(k==='whisper'){noise(.9,.016,2400,4200,0,'bandpass');noise(.8,.012,2800,3600,.6,'bandpass');}
-  else{tone(r*4,2.4,'sine',.014,r*3.98);}}
+function ambTick(dt){if(!AC||AC.state!=='running')return;if(!AMB.on||AMB.floor!==G.levelIdx){ambStart();return;}AMB.next-=dt;if(AMB.next>0)return;AMB.next=3+Math.random()*6;var k=AMB.kinds[(Math.random()*AMB.kinds.length)|0],r=AMB.root;stats.ambSounds++;
+  if(k==='drip'){var f=1100+Math.random()*900;tone(f,.07,'sine',.06,f*.5);tone(f*.8,.06,'sine',.035,f*.4,.35);}
+  else if(k==='chime'){[r*8,r*9.6,r*12].forEach(function(f,i){tone(f,1.6,'triangle',.035,0,i*.25);});}
+  else if(k==='creak'){tone(r*4,1,'sawtooth',.03,r*3);}
+  else if(k==='wind'){noise(2.6,.06,300,1100,0,'bandpass');}
+  else if(k==='whisper'){noise(.9,.04,2400,4200,0,'bandpass');noise(.8,.03,2800,3600,.6,'bandpass');}
+  else{tone(r*8,2.4,'sine',.035,r*7.96);}}
 /* ---------- update ---------- */
 var STEP=1/60;
 function update(dt){
@@ -2596,6 +2596,7 @@ api.kiy=KIY;api.lectern=function(){var l=G.L.lectern||G.L.lecternGone;return l?{
 api.signs=function(){return G.signs.map(function(s){return {x:s.x,y:s.y,t:s.t};});};api.halis=function(){return G.halis.map(function(h){return {x:h.x,y:h.y,life:h.life};});};api.goldWalls=function(){return !!G.L.goldWalls;};
 api.pitSpider=function(t){var p=G.p,e=spawnSpider(t,p.x+1.5,p.y,'pit');return G.ents.indexOf(e);};
 api.cheat=function(line){return runCheat(line);};api.cheatOpen=function(){return G.mode==='cheat';};api.cheated=function(){return !!(G.run&&G.run.cheated);};api.god=function(){return !!G.god;};
+api.audioLevel=function(){if(!AC||!master)return null;if(!api._an){api._an=AC.createAnalyser();api._an.fftSize=2048;master.connect(api._an);}var d=new Float32Array(2048);api._an.getFloatTimeDomainData(d);var sq=0;for(var i=0;i<d.length;i++)sq+=d[i]*d[i];return {rms:Math.sqrt(sq/d.length),state:AC.state};};
 api.amb=function(){return {on:!!AMB.on,floor:AMB.floor,kinds:AMB.kinds.slice(),root:AMB.root||0};};api.ambDescribe=function(seed,floor,boss){var R=rng(hashSeed(seed+':'+floor+':amb'));var roots=[41.2,43.65,46.25,49,51.9,55,58.3];return roots[(R()*roots.length)|0]*(boss?.75:1);};api.view=function(){return VIEW.cur;};api.viewDist=function(){return viewDist();};api.dmgFx=function(){return {nums:G.dmgNums.length,splats:G.splats.map(function(s){return s.a;}),hud:G.hudDmg.length};};api.flareT=function(){return G.flareT;};
 api.bossForce=function(k){G.ents.forEach(function(e){if(MOBS[e.type].boss&&!e.gone){e.atkCD=0;e.next=k;e.tele=.01;e.last=null;}});};
 api.kingForce=function(k){G.ents.forEach(function(e){if(e.type==='yellow'){e.atkCD=0;e.next=k;e.tele=.01;e.last=null;}});};api.dormant=function(){var d=null;G.ents.forEach(function(e){if(e.type==='yellow')d=!!e.dormant;});return d;};
@@ -2603,7 +2604,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.17-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.17.1-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

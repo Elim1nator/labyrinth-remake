@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.17.1: audible ambience, gentler first knight
+- Ambience drone moved to ~165-235 Hz, louder occasional sounds. Treasure Knight HP 10 + 3 per floor after floor 2.
+- QA build `m1.17.1-qa` (debug hook on).
+
 ## M1.17: fog of war, sight items, ambience, damage indicators
 - 5-cell view in a per-floor haze; minimap fills only what you've seen. Torch (+3), Flare (8 s), Owl Eyes (+1 each, max 3), Candle Lantern now +2.
 - Per-floor eerie ambience. Red damage numbers, directional blood splotches, "-x" under the hearts.

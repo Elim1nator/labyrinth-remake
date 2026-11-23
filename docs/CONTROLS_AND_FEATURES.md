@@ -1,4 +1,4 @@
-# Controls and features (M1.11)
+# Controls and features (M1.12)
 
 ## Keyboard and mouse
 
@@ -102,6 +102,12 @@ Comedy masks just follow you and can't be hurt; frowning Tragedy masks attack. N
 Thorn Vest, Rock Sack, Lucky Clover, Healing Herb, Mirror Charm, Candle Lantern, Wax Wings,
 Warding Bell. Permanent items: Heart Container, Strong Arm, Quick Hands. On both maps every
 monster is the same red mark.
+
+## Coins: pits, doors, shrines, trapdoors (M1.12)
+
+Next to a pit, E tosses a coin in (10 / 50 / 100 coins unlock pit spiders, big spiders and the
+Broodmother on floor 15). Coin doors, shrines and trapdoors ask for coins with E. Old Murkle's
+second page (RARE WARES >) sells permanent items, the Piggy Bank, a Golden Wonder and a Mystery Box.
 
 ## Boss floors
 

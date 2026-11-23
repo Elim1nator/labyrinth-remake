@@ -1,4 +1,4 @@
-# Balance (M1.11)
+# Balance (M1.12)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -110,6 +110,13 @@ floor.
 The four permanent items cost 160 coins together. Floors 2–8 place 200 coins if you collect
 every coin and pop every mob (before elite loot, secret-room bags and the slot), so a full
 shop spend is a long-run investment rather than a first-shop impulse buy.
+
+## Coins and pits (M1.12)
+
+- Pit milestones 10 / 50 / 100 (whole run). Skitters: 1 HP, 4.4 cells/s, one every 14–22 s near a pit (cap 1, 2 from floor 12); face-hug 3 s. Brood Spiders: 8 HP (× deep HP), 1.9 cells/s, one every 26–36 s (cap 2), elite rules apply.
+- Grand Masque 55 HP (happy 4 s / sad 5 s; 3 gold balls every 1.6 s; 2 Tragedy masks every 9 s, max 3; barrage every 22 s: 2 shots/s for 10 s). Broodmother 60 HP (web 3 s slow ×0.5; egg sac 4 HP, bursts after 10 s into 2 Skitters + 1 Brood Spider, max 3 sacs; summons).
+- Coin door 45% of floors from 2 (if a spot fits): 5/10/20 coins; loot 12% golden, 8% Piggy Bank, else a power-up; 22% a mob (40% of those a Treasure Knight). Shrine 35% (floor 3+): 15 coins, 15% curse. Trapdoor 30% (not boss floors): 15 coins.
+- Rare wares: Heart Container 60+30n, Strong Arm 80+40n, Quick Hands 70+35n, Piggy Bank 40, Golden Wonder 150, Mystery Box 25.
 
 ## Treasure Knight and items (M1.11)
 

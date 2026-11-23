@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.12: coins into pits, spiders, floor-15 bosses, coin doors, shrines, trapdoors, piggy bank, rare wares
+- Toss coins into pits (E); 10 unlocks Skitters (face-huggers), 50 Brood Spiders, 100 by floor 15 the Broodmother (webs, egg sacs, Golden Web drop). Otherwise floor 15 is the Grand Masque (laughs = invincible, weeps = vulnerable, gold balls, Tragedy masks, 10 s barrage). Coghoot moves to floor 30.
+- Coin doors (5/10/20) with a side room, shrines (15 coins, blessing or rare curse), coin trapdoors (15 coins, next floor; not on boss floors), Piggy Bank (coin per throw, double damage), rare wares page in the shop.
+- Test file size limit raised to 400 KB.
+- QA build `m1.12-qa` (debug hook on).
+
 ## M1.11.1: mask redraw
 - Comedy and Tragedy masks redrawn as classic theatre masks (shield-shaped face, crescent eyes, wide grin or frown).
 - QA build `m1.11.1-qa` (debug hook on).

@@ -23,6 +23,7 @@ const V19=atLeast('1.9'); // M1.9+: slot rework (no limit, jackpot spray, crit f
 const V191=atLeast('1.9.1'); // M1.9.1+: shop panel clear of the HUD, decorations never diagonal to a door
 const V110=atLeast('1.10'); // M1.10+: a boss every 5th floor guards a sealed portal (its exit door is unlocked)
 const V111=atLeast('1.11'); // M1.11+: comedy/tragedy masks, Treasure Knight, golden + new items, one monster mark on the maps
+const V112=atLeast('1.12'); // M1.12+: coins into pits (spiders, floor-15 bosses), coin doors, shrines, trapdoors, piggy bank, rare wares
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -310,7 +311,7 @@ async function m110Tests(){
       __game.teleport(ex.x+.5,ex.y+.5,0);let s=__game.advance(0.3);const still=s.mode,msg=s.msg;return {msg0:s0.msg,sealed:b.sealed,idle:b.ent.state,still,msg,hp:b.ent.hp,save:s0.save&&s0.save.level};});
     check('M1.10 floor 5: "BOSS FLOOR!" message, the portal is sealed, and stepping into it does nothing but say who to beat',/BOSS FLOOR! KING GLOOP/.test(seal.msg0)&&seal.sealed&&seal.still==='play'&&/SEALED! DEFEAT KING GLOOP/.test(seal.msg),JSON.stringify(seal));
     // each boss: wakes, stays in its arena, attacks, can hurt you
-    const per=await G(page,()=>{const out={};for(const f of [5,10,15]){__game.setSeed(777);__game.startLevel(f-1);__game.setEffect(null);const b0=__game.boss(),A=b0.def.room;
+    const per=await G(page,()=>{const out={};for(const f of [5,10,15]){__game.setSeed(777);__game.startLevel((f===15&&__game.bossType?30:f)-1); /* M1.12: floor 15 has its own boss; Coghoot first shows on floor 30 */__game.setEffect(null);const b0=__game.boss(),A=b0.def.room;
         const idle0=__game.boss().ent.woke;__game.faceBoss(2.5);const s1=__game.advance(0.1),woke=__game.boss().ent.woke,bar=s1.stats.bossBar;
         let outside=0,maxShots=0,hurt=0,h0=5;for(let i=0;i<120;i++){__game.setHearts(5);const s=__game.advance(0.1);const e=__game.boss().ent;if(e.x<A.x||e.x>A.x+A.w||e.y<A.y||e.y>A.y+A.h)outside++;if(s.player.hearts<5||s.player.inv>0.5)hurt++;maxShots=s.stats.bossShots;}
         out[f]={idle0,woke,msg:s1.msg,bar:!!bar,outside,shots:maxShots,hurt,type:b0.ent.type,fly:!!__game.bosses[b0.ent.type].fly};}return out;});
@@ -331,7 +332,7 @@ async function m110Tests(){
     const lugg=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.5);__game.advance(0.1);const B=()=>__game.boss().ent,mx=B().maxHp,r=[{stack:B().stack,hh:B().hh,frame:B().frame}];
       for(const n of [Math.ceil(mx/3),Math.ceil(mx/3)]){__game.hitBoss(n);__game.setHearts(5);const s=__game.advance(0.1);r.push({stack:B().stack,hh:B().hh,frame:B().frame,bursts:s.stats.caseBursts,msg:s.msg});}return r;});
     check('M1.10 Luggernaut loses a suitcase at 2/3 and 1/3 health (3 -> 2 -> 1, a burst of socks and coins each time) and gets shorter, so balloons must aim lower',lugg[0].stack===3&&lugg[1].stack===2&&lugg[2].stack===1&&lugg[2].bursts===2&&lugg[0].hh>lugg[1].hh&&lugg[1].hh>lugg[2].hh&&lugg[2].frame>=4,JSON.stringify(lugg));
-    const owl=await G(page,()=>{__game.setSeed(777);__game.startLevel(14);__game.faceBoss(3);__game.advance(0.1);let home=0,gear=0;for(let i=0;i<200&&!gear;i++){ /* attacks are random (swoop or gears): watch up to 20 s */__game.setHearts(5);const s=__game.advance(0.1);s.eshots.forEach(q=>{if(q.kind==='gear')gear++;});}return {gear,z:__game.boss().ent.z};});
+    const owl=await G(page,()=>{__game.setSeed(777);__game.startLevel(__game.bossType?29:14);__game.faceBoss(3);__game.advance(0.1);let home=0,gear=0;for(let i=0;i<200&&!gear;i++){ /* attacks are random (swoop or gears): watch up to 20 s */__game.setHearts(5);const s=__game.advance(0.1);s.eshots.forEach(q=>{if(q.kind==='gear')gear++;});}return {gear,z:__game.boss().ent.z};});
     check('M1.10 Coghoot hovers above the floor and fires gears',owl.gear>0&&owl.z>0.1,JSON.stringify(owl));
     // arena doors lock behind you and open when the boss falls
     const lock=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const b=__game.boss(),A=b.def.room,d0=__game.arenaDoors();
@@ -356,12 +357,12 @@ async function m110Tests(){
       const cs=fm.cs,px=__game.pixelAt(Math.round(fm.ox+ex.x*cs+cs/2),Math.round(fm.oy+ex.y*cs+cs/2));__game.closeMap();__game.hitBoss(999);__game.advance(1.6);__game.seeAll();__game.openMap();__game.advance(0.05);__game.render();
       const px2=__game.pixelAt(Math.round(fm.ox+ex.x*cs+cs/2),Math.round(fm.oy+ex.y*cs+cs/2));__game.closeMap();return {px,px2};});
     check('M1.10 the full map shows the sealed portal dim, and bright once it opens',ui.px.join()!==ui.px2.join()&&ui.px[2]<120,JSON.stringify(ui));
-    const bar=await G(page,()=>{__game.setSeed(777);__game.startLevel(14);const r=[];let s=__game.advance(0.05);const idle=s.stats.bossBar?1:0;__game.faceBoss(3);s=__game.advance(0.1);const w0=s.stats.bossBar.w;__game.hitBoss(Math.ceil(__game.boss().ent.maxHp/2));s=__game.advance(0.1);const w1=s.stats.bossBar.w;const R=__game.bossBar(),H=__game.hudRects();
+    const bar=await G(page,()=>{__game.setSeed(777);__game.startLevel(__game.bossType?29:14);const r=[];let s=__game.advance(0.05);const idle=s.stats.bossBar?1:0;__game.faceBoss(3);s=__game.advance(0.1);const w0=s.stats.bossBar.w;__game.hitBoss(Math.ceil(__game.boss().ent.maxHp/2));s=__game.advance(0.1);const w1=s.stats.bossBar.w;const R=__game.bossBar(),H=__game.hudRects();
       return {idle,w0,w1,inBand:R[0]>=H.band[0]&&R[1]>=H.band[1]&&R[0]+R[2]<=H.band[0]+H.band[2]&&R[1]+R[3]<=H.band[1]+H.band[3]};});
     check('M1.10 the boss health bar appears once the boss wakes, sits inside the message band (no new screen space) and shrinks with the boss HP',bar.idle===0&&bar.inBand&&bar.w0>0&&Math.abs(bar.w1/bar.w0-0.5)<0.08,JSON.stringify(bar));
     await G(page,()=>{__game.setSeed(777);__game.startLevel(4);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'king_gloop');
     await G(page,()=>{__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'luggernaut');
-    await G(page,()=>{__game.setSeed(777);__game.startLevel(14);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'coghoot');
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(__game.bossType?29:14);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'coghoot');
     // a deeper boss is tougher; CONTINUE on a boss floor brings the boss back and the portal sealed
     const deep=await G(page,()=>{__game.setSeed(4242);__game.startLevel(19);const a=__game.boss().ent;__game.startLevel(79);const b=__game.boss().ent;const B=__game.bosses;return {a:[a.type,a.maxHp,a.tier],b:[b.type,b.maxHp,b.tier,b.cdMul,b.spdMul],base:B.king.hp};});
     check('M1.10 floor 20 King Gloop has 40% more HP than on floor 5; by floor 80 x3 HP, attacks 1/0.6 as often, 1.3x speed (caps)',deep.a[0]==='king'&&deep.a[1]===Math.ceil(deep.base*1.4)&&deep.b[1]===deep.base*3&&deep.b[3]===0.6&&deep.b[4]===1.3,JSON.stringify(deep));
@@ -472,6 +473,87 @@ async function m111Tests(){
   await ctx.close();
 }
 
+// ---------- M1.12: coins into pits, spiders, floor-15 bosses, coin doors, shrines, trapdoors, piggy bank, rare wares ----------
+async function m112Tests(){
+  const shot=async(page,name)=>page.screenshot({path:`${SHOTS}/m112_${name}.png`});
+  const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m112'});
+  await G(page,()=>{__game.manual=true;__game.bossIntro=false;localStorage.clear();});
+  savePng('m112_sprites_3x.png',await G(page,()=>__game.spriteSheet(3,'m112')));
+  const PIT=()=>{const G=__game,pit=G.pits()[0];if(!pit)return false;for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){const x=pit.x+d[0],y=pit.y+d[1];if(G.cellType(x,y)===0){G.teleport(x+.5,y+.5,Math.atan2(-d[1],-d[0]));return true;}}return false;};
+  // ---- pit coins
+  const pt=await G(page,(PITs)=>{const PIT=eval(PITs),G=__game;G.setSeed(777);G.startLevel(7,{hearts:5,coins:12,perm:{}});G.state().enemies.forEach((e,i)=>G.damageMob(i,99));G.advance(0.2);PIT();G.advance(0.05);const near=G.nearUse(),prompt=G.state().stats&&__game.state().msg;
+    const c0=G.state().player.coins;G.use();let s=G.advance(0.05);const one={coins:c0-s.player.coins,pit:G.pitCoins(),saved:s.save.perm.pit};
+    G.setPit(9);G.use();s=G.advance(0.05);const m10=s.msg;G.startLevel(8);const next={pit:G.pitCoins(),lvl:G.spiderLvl()};return {near,one,m10,next};},PIT.toString());
+  check('M1.12 next to a pit, E tosses one coin in; the count is saved and carries over to every floor',pt.near&&pt.near.kind==='pit'&&pt.one.coins===1&&pt.one.pit===1&&pt.one.saved===1&&pt.next.pit===10,JSON.stringify(pt));
+  check('M1.12 10 coins in the pits unlocks the skittering spiders on later floors',/SKITTERS/.test(pt.m10)&&pt.next.lvl===1,JSON.stringify(pt));
+  const sk=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(8,{hearts:5,coins:0,perm:{pit:10}});G.clearMobs();const p=G.state().player;const i=G.spawn('skitter',p.x+Math.cos(p.ang)*2.2,p.y+Math.sin(p.ang)*2.2,true,[]);let s,hit=null;
+    for(let k=0;k<30&&!hit;k++){s=G.advance(0.1);if(G.faceT()>0)hit={t:k*0.1,hearts:s.player.hearts,face:G.faceT(),gone:s.enemies[i].gone};}window.__fh=true;return hit;});
+  await shot(page,'face_hug');
+  const sk2=await G(page,()=>{__game.advance(3.2);return __game.faceT();});
+  check('M1.12 a skitter runs at you fast and jumps on your face: the screen is covered for 3 s (no damage), then it fades',sk&&sk.t<1.5&&sk.hearts===5&&sk.face>2.8&&sk.gone&&sk2===0,JSON.stringify({sk,sk2}));
+  const sp=await G(page,()=>{const G=__game;let skitt=0,big=0,floors=0;for(const sd of [777,4242,1,2]){G.setSeed(sd);G.startLevel(9,{hearts:5,coins:0,perm:{pit:50}});if(!G.pits().length)continue;floors++;G.state().enemies.forEach((e,i)=>G.damageMob(i,99));PITs:{}
+      for(let k=0;k<700;k++){G.setHearts(5);const s=G.advance(0.1);const pits=G.pits();if(k%50===0&&pits.length){const pp=pits[k/50%pits.length|0];G.teleport(pp.x+.5,pp.y-2.5);if(G.solidAt(pp.x+.5,pp.y-2.5))G.teleport(pp.x+.5,pp.y+3.5);}s.enemies.forEach(e=>{if(e.spawned&&e.type==='skitter')skitt++;if(e.spawned&&e.type==='bigspider')big++;});}}
+    G.startLevel(9,{hearts:5,coins:0,perm:{pit:50}});const b=G.spawn('bigspider',1,1,false,[]);return {floors,skitt:skitt>0,big:big>0,lvl:G.spiderLvl(),bigHp:__game.state().enemies[b].hp};});
+  check('M1.12 at 50 coins big Brood Spiders (8 HP) also climb out of the pits and attack, alongside the skitters',sp.lvl===2&&sp.skitt&&sp.big&&sp.bigHp===8,JSON.stringify(sp));
+  // ---- floor 15
+  const f15=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:99}});const a=G.bossType(),an=G.state().msg;G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});const b=G.bossType(),bn=G.state().msg;G.startLevel(29,{hearts:5,coins:0,perm:{pit:100}});return {a,b,an,bn,f30:G.bossType()};});
+  check('M1.12 floor 15: the Grand Masque, or the Broodmother if 100 coins went into the pits by then (Coghoot moves to floor 30)',f15.a==='masque'&&f15.b==='brood'&&/GRAND MASQUE/.test(f15.an)&&/BROODMOTHER/.test(f15.bn)&&f15.f30==='owl',JSON.stringify(f15));
+  const mq=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:0}});G.faceBoss(3);G.advance(0.1);let happyHit=null,sadHit=null,gold=0,minions=0,bar=0,tStart=null;
+    for(let k=0;k<400;k++){G.setHearts(5);const s=G.advance(0.1),b=G.boss().ent,hp=b.hp;const eh=s.enemies[G.boss().i];
+      s.eshots.forEach(q=>{if(q.kind==='goldball')gold++;});minions=Math.max(minions,s.enemies.filter(e=>e.type==='zapfly'&&e.spawned&&!e.gone).length);
+      if(/GOES WILD/.test(s.msg)&&tStart===null)tStart=k;if(k%10===0){const happy=/LAUGHS/.test(s.msg);}if(happyHit===null||sadHit===null){const m=__game.state().msg;}}
+    G.startLevel(14,{hearts:5,coins:0,perm:{pit:0}});G.faceBoss(3);G.advance(0.2);const st=()=>G.boss().ent;let tries=0;while(!st().happy&&tries++<150){G.setHearts(5);G.advance(0.1);}const h0=st().hp;G.hitBoss(3);const h1=st().hp;tries=0;while(st().happy&&tries++<150){G.setHearts(5);G.advance(0.1);}const h2=st().hp;G.hitBoss(3);const h3=st().hp;
+    return {gold,minions,tStart,happy:{h0,h1},sad:{h2,h3},blocks:G.state().stats.masqueBlocks};});
+  check('M1.12 the Grand Masque is invincible while it laughs and takes damage while it weeps',mq.happy.h1===mq.happy.h0&&mq.sad.h3===mq.sad.h2-3&&mq.blocks>0,JSON.stringify(mq));
+  check('M1.12 the Grand Masque keeps shooting gold balls (happy or sad), calls in Tragedy masks and goes wild with a shot barrage',mq.gold>20&&mq.minions>=1&&mq.tStart!==null,JSON.stringify(mq));
+  const br=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});G.faceBoss(3);G.advance(0.1);let web=0,slow=false,eggs=0,pops=0,skit=0;
+    for(let k=0;k<300;k++){G.setHearts(5);const s=G.advance(0.1);if(G.slowT()>0)slow=true;web=s.stats.webHits;eggs=s.stats.eggs;pops=s.stats.eggPops;skit=Math.max(skit,s.enemies.filter(e=>(e.type==='skitter'||e.type==='bigspider')&&!e.gone).length);}
+    G.clearMobs();const pp=G.state().player;G.addShot('web',pp.x+Math.cos(pp.ang)*1.5,pp.y+Math.sin(pp.ang)*1.5,-Math.cos(pp.ang)*6,-Math.sin(pp.ang)*6);G.advance(0.4);slow=G.slowT()>2;
+    const x0=G.state().player;window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW'}));G.advance(0.5);window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW'}));const x1=G.state().player;const moved=Math.hypot(x1.x-x0.x,x1.y-x0.y);
+    const eg=G.spawn('eggsac',G.state().player.x+1,G.state().player.y,true,[]);const egHp=G.state().enemies[eg].hp;G.damageMob(eg,4);const s2=G.advance(0.3);
+    G.clearMobs();const e2=G.spawn('eggsac',3,3,true,[]);let popped=false;for(let k=0;k<110;k++){const s=G.advance(0.1);if(s.enemies[e2].gone){popped=true;break;}}const after=G.state().enemies.filter(e=>(e.type==='skitter'||e.type==='bigspider')&&!e.gone).length;
+    return {web,slow,moved,eggs,pops,skit,egHp,killed:s2.enemies[eg].state==='dead'||s2.enemies[eg].gone,popped,after};});
+  check('M1.12 the Broodmother shoots webs (3 s slow), lobs egg sacs and calls in skitters and Brood Spiders',br.web>0&&br.slow&&br.eggs>0&&br.skit>0,JSON.stringify(br));
+  check('M1.12 an egg sac has 4 HP; left alone it grows for 10 s and bursts into 3 spiders',br.egHp===4&&br.killed&&br.popped&&br.after>=3,JSON.stringify(br));
+  const wb=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});G.faceBoss(2.5);G.advance(0.1);const b=G.boss().ent;G.hitBoss(999);let s=G.advance(1.6);const w=s.items.find(i=>i.kind==='webg');if(!w)return {none:true};G.teleport(w.x,w.y);s=G.advance(0.1);
+    G.startLevel(16,{hearts:5,coins:0});G.clearMobs();const p=G.state().player;const i=G.spawn('clunk',p.x+Math.cos(p.ang)*1.5,p.y+Math.sin(p.ang)*1.5,true,[]);G.shoot(0);let slowed=false;for(let k=0;k<10;k++){G.setHearts(5);G.advance(0.05);}
+    const e=G.state().enemies[i];return {perm:G.state().perm.web,hit:e.hp<e.maxHp};});
+  check('M1.12 the Broodmother drops the Golden Web: kept for good, your hits slow monsters',!wb.none&&wb.perm&&wb.hit,JSON.stringify(wb));
+  // ---- coin doors, shrines, trapdoors
+  const fl=await G(page,()=>{const G=__game;let n=0,cd=0,sh=0,tr=0,trBoss=0,prices=new Set(),loot={};for(const sd of [1,2,3,4,5,6,7,8,9,10,11,12])for(let f=2;f<=21;f++){G.setSeed(sd);G.startLevel(f-1,{hearts:5,coins:0,perm:{}});const e=G.extras();n++;
+      if(e.coinDoor){cd++;prices.add(e.coinDoor.price);}if(e.shrine)sh++;if(e.trap){tr++;if(f%5===0)trBoss++;}}return {n,cd,sh,tr,trBoss,prices:[...prices].sort((a,b)=>a-b)};});
+  check(`M1.12 coin doors (5, 10 or 20 coins), shrines and trapdoors turn up on some floors (${fl.cd}, ${fl.sh}, ${fl.tr} of ${fl.n}); never a trapdoor on a boss floor`,fl.cd>fl.n*.2&&fl.sh>fl.n*.15&&fl.tr>fl.n*.15&&fl.trBoss===0&&fl.prices.join()==='5,10,20',JSON.stringify(fl));
+  const cdt=await G(page,()=>{const G=__game;for(const sd of [1,2,3,4,5,6,7,8,9,10,11,12])for(let f=2;f<=12;f++){G.setSeed(sd);G.startLevel(f-1,{hearts:5,coins:0,perm:{}});const e=G.extras();if(!e.coinDoor||e.coinDoor.price!==10)continue;const c=e.coinDoor;
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];for(const d of dirs){const x=c.x+d[0],y=c.y+d[1];if(G.cellType(x,y)===0&&G.cellAt(c.x-d[0],c.y-d[1]).t===0){G.teleport(x+.5,y+.5,d[2]);break;}}
+      G.setCoins(5);G.advance(0.05);G.use();let s=G.advance(0.1);const poor={msg:s.msg,coins:s.player.coins,locked:G.cellAt(c.x,c.y).locked};G.setCoins(14);G.use();s=G.advance(0.8);const paid={coins:s.player.coins,open:G.cellAt(c.x,c.y).open,locked:G.cellAt(c.x,c.y).locked};
+      const items=s.items.filter(i=>!i.taken&&Math.hypot(i.x-c.x-.5,i.y-c.y-.5)<4&&['power','gold','piggy','bag'].includes(i.kind)).length;return {c,poor,paid,items};}return null;});
+  check('M1.12 a coin door asks for its price, takes it, opens; the room behind holds a power-up (or better)',cdt&&/WANTS 10 COINS/.test(cdt.poor.msg)&&cdt.poor.locked&&cdt.paid.coins===4&&cdt.paid.open>0.9&&!cdt.paid.locked&&cdt.items>=1,JSON.stringify(cdt));
+  await shot(page,'coin_door_open');
+  const shr=await G(page,()=>{const G=__game;for(const sd of [1,2,3,4,5,6,7,8,9,10])for(let f=3;f<=12;f++){G.setSeed(sd);G.startLevel(f-1,{hearts:3,coins:40,perm:{}});const e=G.extras();if(!e.shrine)continue;const c=e.shrine;
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];for(const d of dirs){const x=c.x+d[0],y=c.y+d[1];if(G.cellType(x,y)===0){G.teleport(x+.5,y+.5,d[2]);break;}}G.state().enemies.forEach((e2,i)=>G.damageMob(i,99));G.advance(0.8);
+      const ut=G.state().useTarget;G.use();let s=G.advance(0.1);const c1=s.player.coins,msg=s.msg;G.use();s=G.advance(0.1);return {ut:!!ut,c1,msg,again:s.msg,c2:s.player.coins};}return null;});
+  check('M1.12 a shrine takes 15 coins for a blessing (or, rarely, a curse), once per floor',shr&&shr.ut&&shr.c1<=25&&/BLESSED|CURSED/.test(shr.msg)&&/SILENT/.test(shr.again),JSON.stringify(shr));
+  await shot(page,'shrine');
+  const trp=await G(page,()=>{const G=__game;for(const sd of [1,2,3,4,5,6,7,8,9,10])for(let f=2;f<=12;f++){if(f%5===0)continue;G.setSeed(sd);G.startLevel(f-1,{hearts:5,coins:20,perm:{}});const e=G.extras();if(!e.trap)continue;G.state().enemies.forEach((e2,i)=>G.damageMob(i,99));G.advance(0.05);
+      G.teleport(e.trap.x+.5,e.trap.y+.5);G.advance(0.05);const near=G.nearUse();G.use();let s=G.advance(0.2);const mode=s.mode;s=G.advance(1.2);return {f,near,mode,level:s.level,m2:s.mode,coins:s.player.coins};}return null;});
+  check('M1.12 a coin trapdoor (15 coins) drops you straight to the next floor',trp&&trp.near&&trp.near.kind==='trap'&&trp.mode==='fall'&&trp.level===trp.f&&trp.m2==='play'&&trp.coins===5,JSON.stringify(trp));
+  // ---- piggy bank
+  const pg=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(6,{hearts:5,coins:2,perm:{}});G.clearMobs();const p=G.state().player;G.spawnItem('piggy',null,p.x,p.y);G.advance(0.05);const has=G.state().perm.piggy;
+    const i=G.spawn('clunk',p.x+Math.cos(p.ang)*1.4,p.y+Math.sin(p.ang)*1.4,true,[]);G.shoot(0);for(let k=0;k<10;k++){G.setHearts(5);G.advance(0.05);}const s=G.state(),d=s.enemies[i].maxHp-s.enemies[i].hp,c1=s.player.coins;G.shoot(0);G.advance(0.3);const s2=G.state();
+    return {has,dmg:d,c1,c2:s2.player.coins,after:s2.perm.piggy,msg:s2.msg};});
+  check('M1.12 Piggy Bank: each throw costs a coin and does double damage; it shatters when the coins run out',pg.has&&pg.dmg===2&&pg.c1===1&&pg.c2===0&&!pg.after&&/SHATTERS/.test(pg.msg),JSON.stringify(pg));
+  // ---- rare wares
+  const rw=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(1,{hearts:5,coins:400,perm:{}});G.faceShop();G.openShop();const r0=G.shopRows();const mi=r0.findIndex(r=>r.id==='more');G.shopBuy(mi);const r1=G.shopRows();
+    const hc=r1.findIndex(r=>r.id==='r_hp'),p0=r1[hc].price;G.shopBuy(hc);const r2=G.shopRows();const mh=G.maxHearts();const gi=r2.findIndex(r=>r.id==='r_gold');G.shopBuy(gi);const gold=Object.keys(G.state().perm.gold).length;
+    const bi=r2.findIndex(r=>r.id==='r_box');G.shopBuy(bi);const back=G.shopRows().findIndex(r=>r.id==='back');G.shopBuy(back);return {page:G.shopPage(),names:r1.map(r=>r.name),p0,p1:r2[hc].price,mh,gold,coins:G.state().player.coins};});
+  check('M1.12 Old Murkle has a second page of rare wares: Heart Container, Strong Arm, Quick Hands (pricier each time), Piggy Bank, a Golden Wonder and a Mystery Box',rw.names.length===8&&rw.p0===60&&rw.p1===90&&rw.mh===6&&rw.gold===1&&rw.page===0,JSON.stringify(rw));
+  await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(1,{hearts:5,coins:400,perm:{}});G.faceShop();G.openShop();G.shopBuy(G.shopRows().findIndex(r=>r.id==='more'));G.render();});await shot(page,'rare_wares');
+  await G(page,()=>{const G=__game;G.closeShop&&G.closeShop();G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:0}});G.faceBoss(3);G.advance(0.3);});await shot(page,'grand_masque');
+  await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});G.faceBoss(3);G.advance(0.3);});await shot(page,'broodmother');
+  await ctx.close();
+}
+
 // ONLY=m19,m110 node m1.test.mjs <build> runs just those groups (names as in the function names, 'regression' for the M1.1 set)
 const ONLY=(process.env.ONLY||'').split(',').filter(Boolean),want=n=>!ONLY.length||ONLY.includes(n);
 if(NEW&&want('regression')){ await regressionTests(); }
@@ -486,10 +568,11 @@ if(V19&&want('m19')){ await m19Tests(); }
 if(V191&&want('m191')){ await m191Tests(); }
 if(V110&&want('m110')){ await m110Tests(); }
 if(V111&&want('m111')){ await m111Tests(); }
+if(V112&&want('m112')){ await m112Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
-const size=fs.statSync(FILE).size;check('single file size under 300 KB',size<300*1024,`${(size/1024).toFixed(1)} KB`);
+const size=fs.statSync(FILE).size,LIM=atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
 await browser.close();
 fs.writeFileSync(`${OUT}/results.json`,JSON.stringify({build:BUILD,file:FILE,date:new Date().toISOString(),passed:results.length-failed,failed,results},null,1));
 console.log(`\n${results.length-failed}/${results.length} passed`);
@@ -1168,7 +1251,7 @@ async function m14Tests(){
     const lv=await G(page,()=>{const run=()=>{__game.setSeed(31337);__game.startLevel(7);const s=__game.state();return {sig:s.enemies.map(e=>e.type+':'+e.mods.join('+')).join(' '),n:s.enemies.filter(e=>e.mods.length).length};};const a=run(),b=run();__game.startLevel(0);const t=__game.state();return {a,b,tut:t.enemies.filter(e=>e.mods.length).length};});
     check('M1.4 elite rolls are deterministic per seed; tutorial has no elites',lv.a.sig===lv.b.sig&&lv.a.n>0&&lv.tut===0,`floor 8 seed 31337: ${lv.a.n} elites; tutorial ${lv.tut}`);
     // RANGED: each mob gets its own projectile, telegraphed first
-    const kinds={kettle:'steam',zapfly:'zap',clunk:'laser',screamer:'sonic',wisp:'wisp',springle:'fluff'};
+    const kinds={kettle:'steam',zapfly:'zap',clunk:'laser',screamer:'sonic',wisp:'wisp',springle:'fluff',bigspider:'web'} /* M1.12: brood spiders spit webs */;
     const rr=await G(page,(FR)=>{const FRESH=eval(FR);const out={};for(const t of Object.keys(__game.ranged)){FRESH();__game.teleport(7.5,3.5,0);__game.spawn(t,13.5,3.5,true,['ranged']);let tele=-1,fire=-1,kind=null,still=true,lastX=null;const f0=__game.state().stats.eshotsFired;
         for(let i=0;i<240;i++){if(!(__game.state().enemies[0].tele>0))__game.placeEnemy(0,13.5,3.5); /* hold range so melee/charges can't pre-empt the shot */const s=__game.advance(0.05),e=s.enemies[0];if(e.tele>0&&tele<0)tele=i;if(tele>=0&&fire<0&&e.tele>0){if(lastX!==null&&t!=='zapfly'&&Math.abs(e.x-lastX)>1e-6)still=false;lastX=e.x;}
           if(s.stats.eshotsFired>f0&&fire<0){fire=i;kind=s.eshots[0]&&s.eshots[0].kind;break;}}
@@ -1786,7 +1869,7 @@ c.save('${SHOTS}/m17_ranged_colour_on_brick.png')`]);}catch(e){consoleProblems.p
     fs.writeFileSync(`${OUT}/m17_l2_l3_per_seed.json`,JSON.stringify(b,null,1));
     check(`L3 is never easier than L2: total and effective mob HP >= L2 on every seed (${b.N} seeds, 0 failures)`,b.fb===0&&b.fe===0,`base failures ${b.fb}, effective ${b.fe}; mean base ${b.mean.l2b.toFixed(2)}→${b.mean.l3b.toFixed(2)}, effective ${b.mean.l2e.toFixed(2)}→${b.mean.l3e.toFixed(2)}; smallest margin base ${b.minMargin.base}, eff ${b.minMargin.eff}; floor swaps on ${b.sw} seeds, extra kettle on ${b.ad}; mob counts ${JSON.stringify(b.ns)}`);
     // the floor's numbers match the real level: startLevel totals equal levelEff, the start/feature guarantees hold, every mob is reachable and not in a wall
-    const g=await G(page,()=>{const bad=[];for(let k=0;k<40;k++){const s=[1,2,3,208,4242][k%5]+k*101;__game.setSeed(s);__game.startLevel(2);const st=__game.state();const live=st.enemies.filter(e=>__game.mobs[e.type]); /* M1.11: the Treasure Knight has its own HP rule */const base=live.reduce((x,e)=>x+__game.mobs[e.type].hp,0),eff=live.reduce((x,e)=>x+e.maxHp,0),le=__game.levelEff(s,3);
+    const g=await G(page,()=>{const bad=[];for(let k=0;k<40;k++){const s=[1,2,3,208,4242][k%5]+k*101;__game.setSeed(s);__game.startLevel(2);const st=__game.state();const live=st.enemies.filter(e=>__game.mobs[e.type]&&!e.spawned); /* M1.12: a coin-door room can hold an extra mob */ /* M1.11: the Treasure Knight has its own HP rule */const base=live.reduce((x,e)=>x+__game.mobs[e.type].hp,0),eff=live.reduce((x,e)=>x+e.maxHp,0),le=__game.levelEff(s,3);
         const types=new Set(live.map(e=>e.type));if(base!==le.base||eff!==le.eff)bad.push(`${s}: ${base}/${eff} vs ${le.base}/${le.eff}`);if(!types.has('kettle')||!types.has('springle')||!types.has('wisp'))bad.push(`${s}: types ${[...types]}`);if(live.some(e=>__game.solidAt(e.x,e.y)))bad.push(`${s}: mob in wall`);}return bad;});
     check('L3 floor matches the level you actually play (40 seeds: totals equal, Kettlegrump/Springle/Hazewisp all present, no mob in a wall)',g.length===0,g.slice(0,4).join('; ')||'ok');
     const l8=await G(page,()=>{let s=0;for(let k=0;k<200;k++)s+=__game.levelEff(5000+k*7,8).eff;return s/200;});
@@ -2315,7 +2398,7 @@ async function m19Tests(){
       K('KeyS');K('KeyS');K('KeyS');const sel=__game.shopInfo().sel;K('Enter');const after=__game.state();return {f,band,mode,sel,rows:__game.shopRows(),coins:after.player.coins,perm:after.perm,save:after.save.perm,saveCoins:after.save.coins};});
     await G(page,()=>__game.advance(0.05));await shot(page,'shop_menu');
     check('M1.9 talk to OLD MURKLE with E: the game pauses and the shop menu opens',kb.f&&kb.band&&kb.band.shop&&kb.mode==='shop',JSON.stringify({band:kb.band,mode:kb.mode}));
-    check('M1.9 shop rows: Red 35, Green 45, Yellow 50, Backpack 30, two single-use power-ups at 10, LEAVE',kb.rows.map(r=>r.price).join()==='35,45,50,30,10,10,0'&&kb.rows[4].kind==='power'&&kb.rows[6].id==='leave',kb.rows.map(r=>r.name+' '+r.price).join(', '));
+    check('M1.9 shop rows: Red 35, Green 45, Yellow 50, Backpack 30, two single-use power-ups at 10, LEAVE',kb.rows.map(r=>r.price).join()===(V112?'35,45,50,30,10,10,0,0':'35,45,50,30,10,10,0')&&kb.rows[4].kind==='power'&&kb.rows[V112?7:6].id==='leave'&&(!V112||kb.rows[6].id==='more'),kb.rows.map(r=>r.name+' '+r.price).join(', '));
     check('M1.9 keyboard: W/S choose, ENTER buys (Backpack) -> coins paid, permanent item saved at once',kb.sel===3&&kb.coins===170&&kb.perm.pack&&kb.save&&kb.save.pack===true&&kb.saveCoins===0,JSON.stringify({sel:kb.sel,coins:kb.coins,save:kb.save,saveCoins:kb.saveCoins}));
     // mouse click on a row (Red), refuse owned, refuse poor, power-up row
     const rects=await G(page,()=>__game.shopRects());

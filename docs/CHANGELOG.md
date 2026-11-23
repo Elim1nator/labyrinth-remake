@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.12.2: own looks for the small spiders
+- Skitter: small, mostly black, long thin legs. Brood Spider: glossy black widow with a red hourglass.
+- QA build `m1.12.2-qa` (debug hook on).
+
 ## M1.12.1: spider redraw
 - Broodmother, Brood Spiders and Skitters redrawn after the reference art (X-patterned abdomen, red eye cluster, fangs, spiked legs).
 - QA build `m1.12.1-qa` (debug hook on).

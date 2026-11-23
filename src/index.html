@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Labyrinth">
-<title>Labyrinth Remake (M1.12.1 prototype)</title>
+<title>Labyrinth Remake (M1.12.2 prototype)</title>
 <link rel="icon" id="icon" href="data:,">
 <link rel="manifest" id="manifest" href="data:application/manifest+json,%7B%7D">
 <style>
@@ -62,7 +62,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Labyrinth Remake - M1.12.1 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
+   Labyrinth Remake - M1.12.2 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
@@ -492,8 +492,8 @@ function sprKnight(f){var s=new Pix(32,46,1.5),S1=HEX('#e0b848'),S2=HEX('#b08a28
     else{s.rect(24,8,2.2,16,BL);s.rect(24,8,.8,16,HEX('#ffffff'));s.rect(22,23,6.4,2,Gd);s.rect(24.2,25,1.8,4,GD);}}
   return s.outline(K);}
 /* ---------- M1.12 sprites: spiders, egg sac, Broodmother, Grand Masque, shrine, piggy bank, golden web ---------- */
-/* M1.12.1 spiders, after the Broodmother reference: big round abdomen with a pale X pattern, a cluster of glowing red eyes, pale curved
-   fangs, thick spiked purple-black legs with pale tips. One drawing at three sizes: Skitter (0.5), Brood Spider (0.72), Broodmother (1). */
+/* M1.12.1 the Broodmother, after the reference art: big round abdomen with a pale X pattern, a cluster of glowing red eyes, pale curved
+   fangs, thick spiked purple-black legs with pale tips. */
 function sprSpider(f,kind){var sc=kind==='brood'?1:kind==='big'?.72:.5,s=new Pix(Math.round(76*sc),Math.round(48*sc),1.5),K=HEX('#0e0a12'),D1=HEX('#241c2c'),D2=HEX('#3a3044'),D3=HEX('#564a62'),P1=HEX('#5e3480'),P2=HEX('#9658c0'),G1=HEX('#a49ab0'),G2=HEX('#dcd4e0'),R=HEX('#ff2a3a'),RH=HEX('#ffd8d8');
   function X(v){return v*sc;}var cx=38,step=[0,1,0,-1][f];
   function leg(sd,l){var lift=((l+(sd>0?1:0))&1?step:-step)*1.4,bx=cx+sd*6,by=26+l*1.8,kn=[[15,19],[23,8],[29,9],[34,15]][l],ft=[[12,46],[25,46.5],[32,45.5],[37,42]][l],kx=cx+sd*kn[0],ky=kn[1]+lift,fx=cx+sd*ft[0],fy=ft[1]-Math.max(0,lift);
@@ -511,6 +511,21 @@ function sprSpider(f,kind){var sc=kind==='brood'?1:kind==='big'?.72:.5,s=new Pix
   [[-1.2,.9,1.25],[1.2,.9,1.25]].forEach(function(e){s.ell(X(cx+e[0]*2.4),X(30+e[1]),X(e[2]),X(e[2]),R);s.set(X(cx+e[0]*2.4-.4),X(30+e[1]-.4),RH);});
   [[-5,28.6],[5,28.6],[-5.3,31],[5.3,31],[-2.2,27.6],[2.2,27.6]].forEach(function(e,i){s.ell(X(cx+e[0]),X(e[1]),X(i<4?.85:.7),X(i<4?.85:.7),R);});
   [-1,1].forEach(function(sd){s.thick(X(cx+sd*2.6),X(34),X(cx+sd*4),X(38.5),X(1.3),G1);s.thick(X(cx+sd*4),X(38.5),X(cx+sd*2.2),X(42.5),X(.9),G2);s.thick(X(cx+sd*.9),X(35),X(cx+sd*1),X(38),X(.5),D3);});
+  return s.outline(K);}
+/* M1.12.2 the two smaller spiders have their own looks: the Skitter is a small, mostly black spider with long thin legs and
+   tiny eye glints; the Brood Spider is a glossy black widow with a big round abdomen and a red hourglass. */
+function sprWidow(f,kind){var sk=kind==='skitter',s=new Pix(sk?34:48,sk?22:34,1.5),w=s.w/1.5,h=s.h/1.5,cx=w/2,K=HEX('#060408'),B1=HEX('#121016'),B2=HEX('#24202c'),B3=HEX('#4a4458'),SH=HEX('#c8c4d8'),R=HEX('#e01828'),RD=HEX('#8a0a14'),EY=HEX(sk?'#ff3030':'#d8c8d0'),step=[0,1,0,-1][f];
+  var ab=sk?{y:h*.36,rx:w*.2,ry:h*.3}:{y:h*.36,rx:w*.24,ry:h*.34},ce={y:h*.66,rx:w*(sk?.13:.11),ry:h*(sk?.15:.13)};
+  for(var sd=-1;sd<=1;sd+=2)for(var l=0;l<4;l++){var lift=((l+(sd>0?1:0))&1?step:-step)*h*.05,bx=cx+sd*ce.rx*.7,by=ce.y+(l-1.5)*h*.05,
+      kx=cx+sd*w*(sk?[.2,.3,.36,.4]:[.2,.29,.36,.42])[l],ky=h*(sk?[.42,.22,.26,.4]:[.4,.16,.2,.36])[l]+lift,fx=cx+sd*w*(sk?[.16,.34,.44,.48]:[.14,.32,.42,.48])[l],fy=h*(sk?[.98,.98,.94,.84]:[.98,.99,.95,.86])[l]-Math.max(0,lift);
+    var t=sk?.45:.55;s.thick(bx,by,kx,ky,t,B1);s.thick(kx,ky,fx,fy,t*.85,B1);s.thick(bx,by-.3,kx,ky-.3,t*.4,B3);s.thick(kx,ky-.2,fx-sd*.3,fy-.6,t*.3,B2);if(!sk){s.ell(kx,ky,.7,.6,B3);}s.set(fx,fy,B2);}
+  s.ell(cx,ab.y,ab.rx,ab.ry,function(x,y,dx,dy){return dx+dy<-1?B3:dx+dy<-.5?B2:B1;});s.ell(cx-ab.rx*.4,ab.y-ab.ry*.45,ab.rx*.22,ab.ry*.12,SH);s.set(cx-ab.rx*.15,ab.y-ab.ry*.62,HEX('#ffffff'));
+  if(!sk){var hy=ab.y+ab.ry*.1,hw=ab.rx*.42;s.poly([[cx-hw,hy-ab.ry*.42],[cx+hw,hy-ab.ry*.42],[cx+hw*.18,hy],[cx-hw*.18,hy]],R);s.poly([[cx-hw*.18,hy],[cx+hw*.18,hy],[cx+hw,hy+ab.ry*.42],[cx-hw,hy+ab.ry*.42]],R);
+    s.thick(cx-hw*.7,hy+ab.ry*.38,cx+hw*.7,hy+ab.ry*.38,.3,RD);s.set(cx-hw*.5,hy-ab.ry*.34,HEX('#ff8a90'));}
+  else{s.ell(cx,ab.y-ab.ry*.1,ab.rx*.25,ab.ry*.4,B2);}
+  s.ell(cx,ce.y,ce.rx,ce.ry,function(x,y,dx,dy){return dy<-.4?B2:B1;});
+  if(sk){s.ell(cx-ce.rx*.35,ce.y-ce.ry*.1,.55,.55,EY);s.ell(cx+ce.rx*.35,ce.y-ce.ry*.1,.55,.55,EY);}else{[-.45,-.15,.15,.45].forEach(function(o,i){s.set(cx+o*ce.rx*1.4,ce.y-ce.ry*(i===1||i===2?.25:.05),EY);});}
+  s.thick(cx-ce.rx*.3,ce.y+ce.ry*.8,cx-ce.rx*.4,ce.y+ce.ry*1.4,sk?.3:.4,B3);s.thick(cx+ce.rx*.3,ce.y+ce.ry*.8,cx+ce.rx*.4,ce.y+ce.ry*1.4,sk?.3:.4,B3);
   return s.outline(K);}
 function sprEggSac(f){var s=new Pix(24,24,1.5),Wt=HEX('#ece6d8'),Wd=HEX('#bcb4a0'),V=HEX('#9a8aa0');s.ell(12,13,9,10,function(x,y,dx,dy){return dx+dy<-.5?HEX('#ffffff'):dy>.4?Wd:Wt;});
   for(var k=0;k<5;k++)s.thick(4+k*4,4,6+k*3,22,.3,V);s.thick(3,10,21,12,.3,V);s.thick(4,17,20,16,.3,V);for(var q=0;q<f+1;q++)s.ell(9+q*2.5,12+(q&1)*3,1.4,1.4,HEX('#3a2a3a'));return s.outline(HEX('#4a4038'));}
@@ -561,7 +576,7 @@ function crackOf(ti,stage){var key=ti+':'+stage;if(CRACK_CACHE[key])return CRACK
   c.dark=c.darken(.74);CRACK_CACHE[key]=c;return c;}
 var F4=[0,1,2,3];
 var SPR={screamer:F4.map(function(f){return sprScreamer(f,false);}),screamerO:F4.map(function(f){return sprScreamer(f,true);}),springle:F4.map(sprSpringle),kettle:F4.map(sprKettle),wisp:F4.map(sprWisp),clunk:F4.map(sprClunk),zapfly:F4.map(function(f){return sprMask(f,false);}),zapflyC:F4.map(function(f){return sprMask(f,true);}),
-  slot:[sprSlot(0),sprSlot(1),sprSlot(2)],sym:{coin:sprSym('coin'),bag:sprSym('bag'),heart:sprSym('heart'),star:sprSym('star'),moon:sprSym('moon'),skull:sprSym('skull')},skeleton:F4.map(sprSkeleton),bonePile:[sprBonePile(false),sprBonePile(true)],merchant:[sprMerchant(0),sprMerchant(1),sprMerchant(2)],bag:sprBag(),ypud:[sprYPud(0),sprYPud(1)],deco:(function(){var o={};DECO_IDS.forEach(function(k){o[k]=sprDeco(k);});return o;})(),coin:sprCoin(),key:sprKey(),heart:sprHeart(true),heartE:sprHeart(false),balloon:sprBalloon(),puff:sprPuff(),spark:sprSpark(),drop:sprDrop(),portal:F4.map(sprPortal),portalS:[sprPortalSealed(0),sprPortalSealed(1)],knight:[0,1,2,3].map(sprKnight),skitter:F4.map(function(f){return sprSpider(f,'skitter');}),bigspider:F4.map(function(f){return sprSpider(f,'big');}),brood:F4.map(function(f){return sprSpider(f,'brood');}),eggsac:F4.map(sprEggSac),masque:F4.map(function(f){return sprMasque(f,false);}),masqueH:F4.map(function(f){return sprMasque(f,true);}),shrine:[sprShrine(false),sprShrine(true)],king:F4.map(sprKing),lugg:[3,3,2,2,1,1].map(function(st,i){return sprLugg(st,i&1);}),owl:F4.map(sprOwl),hand:{idle:sprHandFrame('idle'),windup:sprHandFrame('windup'),throw:sprHandFrame('throw'),empty:sprHandFrame('empty')}};
+  slot:[sprSlot(0),sprSlot(1),sprSlot(2)],sym:{coin:sprSym('coin'),bag:sprSym('bag'),heart:sprSym('heart'),star:sprSym('star'),moon:sprSym('moon'),skull:sprSym('skull')},skeleton:F4.map(sprSkeleton),bonePile:[sprBonePile(false),sprBonePile(true)],merchant:[sprMerchant(0),sprMerchant(1),sprMerchant(2)],bag:sprBag(),ypud:[sprYPud(0),sprYPud(1)],deco:(function(){var o={};DECO_IDS.forEach(function(k){o[k]=sprDeco(k);});return o;})(),coin:sprCoin(),key:sprKey(),heart:sprHeart(true),heartE:sprHeart(false),balloon:sprBalloon(),puff:sprPuff(),spark:sprSpark(),drop:sprDrop(),portal:F4.map(sprPortal),portalS:[sprPortalSealed(0),sprPortalSealed(1)],knight:[0,1,2,3].map(sprKnight),skitter:F4.map(function(f){return sprWidow(f,'skitter');}),bigspider:F4.map(function(f){return sprWidow(f,'widow');}),brood:F4.map(function(f){return sprSpider(f,'brood');}),eggsac:F4.map(sprEggSac),masque:F4.map(function(f){return sprMasque(f,false);}),masqueH:F4.map(function(f){return sprMasque(f,true);}),shrine:[sprShrine(false),sprShrine(true)],king:F4.map(sprKing),lugg:[3,3,2,2,1,1].map(function(st,i){return sprLugg(st,i&1);}),owl:F4.map(sprOwl),hand:{idle:sprHandFrame('idle'),windup:sprHandFrame('windup'),throw:sprHandFrame('throw'),empty:sprHandFrame('empty')}};
 var FLAP=[0,1,2,3,2,1];function flapFrame(ph){return FLAP[((ph*12)|0)%6];}
 /* mob table: hp, speed (cells/s), world height, hit radius, minimap colour, voice. Contact bites are the same for all (1 heart, 1.5 s). */
 var MOBS={
@@ -2172,7 +2187,7 @@ function fmtTime(t){var s=Math.floor(t),m=Math.floor(s/60);s%=60;return m+':'+(s
 function drawTitle(){var t=G.time,Y1=HEX('#ffe27a'),OR=HEX('#ff9a3a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0');
   blend(0,0,W,H,HEX('#0d0a1e'),.55);
   drawTextC('LABYRINTH',W/2,22,Y1,4,HEX('#5a2a08'));drawTextC('REMAKE',W/2,60,OR,3,HEX('#3a1404'));
-  drawTextC('M1.12.1 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
+  drawTextC('M1.12.2 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
   var sp=SPR.screamer[flapFrame(t)];blit(sp,Math.round(W/2-sp.w),102+Math.sin(t*3)*3,2);
   for(var i=0;i<G.menuItems.length;i++){var it=G.menuItems[i],sel=i===G.menuSel,lbl=it.label,w=textW(lbl,2),x=Math.round(W/2-w/2),y=212+i*21;it.rect=[x,y,w,14];
     if(sel){blend(x-12,y-4,w+24,22,HEX('#3a2a70'),.7);drawText('>',x-15+((t*4|0)&1),y,Y1,2);}drawText(lbl,x,y,sel?Y1:W1,2);}
@@ -2391,7 +2406,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.12.1-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.12.2-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

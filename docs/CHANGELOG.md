@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.13.1: bosses scale with depth
+- Boss HP + 5 per floor below the first (on top of +40% per round). Luggernaut on floor 10: 90 (was 45).
+- QA build `m1.13.1-qa` (debug hook on).
+
 ## M1.13: +1 HP per floor, more elite modifiers, googly worms, face-hug image
 - Regular mobs +1 base HP per floor (replaces x1.06 past floor 8).
 - Elite modifiers SHIELDED, SPLITTER, VAMPIRE, EXPLOSIVE, BLINK, FROST (floor 4+).

@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Labyrinth">
-<title>Labyrinth Remake (M1.13 prototype)</title>
+<title>Labyrinth Remake (M1.13.1 prototype)</title>
 <link rel="icon" id="icon" href="data:,">
 <link rel="manifest" id="manifest" href="data:application/manifest+json,%7B%7D">
 <style>
@@ -62,7 +62,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Labyrinth Remake - M1.13 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
+   Labyrinth Remake - M1.13.1 prototype (M1.10: bosses every 5th floor - King Gloop, Luggernaut, Coghoot - guarding a sealed portal; M1.9.1: shop panel clear of the HUD, decorations never diagonal to a door; M1.9: slot jackpot spray + crit fail, slower balloons, floor-long power-ups, shop + permanent balloon types + backpack, secret rooms, decorations, pits, Rattlebone skeleton, ghosts through doors; M1.8: endless floors, deeper wall textures, score + high scores, slot machine; M1.7: icon placement, debug hook gated, RANGED colour, L3 floor, top-strip touch, thicker Screamer ears; M1.6: QA fixes, Screamer bat-wing ears, L3 balance, phone buttons, elite readability; M1.5: Screamer redraw, full-screen map; M1.4: elite mobs, enemy shots, slime trails, power-ups).
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
@@ -1794,10 +1794,10 @@ function collapse(e){e.state='pile';e.pileT=0;e.told=false;e.hp=0;e.tele=0;e.cha
 function reform(e){e.state='chase';e.hp=e.maxHp||MOBS[e.type].hp;e.pileT=0;e.told=false;e.reforms=(e.reforms||0)+1;e.atkT=.8;stats.reforms++;SFX.reform();sparkle(e.x,e.y,.4,'spark',8);}
 /* ---------- M1.10 bosses: King Gloop, Luggernaut, Coghoot. A boss stays inside its arena room, wakes when you step in (or see it
    from close by), gets angrier at half health, and when it falls the sealed portal opens. ---------- */
-var BOSS_LOOT={coins:15};
+var BOSS_LOOT={coins:15},BOSS_HP_PER_FLOOR=5;
 function bossName(){var b=G.L&&G.L.def.boss;return b?MOBS[G.L.bossType||b.type].name:'THE BOSS';}
 function applyBoss(e,floor){var b=bossFor(floor)||{tier:0,hpMul:1,cdMul:1,spdMul:1},M=MOBS[e.type];e.mods=[];e.scale=1;e.dmg=1;e.spdMul=b.spdMul;e.cdMul=b.cdMul;e.tier=b.tier;
-  e.maxHp=Math.ceil(M.hp*b.hpMul);e.hp=e.maxHp;e.arena=G.L&&G.L.arena;e.atkCD=1.6;e.tele=0;e.stack=3;e.hh=M.h;e.hop=0;e.z=0;e.split=0;e.orb=1;e.orbT=3;e.woke=false;return e;}
+  e.maxHp=Math.ceil(M.hp*b.hpMul)+BOSS_HP_PER_FLOOR*Math.max(0,(floor|0)-1);e.hp=e.maxHp;e.arena=G.L&&G.L.arena; /* M1.13.1: +5 HP per floor below the first */e.atkCD=1.6;e.tele=0;e.stack=3;e.hh=M.h;e.hop=0;e.z=0;e.split=0;e.orb=1;e.orbT=3;e.woke=false;return e;}
 function bossActive(){var b=G.boss;return b&&!b.gone&&b.state!=='dead'&&b.woke?b:null;}
 function bossClamp(e){var A=e.arena;if(!A)return false;var r=MOBS[e.type].bodyR,x=Math.max(A.x+r,Math.min(A.x+A.w-r,e.x)),y=Math.max(A.y+r,Math.min(A.y+A.h-r,e.y)),hit=x!==e.x||y!==e.y;e.x=x;e.y=y;return hit;}
 function bossMove(e,tx,ty,step){var A=e.arena,r=MOBS[e.type].bodyR;if(A){tx=Math.max(A.x+r,Math.min(A.x+A.w-r,tx));ty=Math.max(A.y+r,Math.min(A.y+A.h-r,ty));}
@@ -2232,7 +2232,7 @@ function fmtTime(t){var s=Math.floor(t),m=Math.floor(s/60);s%=60;return m+':'+(s
 function drawTitle(){var t=G.time,Y1=HEX('#ffe27a'),OR=HEX('#ff9a3a'),W1=HEX('#ffffff'),GR=HEX('#a8a4c0');
   blend(0,0,W,H,HEX('#0d0a1e'),.55);
   drawTextC('LABYRINTH',W/2,22,Y1,4,HEX('#5a2a08'));drawTextC('REMAKE',W/2,60,OR,3,HEX('#3a1404'));
-  drawTextC('M1.13 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
+  drawTextC('M1.13.1 PROTOTYPE - PLACEHOLDER TITLE',W/2,87,GR,1);
   var sp=SPR.screamer[flapFrame(t)];blit(sp,Math.round(W/2-sp.w),102+Math.sin(t*3)*3,2);
   for(var i=0;i<G.menuItems.length;i++){var it=G.menuItems[i],sel=i===G.menuSel,lbl=it.label,w=textW(lbl,2),x=Math.round(W/2-w/2),y=212+i*21;it.rect=[x,y,w,14];
     if(sel){blend(x-12,y-4,w+24,22,HEX('#3a2a70'),.7);drawText('>',x-15+((t*4|0)&1),y,Y1,2);}drawText(lbl,x,y,sel?Y1:W1,2);}
@@ -2453,7 +2453,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.13-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.13.1-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

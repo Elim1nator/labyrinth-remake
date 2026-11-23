@@ -142,7 +142,7 @@ A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
 | Coghoot | 40 | Flies circles about 3 cells from you (1.7 cells/s) | 3 homing gears or a swoop (5 cells/s) every 2.6 s | Furious at 1/2: rings of 8 gears, ×1.25 speed |
 
 - Contact and every shot cost 1 heart. A boss never leaves its arena. It wakes when you step into the arena, or see it from within 7 cells.
-- Each full round of three adds a tier: HP +40% (max ×3, from floor 80), attacks 8% more often (max 1/0.6), speed +6% (max ×1.3). Floor 20's King Gloop has 51 HP; floor 80's has 108.
+- Boss HP = ceil(base × round bonus) + 5 × (floor − 1) (M1.13.1). Each full round of three adds a tier: HP +40% (max ×3, from floor 80), attacks 8% more often (max 1/0.6), speed +6% (max ×1.3). Floor 20's King Gloop has 51 HP; floor 80's has 108.
 - At 0.8 s per throw, a floor-5 King Gloop takes at least 29 s of hits.
 - Loot: 15 coins spray out, plus a heart and a random power-up. The boss counts as a kill and an elite (+150 score). The score formula is unchanged.
 - Arena: the exit room if it has 35+ cells (so the boss stands by the portal), else the biggest room (never the start, shop, slot or vault room). Other mobs move out and no pits are dug there. Once you are inside, its doors lock until the boss falls (M1.10.1).

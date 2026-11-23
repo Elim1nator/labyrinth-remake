@@ -366,7 +366,7 @@ async function m110Tests(){
     await G(page,()=>{__game.setSeed(777);__game.startLevel(__game.bossType?29:14);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'coghoot');
     // a deeper boss is tougher; CONTINUE on a boss floor brings the boss back and the portal sealed
     const deep=await G(page,()=>{__game.setSeed(4242);__game.startLevel(19);const a=__game.boss().ent;__game.startLevel(79);const b=__game.boss().ent;const B=__game.bosses;return {a:[a.type,a.maxHp,a.tier],b:[b.type,b.maxHp,b.tier,b.cdMul,b.spdMul],base:B.king.hp};});
-    check('M1.10 floor 20 King Gloop has 40% more HP than on floor 5; by floor 80 x3 HP, attacks 1/0.6 as often, 1.3x speed (caps)',deep.a[0]==='king'&&deep.a[1]===Math.ceil(deep.base*1.4)&&deep.b[1]===deep.base*3&&deep.b[3]===0.6&&deep.b[4]===1.3,JSON.stringify(deep));
+    check('M1.10 floor 20 King Gloop has 40% more HP than on floor 5 (M1.13.1: plus 5 per floor); by floor 80 x3 HP, attacks 1/0.6 as often, 1.3x speed (caps)',deep.a[0]==='king'&&deep.a[1]===Math.ceil(deep.base*1.4)+(atLeast('1.13.1')?5*19:0)&&deep.b[1]===deep.base*3+(atLeast('1.13.1')?5*79:0)&&deep.b[3]===0.6&&deep.b[4]===1.3,JSON.stringify(deep));
     const cont=await G(page,()=>{localStorage.clear();__game.setSeed(777);__game.startLevel(9);__game.hitBoss(999);__game.advance(1.6);__game.toTitle();__game.menuPick(0);__game.advance(0.05);const b=__game.boss();return {level:__game.state().level,sealed:b.sealed,alive:!!(b.ent&&!b.ent.gone&&b.ent.hp===b.ent.maxHp)};});
     check('M1.10 CONTINUE on a boss floor starts it fresh: the boss is back and the portal sealed',cont.level===9&&cont.sealed&&cont.alive,JSON.stringify(cont));
     await ctx.close();

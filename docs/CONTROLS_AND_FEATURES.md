@@ -1,4 +1,4 @@
-# Controls and features (M1.10)
+# Controls and features (M1.11)
 
 ## Keyboard and mouse
 
@@ -93,6 +93,15 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **Rattlebone** from floor 6: at 0 HP it becomes a bone pile, rattles at 3 s and reforms at
   4.5 s unless you smash the pile with a balloon.
 - **Hazewisp** drifts through fences and closed doors, and flies over pits.
+
+## Treasure Knight, masks and items (M1.11)
+
+A Treasure Knight guards every floor from 2: hit him when his shield is down or while he is
+dazed after charging into a wall; he drops a golden power-up that is yours for good. Smiling
+Comedy masks just follow you and can't be hurt; frowning Tragedy masks attack. New power-ups:
+Thorn Vest, Rock Sack, Lucky Clover, Healing Herb, Mirror Charm, Candle Lantern, Wax Wings,
+Warding Bell. Permanent items: Heart Container, Strong Arm, Quick Hands. On both maps every
+monster is the same red mark.
 
 ## Boss floors
 

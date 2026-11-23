@@ -1,0 +1,4 @@
+# QA BUILD (debug hook on, NOT FOR PUBLISHING) — Labyrinth Remake M1.11 QA build
+
+Same game as `../m1.11/index.html`, except `QA_BUILD=true`: the `window.__game` test hook is always on, and the title says "QA build". The two files differ in exactly 2 lines (title and flag).
+For automated tests and QA only; don't publish this build. High score tests run against the local stub `tests/hs_stub.mjs`, never the live board. Frozen; sha256 in `../SHA256SUMS`.

@@ -1,4 +1,4 @@
-# Balance (M1.10)
+# Balance (M1.11)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -110,6 +110,14 @@ floor.
 The four permanent items cost 160 coins together. Floors 2–8 place 200 coins if you collect
 every coin and pop every mob (before elite loot, secret-room bags and the slot), so a full
 shop spend is a long-run investment rather than a first-shop impulse buy.
+
+## Treasure Knight and items (M1.11)
+
+- Treasure Knight: every floor from 2; HP `ceil(10 · min(4, 1 + 0.1·(L − 2)))`; walks 1.15 cells/s; shield 1.5–2.1 s (70% chance when a balloon flies within 2.8 cells, 2.2 s cooldown); charge every 4.2 s after a 0.7 s tell, 6.5 cells/s, dazed 1.3 s on a wall; drops a golden power-up + 5 coins; counts as an elite.
+- Comedy masks: 35% of masks; unkillable, harmless, keep ~1.3 cells away. Tragedy masks: Zapfly stats (1 HP, 2.6 cells/s).
+- Power-ups: 14 kinds (Herb and Bell act at once; the rest last the floor). Golden versions: 12 kinds (not Herb/Bell).
+- Permanent items: Heart Container (max 3), Strong Arm (max 2, +1 damage each), Quick Hands (max 2, −20% throw cooldown each). Secret-room power-ups are a permanent item 35% of the time; bosses drop one instead of a heart (a heart once all are maxed).
+- Damage per hit: 1 + Strong Arm, +1 with the Rock Sack. Thorn Vest: 3 damage to the biter.
 
 ## Bosses (M1.10)
 

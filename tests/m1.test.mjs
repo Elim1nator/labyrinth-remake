@@ -22,6 +22,7 @@ const V18=atLeast('1.8'); // M1.8+: endless floors, deeper wall textures, score 
 const V19=atLeast('1.9'); // M1.9+: slot rework (no limit, jackpot spray, crit fail), slower balloons, floor-long power-ups, shop, balloon types, backpack, secret rooms, decorations, pits, Rattlebone, ghosts through doors
 const V191=atLeast('1.9.1'); // M1.9.1+: shop panel clear of the HUD, decorations never diagonal to a door
 const V110=atLeast('1.10'); // M1.10+: a boss every 5th floor guards a sealed portal (its exit door is unlocked)
+const V111=atLeast('1.11'); // M1.11+: comedy/tragedy masks, Treasure Knight, golden + new items, one monster mark on the maps
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -396,6 +397,81 @@ async function m110Tests(){
   }
 }
 
+// ---------- M1.11: comedy/tragedy masks, Treasure Knight + golden power-ups, new items, one monster mark on the maps ----------
+async function m111Tests(){
+  const shot=async(page,name)=>page.screenshot({path:`${SHOTS}/m111_${name}.png`});
+  const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m111'});
+  await G(page,()=>{__game.manual=true;__game.bossIntro=false;localStorage.clear();});
+  savePng('m111_sprites_3x.png',await G(page,()=>__game.spriteSheet(3,'m111')));
+  // ---- masks
+  const mk=await G(page,()=>{let com=0,tra=0;for(const sd of [1,2,3,4,5,6,7,8,9,10,777,4242])for(const f of [5,6,7,8]){__game.setSeed(sd);__game.startLevel(f-1);__game.masks().forEach(m=>{if(m.face==='comedy')com++;else tra++;});}
+    __game.setSeed(777);__game.startLevel(6);__game.clearMobs();const p=__game.state().player;__game.setHearts(5);
+    const ic=__game.spawn('zapfly',p.x+1.5,p.y,true,[]);__game.setMask(ic,'comedy');__game.damageMob(ic,20);let s=__game.advance(0.1);const c0=__game.state().enemies[ic];
+    let minD=9,maxD=0;for(let i=0;i<50;i++){__game.setHearts(5);s=__game.advance(0.1);const e=s.enemies[ic],d=Math.hypot(e.x-s.player.x,e.y-s.player.y);minD=Math.min(minD,d);maxD=Math.max(maxD,d);}
+    const hurtC=s.player.inv>0;__game.clearMobs();const it=__game.spawn('zapfly',p.x+1.2,p.y,true,[]);let bit=false;for(let i=0;i<30;i++){s=__game.advance(0.1);if(s.player.hearts<5)bit=true;__game.setHearts(5);}
+    __game.damageMob(it,1);s=__game.advance(0.3);
+    return {com,tra,name:__game.mobs.zapfly.name,c0:{hp:c0.hp,state:c0.state},minD,hurtC,bit,tragDead:s.enemies[it].gone||s.enemies[it].state==='dead',laughs:s.stats.comedyHits};});
+  check('M1.11 the Zapfly is now the Comedy and Tragedy masks: about a third smile, the rest frown',mk.name==='TRAGEDY MASK'&&mk.com>0&&mk.tra>mk.com&&mk.com/(mk.com+mk.tra)>0.2&&mk.com/(mk.com+mk.tra)<0.5,JSON.stringify({com:mk.com,tra:mk.tra}));
+  check('M1.11 a smiling Comedy mask follows you, never bites and cannot be hurt; a frowning Tragedy mask bites and pops in one hit',mk.c0.hp===1&&mk.c0.state==='chase'&&mk.laughs>0&&mk.minD>0.9&&!mk.hurtC&&mk.bit&&mk.tragDead,JSON.stringify(mk));
+  await G(page,()=>{__game.setSeed(777);__game.startLevel(6);__game.clearMobs();const p=__game.state().player;const a=__game.spawn('zapfly',p.x+Math.cos(p.ang)*1.6-.3*Math.sin(p.ang),p.y+Math.sin(p.ang)*1.6+.3*Math.cos(p.ang),false,[]);const b=__game.spawn('zapfly',p.x+Math.cos(p.ang)*1.6+.4*Math.sin(p.ang),p.y+Math.sin(p.ang)*1.6-.4*Math.cos(p.ang),false,[]);__game.setMask(b,'comedy');__game.advance(0.05);});await shot(page,'masks');
+  // ---- one monster mark on the maps
+  const mm=await G(page,()=>{__game.setSeed(777);__game.startLevel(6);__game.clearMobs();const p=__game.state().player;['screamer','springle','kettle','zapfly','clunk','skeleton'].forEach((t,i)=>__game.spawn(t,p.x+(i%3-1)*.9,p.y+(i<3?-1:1),false,[]));__game.seeAll();__game.advance(0.05);__game.render();
+    const R=__game.hudRects().map,cols={};for(let y=R[1];y<R[1]+R[3];y++)for(let x=R[0];x<R[0]+R[2];x++){const c=__game.pixelAt(x,y).join();cols[c]=(cols[c]||0)+1;}
+    const old=Object.values(__game.mobs).map(m=>m.dot).map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)].join());return {mon:cols['255,48,32']||0,oldHits:old.filter(c=>cols[c]).length};});
+  check('M1.11 the minimap shows every monster with the same red mark (no per-type colours that spoil what is coming)',mm.mon>=9&&mm.oldHits===0,JSON.stringify(mm));
+  // ---- Treasure Knight
+  const kp=await G(page,()=>{const out={floors:0,with:0,hpOk:true,f1:null};for(const sd of [1,777,4242])for(const f of [2,3,4,5,8,10,12,20]){__game.setSeed(sd);__game.startLevel(f-1);const k=__game.knight();out.floors++;if(k){out.with++;if(k.maxHp!==__game.knightHp(f))out.hpOk=false;}}__game.startLevel(0);out.f1=__game.knight();
+    out.hp=[2,3,12,32,50,500].map(f=>__game.knightHp(f));return out;});
+  check('M1.11 a Treasure Knight on every floor from 2 (not the tutorial); 10 HP on floor 2, +1 per floor, at most 40',kp.with===kp.floors&&kp.hpOk&&kp.f1===null&&kp.hp.join()==='10,11,20,40,40,40',JSON.stringify(kp));
+  const kb=await G(page,()=>{__game.setSeed(777);__game.startLevel(3);const k0=__game.knight();__game.state().enemies.forEach((e,i)=>{if(e.type!=='knight')__game.damageMob(i,99);});__game.advance(0.3);
+    __game.teleport(k0.x-2,k0.y,0);if(__game.solidAt(k0.x-2,k0.y))__game.teleport(k0.x+2,k0.y,Math.PI);__game.advance(0.1);__game.knightSet({woke:true,state:'chase',shieldT:1.5,chargeCD:9,tele:0});
+    const a=__game.knight();__game.damageMob(a.i,5);__game.advance(1.0);const b=__game.knight();__game.knightSet({shieldT:0,shieldCD:9});__game.damageMob(a.i,2);const c=__game.knight();
+    return {hp0:a.hp,afterShield:b.hp,moved:Math.hypot(b.x-a.x,b.y-a.y),frame:a.frame,afterOpen:c.hp};});
+  check('M1.11 with his shield up the knight takes no damage and does not move; shield down, hits land',kb.afterShield===kb.hp0&&kb.moved<0.02&&kb.frame===2&&kb.afterOpen===kb.hp0-2,JSON.stringify(kb));
+  const kc=await G(page,()=>{__game.setSeed(777);__game.startLevel(3);__game.state().enemies.forEach((e,i)=>{if(e.type!=='knight')__game.damageMob(i,99);});__game.advance(0.2);const k0=__game.knight();
+    let best=null;for(const [dx,dy,a] of [[3,0,Math.PI],[-3,0,0],[0,3,-Math.PI/2],[0,-3,Math.PI/2]]){const x=k0.x+dx,y=k0.y+dy;if(!__game.solidAt(x,y)&&__game.clearPath(k0.x,k0.y,x,y)){best=[x,y,a];break;}}if(!best)return {skip:true};
+    __game.teleport(best[0],best[1],best[2]);__game.knightSet({woke:true,state:'chase',chargeCD:0,shieldCD:9});let tele=false,charge=false,maxSp=0,daze=false,prev=__game.knight();
+    for(let i=0;i<80;i++){__game.setHearts(5);const s=__game.advance(0.05);const k=__game.knight();if(k.tele>0)tele=true;if(k.chargeT>0){charge=true;maxSp=Math.max(maxSp,Math.hypot(k.x-prev.x,k.y-prev.y)/0.05);}if(k.daze>0)daze=true;prev=k;if(daze&&i>30)break;}
+    return {tele,charge,maxSp,daze,dents:__game.dents(),slams:__game.state().stats.knightSlams};});
+  check('M1.11 the knight telegraphs, charges straight and fast (about 6.5 cells/s), slams into the wall (round crack) and is dazed',kc.skip||(kc.tele&&kc.charge&&kc.maxSp>5&&kc.daze&&kc.slams>=1&&kc.dents>=1),JSON.stringify(kc));
+  await G(page,()=>{const k=__game.knight();const s=__game.state();__game.teleport(s.player.x,s.player.y,Math.atan2(k.y-s.player.y,k.x-s.player.x));__game.advance(0.05);});await shot(page,'knight');
+  const kd=await G(page,()=>{localStorage.clear();__game.setSeed(4242);__game.startLevel(2,{hearts:5,coins:0});__game.setPerm({});const k=__game.knight();__game.knightSet({shieldT:0,shieldCD:99});__game.damageMob(k.i,99);const s=__game.advance(0.6);
+    const g=s.items.find(i=>i.kind==='gold'&&!i.taken);if(!g)return {nogold:true,items:s.items.map(i=>i.kind)};__game.teleport(g.x,g.y);const s2=__game.advance(0.1);const perm=s2.perm,eff=s2.player.effects.slice(),save=s2.save.perm;
+    __game.toTitle();__game.menuPick(0);__game.advance(0.05);const cont=__game.knight();
+    __game.startLevel(3,{hearts:5,coins:0});const nextEff=__game.state().player.effects.slice();
+    let temp=0;for(let f=4;f<14;f++){__game.startLevel(f);temp+=__game.state().items.filter(i=>i.kind==='power'&&i.ptype===g.ptype).length;temp+=__game.shopRows().filter(r=>r.pu===g.ptype).length;}
+    let slot=0;for(let i=0;i<200;i++){const r=__game.slotResolve('power',3,5);if(r.power===g.ptype)slot++;}
+    return {k:g.ptype,gold:perm.gold[g.ptype],eff:eff.includes(g.ptype),saved:!!save.gold[g.ptype],cont:cont===null,nextEff:nextEff.includes(g.ptype),temp,slot};});
+  check('M1.11 the knight drops a golden power-up: yours for good (saved at once), switched on now and at the start of every floor',!kd.nogold&&kd.gold&&kd.eff&&kd.saved&&kd.nextEff,JSON.stringify(kd));
+  check('M1.11 once you own a golden power-up, the ordinary kind never turns up again (floors, shop, slot); CONTINUE does not bring the knight back',kd.temp===0&&kd.slot===0&&kd.cont,JSON.stringify(kd));
+  // ---- items
+  const it=await G(page,()=>{const r={};const fresh=(f)=>{__game.setSeed(777);__game.startLevel(f||6,{hearts:5,coins:0});__game.setPerm({});__game.clearMobs();__game.setEffect(null);__game.setHearts(5);return __game.state().player;};
+    r.count={pu:__game.puIds.length,perm:__game.permIds.length};
+    let p=fresh();__game.give('thorns');__game.useItem();const ci=__game.spawn('clunk',p.x+.35,p.y,true,[]);const d0=.35;let s;for(let i=0;i<10;i++)s=__game.advance(0.1);const c=s.enemies[ci];r.thorns={hearts:s.player.hearts,clunkHp:c.hp,max:c.maxHp,dist:Math.hypot(c.x-s.player.x,c.y-s.player.y),on:s.player.effects.includes('thorns')};
+    p=fresh();__game.give('rocks');__game.useItem();__game.shoot();r.rocks=__game.state().stats.throws>0&&__game.shotsDetail().length>0;const ri=__game.spawn('clunk',p.x+Math.cos(p.ang)*1.4,p.y+Math.sin(p.ang)*1.4,true,[]);__game.shoot(0);for(let i=0;i<10;i++){__game.setHearts(5);s=__game.advance(0.05);}r.rockDmg=s.enemies[ri].maxHp-s.enemies[ri].hp;
+    p=fresh();__game.give('clover');__game.useItem();const c0=__game.state().player.coins;const kk=__game.state().items.findIndex(i=>i.kind==='coin'&&!i.taken);const cc=__game.state().items[kk];__game.teleport(cc.x,cc.y);r.clover=__game.advance(0.05).player.coins-c0;
+    p=fresh();__game.setHearts(2);__game.give('herb');__game.useItem();r.herb=__game.state().player.hearts;
+    p=fresh();__game.give('mirror');__game.useItem();__game.addShot('laser',p.x+2,p.y,-6,0);__game.teleport(p.x,p.y,0);for(let i=0;i<10;i++)s=__game.advance(0.05);r.mirror={hearts:s.player.hearts,b:s.stats.mirrorBounces};
+    p=fresh();__game.give('lantern');__game.useItem();const fi=__game.fogInfo();r.lantern=fi.seen;r.total=__game.state().mapW*__game.state().mapH;
+    p=fresh(8);const pit=__game.pits()[0];if(pit){__game.give('wings');__game.useItem();__game.teleport(pit.x+.5,pit.y+.5);s=__game.advance(0.3);r.wings=s.mode;}
+    p=fresh();const bi=__game.spawn('kettle',p.x+1.5,p.y,true,[]);__game.give('bell');__game.useItem();s=__game.advance(0.05);const bk=s.enemies[bi];r.bell={dist:Math.hypot(bk.x-p.x,bk.y-p.y),stuns:s.stats.bellStuns};s=__game.advance(1);r.bellStill=Math.hypot(s.enemies[bi].x-bk.x,s.enemies[bi].y-bk.y);
+    p=fresh();__game.spawnItem('perm','hp',p.x,p.y);s=__game.advance(0.05);r.hp={max:__game.maxHearts(),hearts:s.player.hearts,saved:s.save.perm.hp};
+    p=fresh();__game.spawnItem('perm','arm',p.x,p.y);__game.advance(0.05);const ai=__game.spawn('clunk',p.x+Math.cos(p.ang)*1.4,p.y+Math.sin(p.ang)*1.4,true,[]);__game.shoot(0);for(let i=0;i<10;i++){__game.setHearts(5);s=__game.advance(0.05);}r.arm=s.enemies[ai].maxHp-s.enemies[ai].hp;
+    p=fresh();__game.spawnItem('perm','quick',p.x,p.y);__game.advance(0.05);__game.shoot();r.quick=__game.state().player.throwT;
+    return r;});
+  check(`M1.11 more items: ${it.count.pu} power-ups (8 new) and ${it.count.perm} permanent items`,it.count.pu===14&&it.count.perm===3,JSON.stringify(it.count));
+  check('M1.11 Thorn Vest: a bite does no harm, the biter takes 3 damage and is knocked back, and the vest is used up',it.thorns.hearts===5&&it.thorns.clunkHp===it.thorns.max-3&&it.thorns.dist>0.9&&!it.thorns.on,JSON.stringify(it.thorns));
+  check('M1.11 Rock Sack: rocks instead of balloons, 2 damage a hit; Strong Arm: +1 damage; Quick Hands: 20% shorter throw cooldown',it.rocks&&it.rockDmg===2&&it.arm===2&&Math.abs(it.quick-0.64)<0.02,JSON.stringify({rd:it.rockDmg,arm:it.arm,q:it.quick}));
+  check('M1.11 Lucky Clover doubles coins, Healing Herb gives 2 hearts, Mirror Charm bounces a shot back, Candle Lantern lights the whole map',it.clover===2&&it.herb===4&&it.mirror.hearts===5&&it.mirror.b===1&&it.lantern===it.total,JSON.stringify({c:it.clover,h:it.herb,m:it.mirror,l:it.lantern,t:it.total}));
+  check('M1.11 Wax Wings float you over pits; Warding Bell pushes nearby monsters back and stuns them',(it.wings===undefined||it.wings==='play')&&it.bell.dist>2&&it.bell.stuns>=1&&it.bellStill<0.05,JSON.stringify({w:it.wings,b:it.bell,still:it.bellStill}));
+  check('M1.11 Heart Container: +1 max heart (and a heart), saved at once',it.hp.max===6&&it.hp.hearts===6&&it.hp.saved===1,JSON.stringify(it.hp));
+  await G(page,()=>{__game.setSeed(777);__game.startLevel(6,{hearts:7,coins:0,perm:{hp:3,gold:{sneakers:true,shield:true,triple:true}}});__game.give('thorns');__game.advance(0.05);});await shot(page,'hud_8_hearts_golden');
+  const lay=await G(page,()=>{const H=__game.hudRects();return {hearts:6+7*9+7<=H.ball[0]};});
+  check('M1.11 eight hearts (half size) still fit left of the balloon box',lay.hearts,JSON.stringify(lay));
+  await ctx.close();
+}
+
 // ONLY=m19,m110 node m1.test.mjs <build> runs just those groups (names as in the function names, 'regression' for the M1.1 set)
 const ONLY=(process.env.ONLY||'').split(',').filter(Boolean),want=n=>!ONLY.length||ONLY.includes(n);
 if(NEW&&want('regression')){ await regressionTests(); }
@@ -409,6 +485,7 @@ if(V18&&want('m18')){ await m18Tests(); }
 if(V19&&want('m19')){ await m19Tests(); }
 if(V191&&want('m191')){ await m191Tests(); }
 if(V110&&want('m110')){ await m110Tests(); }
+if(V111&&want('m111')){ await m111Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

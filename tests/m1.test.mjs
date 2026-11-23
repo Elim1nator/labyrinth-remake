@@ -26,6 +26,7 @@ const V111=atLeast('1.11'); // M1.11+: comedy/tragedy masks, Treasure Knight, go
 const V112=atLeast('1.12'); // M1.12+: coins into pits (spiders, floor-15 bosses), coin doors, shrines, trapdoors, piggy bank, rare wares
 const V113=atLeast('1.13'); // M1.13+: +1 mob HP per floor, 6 more elite modifiers, googly worms, sprawled face-hug image
 const V114=atLeast('1.14'); // M1.14+: the King in Yellow on floor 20
+const V116=atLeast('1.16'); // M1.16+: cheat console (type "cheat")
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
 if(!fs.existsSync(FILE)){console.error('No such build: '+FILE);process.exit(2);}
@@ -634,6 +635,26 @@ async function m114Tests(){
   await ctx.close();
 }
 
+// ---------- M1.16: cheat console ----------
+async function m116Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m116'});
+  await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.menuPick(0);__game.advance(0.1);});
+  await page.keyboard.type('chea');const half=await G(page,()=>__game.cheatOpen());await page.keyboard.type('t');await page.waitForTimeout(50);
+  const open=await G(page,()=>({open:__game.cheatOpen(),mode:__game.state().mode,focus:document.activeElement&&document.activeElement.id}));
+  await page.keyboard.type('help');await page.keyboard.press('Enter');await page.keyboard.type('jump 12');await page.keyboard.press('Enter');await page.waitForTimeout(50);
+  const j=await G(page,()=>{const s=__game.advance(0.05);return {mode:s.mode,level:s.level,cheated:__game.cheated(),save:s.save&&s.save.run&&s.save.run.cheated,open:__game.cheatOpen()};});
+  check('M1.16 typing "cheat" while playing opens the cheat console (game paused); "jump 12" takes you to floor 12',!half&&open.open&&open.mode==='cheat'&&open.focus==='cheatIn'&&j.mode==='play'&&j.level===11&&!j.open,JSON.stringify({half,open,j}));
+  const c=await G(page,()=>{const G=__game,r={};r.heal=(G.setHearts(1),G.cheat('heal'),G.state().player.hearts);r.coins=(G.cheat('coins 250'),G.state().player.coins);r.god=G.cheat('god');const p=G.state().player;const i=G.spawn('clunk',p.x+.3,p.y,true,[]);let s;for(let k=0;k<20;k++)s=G.advance(0.1);r.godHearts=s.player.hearts;G.cheat('god');
+    r.give=(G.cheat('give rocks'),G.state().player.item);r.gold=(G.cheat('gold magnet'),G.state().perm.gold.magnet);r.kill=G.cheat('kill');r.unknown=G.cheat('fly');return r;});
+  check('M1.16 cheats: heal, coins, god (no damage), give, gold, kill; unknown commands are rejected',c.heal===5&&c.coins===250&&c.godHearts===5&&c.give==='rocks'&&c.gold===true&&/POPPED/.test(c.kill)&&c.unknown==='UNKNOWN',JSON.stringify(c));
+  const hs=await G(page,()=>{const G=__game;G.setHearts(1);G.setEffect(null);const p=G.state().player;G.spawn('clunk',p.x+.3,p.y,true,[]);let s;for(let k=0;k<20;k++){s=G.advance(0.1);if(s.mode==='dead')break;}G.advance(0.6);G.confirm();s=G.advance(0.1);const n0=s.stats.hsPosts;
+    G.state();return {mode:s.mode,final:G.final(),n0};});
+  if(hs.mode==='name'){await page.keyboard.type('CHEATER');await page.keyboard.press('Enter');await page.waitForTimeout(100);}
+  const after=await G(page,()=>({mode:__game.state().mode,msg:__game.hs().msg,posts:__game.state().stats.hsPosts,local:__game.localScores?__game.localScores().length:null}));
+  check('M1.16 a cheated run is not sent to the high scores ("CHEATS USED - SCORE NOT SAVED")',hs.final&&hs.final.cheated&&after.mode==='scores'&&/CHEATS USED/.test(after.msg)&&after.posts===hs.n0,JSON.stringify({hs,after}));
+  await ctx.close();
+}
+
 // ONLY=m19,m110 node m1.test.mjs <build> runs just those groups (names as in the function names, 'regression' for the M1.1 set)
 const ONLY=(process.env.ONLY||'').split(',').filter(Boolean),want=n=>!ONLY.length||ONLY.includes(n);
 if(NEW&&want('regression')){ await regressionTests(); }
@@ -651,6 +672,7 @@ if(V111&&want('m111')){ await m111Tests(); }
 if(V112&&want('m112')){ await m112Tests(); }
 if(V113&&want('m113')){ await m113Tests(); }
 if(V114&&want('m114')){ await m114Tests(); }
+if(V116&&want('m116')){ await m116Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

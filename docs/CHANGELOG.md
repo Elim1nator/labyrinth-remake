@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.16: cheat console
+- Type `cheat` to open a console: jump N, heal, god, coins N, give/gold/perm ITEM, kill, boss, pit N. Cheated runs are not submitted to the high scores.
+- Fix: Golden Wonder purchase on a brand-new game.
+- QA build `m1.16-qa` (debug hook on).
+
 ## M1.15: Kersplat Labyrinth: The Descent
 - New name on the title screen, page title and home-screen name; placeholder/prototype text removed (version shown small). `tools/release.mjs` now reads the version from `var VERSION`.
 - Pit spiders drop no coins or items.

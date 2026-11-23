@@ -1,4 +1,4 @@
-# Controls and features (M1.14)
+# Controls and features (M1.16)
 
 ## Keyboard and mouse
 
@@ -134,6 +134,10 @@ CONTINUE on a boss floor restarts the fight.
 - The HIGH SCORES page (also on the title) uses the same-origin API
   ([research/highscore-api.md](research/highscore-api.md)); otherwise a LOCAL top 10
   (`labyrinthRemake.localScores.v1`).
+
+## Cheat console (M1.16)
+
+Type `cheat` while playing to open it; `help` lists the commands (`jump N` goes to floor N). Cheated runs are not sent to the high scores.
 
 ## URL options
 

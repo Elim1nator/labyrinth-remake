@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.24: boss props and projectiles in PNG files
+- Portals, the King in Yellow's lectern, Yellow Signs and Hali mist, King Gloop's goo, the Treasure Knight's slam crack, the play script and all 14 projectiles now come from `assets/boss/*.png`. Pixel-identical to M1.23; their drawing code is removed.
+- QA build `m1.24-qa` (debug hook on).
+
 ## M1.23: item revamp
 - Power-ups, permanent items, golden items and balloon-type switching are gone. In their place:
   - 23 **run items** that work on pickup, last the whole run and stack: Running Shoes, Dumbbell, Cheeseburger (you grow, your view is higher), Coffee, Reading Glasses, Heart in a Jar, Baseball Glove, Rubber Duck, Pocket Watch, Garlic, Leather Jacket, Fridge Magnet, Compass, Old Map, Four-Leaf Clover, Vitamins, Party Hat, Balloon Pump, Hand Mirror, Bubble Wrap, Wax Wings, Ice Cube, Rubber Boots.

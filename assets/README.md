@@ -10,6 +10,7 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 | `walls.png` | All 20 wall textures (see below). |
 | `items.png` | All item icons (run items, balloon colours, use-items), a grid of 24 x 24 tiles. |
 | `mobs/<name>.png` | One file per monster or boss: its animation frames side by side, all the same width. |
+| `boss/<name>.png` | Boss props and effects: portals, the lectern, signs, Hali, goo, the play script, and every projectile (`shot_*.png`). |
 | `atlas.json` | Lists every file, the wall tile order, and each strip's frame count. |
 
 ## Editing the walls
@@ -36,6 +37,22 @@ Notes:
 - `node tools/assets.mjs export walls` (or `export all`) rewrites a PNG from the art the game has loaded (needs the
   test dependencies: `cd tests && npm install`).
 - Any PNG your editor saves is fine (palette, RGB, RGBA, greyscale; not interlaced). `pack` converts it for the game.
+
+## Editing boss props, portals and projectiles
+
+Each `boss/*.png` is a strip of frames like the monsters:
+
+| File | What | Frames |
+|---|---|---|
+| `portal.png` | the exit portal, swirling | 4 |
+| `portalS.png` | the portal barred while a boss lives | 2 |
+| `lectern.png` | the King in Yellow's lectern (unlit, lit) | 2 |
+| `ysign.png` | the Yellow Sign he scrawls | 2 |
+| `hali.png` | the mist of Lake Hali | 2 |
+| `goo.png` | King Gloop's goo puddle | 2 |
+| `groundCrack.png` | the Treasure Knight's slam crack | 1 |
+| `script.png` | the torn play script (the pickup token is made from it) | 1 |
+| `shot_*.png` | projectiles: boss shots (gloop, sock, gear, goldball, web, egg, rag, sun) and elite shots (steam, zap, laser, sonic, wisp, fluff) | 1 |
 
 ## Editing item icons
 

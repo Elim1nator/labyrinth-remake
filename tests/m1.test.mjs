@@ -32,6 +32,7 @@ const V120=atLeast('1.20'); // M1.20+: realistic stone walls (slate, ember rock 
 const V121=atLeast('1.21'); // M1.21+: wall art comes from assets/walls.png, embedded in the build
 const V122=atLeast('1.22'); // M1.22+: mob and boss art comes from assets/mobs/*.png
 const V123=atLeast('1.23'); // M1.23+: run items (stacking, whole run) + stacking balloon colours replace power-ups, permanent and golden items
+const V124=atLeast('1.24'); // M1.24+: boss props, portals and projectiles come from assets/boss/*.png
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -802,6 +803,18 @@ async function m123Tests(){
   await ctx.close();
 }
 
+async function m124Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m124'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const st=await G(page,()=>({st:__game.assetState(),fx:__game.fxSheets}));const bad=st.fx.filter(n=>st.st[n]!=='png'||!atlas[n]||atlas[n].file!=='boss/'+n+'.png');
+  check(`M1.24 ${st.fx.length} boss and effect strips (portals, lectern, signs, Hali, goo, the play script, 14 projectiles) load from assets/boss/*.png`,st.fx.length===22&&!bad.length,bad.join(',')||st.fx.join(','));
+  const cmp=await G(page,async(names)=>{const px=async url=>{const im=new Image();im.src=url;await im.decode();const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);return {w:im.width,h:im.height,u:new Uint32Array(cx.getImageData(0,0,im.width,im.height).data.buffer)};};
+    const out=[];for(const n of names){const a=await px(__game.embedded(n)),b=await px(__game.atlasPng(n));let d=a.w!==b.w||a.h!==b.h?1e9:0;if(!d)for(let i=0;i<a.u.length;i++){const p=a.u[i]>>>24>=128?a.u[i]|0xff000000:0,q=b.u[i]>>>24>=128?b.u[i]|0xff000000:0;if(p!==q)d++;}if(d)out.push(n+':'+d);}return out;},st.fx);
+  check('M1.24 in game those strips are exactly the pixels of their PNGs',cmp.length===0,cmp.join(' '));
+  const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));savePng('m124_boss_fx_3x.png',await G(page,()=>__game.spriteSheet(3,'m114')));
+  await ctx.close();
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -848,6 +861,7 @@ if(V120&&want('m120')){ await m120Tests(); }
 if(V121&&want('m121')){ await m121Tests(); }
 if(V122&&want('m122')){ await m122Tests(); }
 if(V123&&want('m123')){ await m123Tests(); }
+if(V124&&want('m124')){ await m124Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

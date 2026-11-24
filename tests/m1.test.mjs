@@ -39,6 +39,7 @@ const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy mask
 const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status effects, 1 px glow)
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
+const V131=atLeast('1.31'); // M1.31+: no dead-end corridors (long ones link back, short spurs pruned)
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -57,8 +58,10 @@ const results=[];let failed=0;
 const RETIRED_M123=[/^M1\.4 (walking over a power-up|slot full|same item already held|six power-ups|Q and right mouse|TRIPLE BALLOON|COIN MAGNET|gamepad Y uses|power-ups are placed in every level)/,/^M1\.4\/M1\.9 (SPEED SNEAKERS|GIANT BALLOON)/,
   /^phone: ITEM button only shows/,/^M1\.9 (a used power-up lasts|power-ups stack for the floor|every effect ends on the next floor|rebalance values|shop rows: Red|keyboard: W\/S choose|mouse: click a row|single-use power-ups fill|CONTINUE restores the permanent|gamepad: X talks|balloon type switching|touch: the BALL button)/,
   /^M1\.17 a Torch pushes/];
+// M1.31 rebuilt the level layout on purpose (no dead ends), so the checks that pin floors to their older layouts retire from M1.31 on
+const RETIRED_M131=[/^M1\.8 floors 2-8 keep their M1\.7 layouts/,/^M1\.10 floors without a boss are generated exactly as in M1\.9\.1/];
 const retired=[];
-function check(name,cond,detail=''){if(V123&&RETIRED_M123.some(re=>re.test(name))){retired.push(name);console.log('RETIRED  '+name);return;}results.push({name,ok:!!cond,detail});if(!cond)failed++;console.log((cond?'PASS':'FAIL')+'  '+name+(detail?'  ('+detail+')':''));}
+function check(name,cond,detail=''){if((V123&&RETIRED_M123.some(re=>re.test(name)))||(V131&&RETIRED_M131.some(re=>re.test(name)))){retired.push(name);console.log('RETIRED  '+name);return;}results.push({name,ok:!!cond,detail});if(!cond)failed++;console.log((cond?'PASS':'FAIL')+'  '+name+(detail?'  ('+detail+')':''));}
 const browser=await chromium.launch();
 const consoleProblems=[];const badRequests=[];
 async function newPage(opts={}){
@@ -566,9 +569,9 @@ async function m112Tests(){
       if(e.coinDoor){cd++;prices.add(e.coinDoor.price);}if(e.shrine)sh++;if(e.trap){tr++;if(f%5===0)trBoss++;}}return {n,cd,sh,tr,trBoss,prices:[...prices].sort((a,b)=>a-b)};});
   check(`M1.12 coin doors (5, 10 or 20 coins), shrines and trapdoors turn up on some floors (${fl.cd}, ${fl.sh}, ${fl.tr} of ${fl.n}); never a trapdoor on a boss floor`,fl.cd>fl.n*.2&&fl.sh>fl.n*.15&&fl.tr>fl.n*.15&&fl.trBoss===0&&fl.prices.join()==='5,10,20',JSON.stringify(fl));
   const cdt=await G(page,()=>{const G=__game;for(const sd of [1,2,3,4,5,6,7,8,9,10,11,12])for(let f=2;f<=12;f++){G.setSeed(sd);G.startLevel(f-1,{hearts:5,coins:0,perm:{}});const e=G.extras();if(!e.coinDoor||e.coinDoor.price!==10)continue;const c=e.coinDoor;
-      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];for(const d of dirs){const x=c.x+d[0],y=c.y+d[1];if(G.cellType(x,y)===0&&G.cellAt(c.x-d[0],c.y-d[1]).t===0){G.teleport(x+.5,y+.5,d[2]);break;}}
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];for(const d of dirs){const x=c.x+d[0],y=c.y+d[1];if(G.cellType(x,y)===0&&G.cellAt(c.x-d[0],c.y-d[1]).t===0&&!G.itemList().some(i=>Math.floor(i.x)===x&&Math.floor(i.y)===y)){G.teleport(x+.5,y+.5,d[2]);break;}} /* M1.31: with a 1-cell closet both sides are open; stand on the side without the loot */
       G.setCoins(5);G.advance(0.05);G.use();let s=G.advance(0.1);const poor={msg:s.msg,coins:s.player.coins,locked:G.cellAt(c.x,c.y).locked};G.setCoins(14);G.use();s=G.advance(0.8);const paid={coins:s.player.coins,open:G.cellAt(c.x,c.y).open,locked:G.cellAt(c.x,c.y).locked};
-      const items=s.items.filter(i=>!i.taken&&Math.hypot(i.x-c.x-.5,i.y-c.y-.5)<4&&['power','gold','piggy','bag'].includes(i.kind)).length;return {c,poor,paid,items};}return null;});
+      const items=s.items.filter(i=>!i.taken&&Math.hypot(i.x-c.x-.5,i.y-c.y-.5)<4&&['power','gold','piggy','bag','item'].includes(i.kind)).length;return {c,poor,paid,items};} /* M1.23+: a run item ('item') counts as better */return null;});
   check('M1.12 a coin door asks for its price, takes it, opens; the room behind holds a power-up (or better)',cdt&&/WANTS 10 COINS/.test(cdt.poor.msg)&&cdt.poor.locked&&cdt.paid.coins===4&&cdt.paid.open>0.9&&!cdt.paid.locked&&cdt.items>=1,JSON.stringify(cdt));
   await shot(page,'coin_door_open');
   const shr=await G(page,()=>{const G=__game;for(const sd of [1,2,3,4,5,6,7,8,9,10])for(let f=3;f<=12;f++){G.setSeed(sd);G.startLevel(f-1,{hearts:3,coins:40,perm:{}});const e=G.extras();if(!e.shrine)continue;const c=e.shrine;
@@ -891,7 +894,8 @@ async function m128Tests(){
  p=fresh();G.inf.vengeance=1;i=G.spawn('clunk',p.x+3,p.y,false,['vengeance']);let hh=G.state().player.hearts;G.hitWith(i,{dmg:1,ball:'blue',hits:[]});r.vengeance=hh-G.state().player.hearts;G.inf.vengeance=.35;
  p=fresh();i=G.spawn('clunk',p.x+1,p.y,false,['firework']);hh=G.state().player.hearts;G.hitWith(i,{dmg:1,ball:'blue',hits:[]});r.firework=hh-G.state().player.hearts;
  // timed attacks
- for(const m of ['storm','webber','archer','ghastly','necro','potions']){p=fresh();i=G.spawn('clunk',p.x+3,p.y,true,[m]);const kinds={};let w={};for(let k=0;k<360;k++){G.setHearts(5);const s=G.advance(1/30);s.eshots.forEach(q=>kinds[q.kind]=1);const W=G.infWorld();Object.keys(W).forEach(x=>{if(W[x])w[x]=1;});}r['t_'+m]=Object.keys(kinds).concat(Object.keys(w)).join(',');}
+ const spot=(p)=>{for(let r=3;r>=1.5;r-=.5)for(let a=0;a<6.28;a+=.3){const x=p.x+Math.cos(a)*r,y=p.y+Math.sin(a)*r;if(!G.solidAt(x,y)&&G.clearPath(p.x,p.y,x,y))return [x,y];}return [p.x+1,p.y];}; /* M1.31: a clear spot in sight (layouts changed) */
+ for(const m of ['storm','webber','archer','ghastly','necro','potions']){p=fresh();const sp=spot(p);i=G.spawn('clunk',sp[0],sp[1],true,[m]);const kinds={};let w={};for(let k=0;k<360;k++){G.setHearts(5);const s=G.advance(1/30);s.eshots.forEach(q=>kinds[q.kind]=1);const W=G.infWorld();Object.keys(W).forEach(x=>{if(W[x])w[x]=1;});}r['t_'+m]=Object.keys(kinds).concat(Object.keys(w)).join(',');}
  p=fresh();i=G.spawn('clunk',p.x+3,p.y,true,['poison','storm']);r.name=G.infernalName(i);
  return r;})());
   check('M1.28 Infernal names: "INFERNAL <MOB>: <POWERS>"',r.name==='INFERNAL CLUNKBOT: POISONOUS + STORM',r.name);
@@ -958,6 +962,15 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m131Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m131'});
+  const st=await G(page,()=>__game.layoutStats([1,2,3,4,5,6,7,8,9,10,777,4242],[2,4,6,8,10,13,20,30]));
+  check(`M1.31 no corridors that lead nowhere: across ${st.floors} floors the longest dead end is ${st.maxDead} cell (only the secret-room pocket and the slot/shop alcoves), about ${st.deadPerFloor.toFixed(1)} per floor (was 5.5, up to 59 cells long)`,st.floors===96&&st.maxDead<=1&&st.deadPerFloor<2,JSON.stringify(st));
+  await G(page,()=>{const G=__game;G.manual=true;G.setSeed(4242);G.startLevel(7,{hearts:5,coins:0});G.seeAll&&G.seeAll();G.clearMobs();G.openMap();G.advance(0.05);});
+  await page.screenshot({path:`${SHOTS}/m131_layout_map.png`});
+  await ctx.close();
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -1010,13 +1023,14 @@ if(V127&&want('m127')){ await m127Tests(); }
 if(V128&&want('m128')){ await m128Tests(); }
 if(V129&&want('m129')){ await m129Tests(); }
 if(V130&&want('m130')){ await m130Tests(); }
+if(V131&&want('m131')){ await m131Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
 const size=fs.statSync(FILE).size,LIM=V121?1024:atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
 await browser.close();
 fs.writeFileSync(`${OUT}/results.json`,JSON.stringify({build:BUILD,file:FILE,date:new Date().toISOString(),passed:results.length-failed,failed,results},null,1));
-console.log(`\n${results.length-failed}/${results.length} passed`+(retired.length?` (${retired.length} checks of pre-M1.23 items retired)`:``));
+console.log(`\n${results.length-failed}/${results.length} passed`+(retired.length?` (${retired.length} checks of pre-M1.23 items or pre-M1.31 layouts retired)`:``));
 process.exit(failed?1:0);
 
 // =====================================================================
@@ -2193,7 +2207,7 @@ async function m16Tests(){
       return out;},{pairs,cols,V17});
     const brick=r.brick;delete r.brick;
     check('Elite modifier icons are outlined and at least 8 px tall on screen at distance 6',Object.values(r).every(v=>v.iconPx>=8),Object.entries(r).map(([m,v])=>`${m} ${v.iconPx}px`).join(', '));
-    check('Elite glow at distance 6 on red brick: each colour ring is strong (60+ px) with a dark frame, and the colour barely appears in the brick itself',Object.values(r).every(v=>v.ring>=60&&v.dark>=30&&v.inWall<30),Object.entries(r).map(([m,v])=>`${m}: ring ${v.ring}, frame ${v.dark}, in brick ${v.inWall}`).join('; ')+`; brick ${brick}`);
+    check('Elite glow at distance 6 on red brick: each colour ring is strong (60+ px) with a dark frame, and the colour barely appears in the brick itself',Object.values(r).every(v=>v.ring>=60&&v.dark>=30&&(V131?v.inWall<v.ring*.3:v.inWall<30)), /* M1.31: the new brick art has orange in it, so the ring must clearly outweigh it */Object.entries(r).map(([m,v])=>`${m}: ring ${v.ring}, frame ${v.dark}, in brick ${v.inWall}`).join('; ')+`; brick ${brick}`);
     const hsv=p=>{const [r,g,b]=p.map(v=>v/255),mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d+6)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;}return h*60;},hd=(a,b)=>{const d=Math.abs(a-b)%360;return Math.min(d,360-d);};
     const hReg=Math.min(...wisp.map(w=>hd(hsv(hx(cols.regen)),hsv(w)))),dRegen=Math.min(...wisp.map(w=>dist(hx(cols.regen),w))),dFast=dist(hx(cols.fast),[0x4a,0x5c,0x96]),dRanged=dist(hx(cols.ranged),brick),hRanged=hd(hsv(hx(cols.ranged)),hsv(brick));
     const old15={regenHue:Math.min(...wisp.map(w=>hd(hsv([255,90,216]),hsv(w))))};

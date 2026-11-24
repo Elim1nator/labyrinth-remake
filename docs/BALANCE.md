@@ -53,6 +53,13 @@ Hazewisp) cross over. They never block the only route and never sit on the spawn
 (10 coins, 60%) or a run item (40%; M1.23), and 90% also have a mob. The opened state is saved for
 that floor.
 
+## Level layout (M1.31)
+
+Rooms, then winding corridors in the space between, joined into one network with a few extra loops (`LAYOUT` in the game:
+6% of the possible links, at least 2; corridors keep going straight 75% of the time). Dead-end corridors 6+ cells long link
+back through a single wall into another corridor or room (85%); all remaining dead ends are pruned, so the only dead ends are
+the secret-room pocket and the alcoves beside the slot machine and the shop.
+
 ## Infernal mobs (M1.28)
 
 Powered mobs (elites) are called **INFERNAL <NAME>** (the band shows the name and powers when you spot or hit one) and wear a

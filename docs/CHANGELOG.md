@@ -3,6 +3,15 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.31: less backtracking (level layout)
+- No more corridors that lead nowhere. Long dead-end corridors (6+ cells) now break through into another corridor or room and loop back (85% of the time where one wall allows it); every other dead end, including the little spurs, is pruned away. Sealing the exit room and the vault no longer leaves the corridors that led to their other doors as dead ends.
+- Corridors run straighter (75% chance to keep going, was 60%) and a few more loops connect different areas (6% of the possible links, at least 2).
+- Across 96 test floors: dead-end tips 5.5 -> 1.3 per floor (what's left is the secret-room pocket and the slot / shop alcoves), longest dead end 59 -> 1 cell.
+- Every generated floor still has a secret room and no empty rooms: an attempt that misses either is thrown away and the next one is used. Coin-door closets can now be as small as 1 x 1 (tighter layouts have fewer big rock blocks), so coin doors still turn up on ~45% of floors.
+- BEEFY's glow is now yellow-lime (#e0ff40): the orange it had blended into the new brick art.
+- Tests: the two checks that pinned floors to their older layouts retire from M1.31 on; layout-dependent checks pick clear spots; the coin-door check counts run items as loot and stands on the right side of a 1-cell closet.
+- QA build `m1.31-qa` (debug hook on).
+
 ## M1.30: start floors (progress between runs)
 - Beating a boss (in a run without cheats) unlocks the floor after it (6, 11, 16, ...) as a starting floor, kept across runs.
 - The title gets a START FLOOR: < N > row (left/right, a click or a tap cycles it; it remembers your last pick). Starting deeper gives one random run item for every 2 floors skipped (floor 6: 2, floor 11: 5, floor 16: 7).

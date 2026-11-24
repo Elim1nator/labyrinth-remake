@@ -63,11 +63,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.35. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.36. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.35'; /* set by tools/release.mjs */
+var VERSION='M1.36'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=64;
 var SAVE_KEY='labyrinthRemake.save.v1',UNLOCK_KEY='labyrinthRemake.unlocks.v1'; /* M1.30: floors you can start on, kept across runs */
 var MAX_HEARTS=5;
@@ -505,87 +505,147 @@ function randomSeed(){return 1+Math.floor(Math.random()*999999);}
 function levelSeed(seed,lvl){return hashSeed(seed+':'+lvl);}
 function genLevel(seed,lvl){for(var a=0;a<60;a++){var d=genTry(hashSeed(seed+'/'+a),lvl,seed);if(d){d.attempt=a;return d;}}
   var t=JSON.parse(JSON.stringify(LEVELS[0]));t.name='LEVEL '+lvl+': FALLBACK';t.fallback=true;return t;}
-/* M1.31 layout tuning (player feedback: "long corridors to a dead end, then backtrack"): more loops, dead ends linked back into the
-   network where a single wall allows it, every other dead end pruned away, and straighter corridors */
-var LAYOUT={loopFrac:.06,loopMin:2,linkBack:.85,longDead:6,straight:.75,keepDead:0};
-function bossCh(c){for(var k in MOBS)if(MOBS[k].ch===c)return true;return false;}
-function genTry(s,lvl,lseed){
-  var R=rng(s);function ri(a,b){return a+Math.floor(R()*(b-a+1));}function pick(a){return a[Math.floor(R()*a.length)];}
+/* M1.36 level layout: "rooms and mazes" (Bob Nystrom, journal.stuffwithstuff.com/2014/12/21/rooms-and-mazes) with a growing-tree
+   corridor fill, partial braiding and a distance map for placing content. Every knob is in GEN; genCfg() sizes it for a floor.
+   genLayout() is the whole layout (rooms, corridors, connections, trimming, start/exit, locks, critical path) and returns null when a
+   check fails, so genLevel moves on to the next seed. It is linear-ish in the map size (fine up to 151x151; api.layoutTime measures it). */
+var GEN={roomAttempts:60,roomMin:3,roomMax:9,newestBias:.8,extraConnectorChance:.08,maxStubLength:3,keepDeadEndChance:.25,braidChance:.1,
+  criticalPathLoops:[1,2],loopMinSpan:8,bands:{path:1,near:6},maxDeadEnds:12,minPath:.45,maxPath:3};
+function genCfg(lvl,seed){var c={};for(var k in GEN)c[k]=GEN[k];c.bands={path:GEN.bands.path,near:GEN.bands.near};c.criticalPathLoops=GEN.criticalPathLoops.slice();
+  c.width=25+2*Math.min(7,lvl);c.height=21+2*Math.min(5,lvl);c.roomAttempts=30+Math.min(lvl,DEEP_CAPS.roomLvl)*5;c.roomMax=lvl>=4?9:7;c.vault=lvl>=4;c.seed=seed;return c;}
+function genLayout(cfg){var R=rng(cfg.seed),w=cfg.width|1,h=cfg.height|1,N=w*h,reg=new Int32Array(N).fill(-1),g=new Uint8Array(N),rooms=[],nreg=0,x,y,i,j,k;
+  function ri(a,b){return a+Math.floor(R()*(b-a+1));}function pick(a){return a[Math.floor(R()*a.length)];}
   function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(R()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
-  var w=25+2*Math.min(7,lvl),h=21+2*Math.min(5,lvl),N=w*h,reg=new Int32Array(N).fill(-1),rooms=[],nreg=0,x,y,i,j,k;
-  var maxH=lvl>=4?4:3;
-  // 1. rooms (odd sizes and positions so they line up with the maze grid)
-  for(var t=0;t<30+Math.min(lvl,DEEP_CAPS.roomLvl)*5;t++){var rw=ri(1,maxH)*2+1,rh=ri(1,maxH)*2+1;if(R()<.25){if(R()<.5)rw+=2;else rh+=2;}
-    var rx=ri(0,(w-rw-1)>>1)*2+1,ry=ri(0,(h-rh-1)>>1)*2+1;if(rx<1||ry<1||rx+rw>w-1||ry+rh>h-1)continue;
+  var st={rooms:0,connectors:0,extra:0,trimmed:0,stubs:0,braids:0,pathLoops:0,fail:null};function fail(why){st.fail=why;genLayout.last=st;return null;}
+  // 2. rooms: random odd sizes on odd coordinates; rejected if they overlap or touch another room
+  var lo=Math.max(1,(cfg.roomMin-1)>>1),hi=Math.max(lo,(cfg.roomMax-1)>>1);
+  for(var t=0;t<cfg.roomAttempts;t++){var rw=ri(lo,hi)*2+1,rh=ri(lo,hi)*2+1;if(rw+2>w||rh+2>h)continue;var rx=ri(0,(w-rw-1)>>1)*2+1,ry=ri(0,(h-rh-1)>>1)*2+1;if(rx+rw>w-1||ry+rh>h-1)continue;
     var ok=true;for(i=0;i<rooms.length;i++){var o=rooms[i];if(rx<o.x+o.w+1&&rx+rw+1>o.x&&ry<o.y+o.h+1&&ry+rh+1>o.y){ok=false;break;}}
-    if(!ok)continue;var rm={x:rx,y:ry,w:rw,h:rh,id:nreg++};rooms.push(rm);for(y=ry;y<ry+rh;y++)for(x=rx;x<rx+rw;x++)reg[y*w+x]=rm.id;}
-  if(rooms.length<5)return null;
-  // 2. growing-tree mazes in every remaining solid area
-  var D4=[[1,0],[-1,0],[0,1],[0,-1]];
-  for(y=1;y<h-1;y+=2)for(x=1;x<w-1;x+=2){if(reg[y*w+x]>=0)continue;var id=nreg++,stack=[[x,y]],last=null;reg[y*w+x]=id;
-    while(stack.length){var c=stack[stack.length-1],op=[];for(k=0;k<4;k++){var nx=c[0]+D4[k][0]*2,ny=c[1]+D4[k][1]*2;if(nx>0&&ny>0&&nx<w-1&&ny<h-1&&reg[ny*w+nx]<0)op.push(D4[k]);}
-      if(!op.length){stack.pop();last=null;continue;}
-      var dd=(last&&op.indexOf(last)>=0&&R()<LAYOUT.straight)?last:pick(op);reg[(c[1]+dd[1])*w+c[0]+dd[0]]=id;var n2=[c[0]+dd[0]*2,c[1]+dd[1]*2];reg[n2[1]*w+n2[0]]=id;stack.push(n2);last=dd;}}
-  // 3. connectors: a wall cell with two different regions on opposite sides and walls on the other two
+    if(!ok)continue;var rm={x:rx,y:ry,w:rw,h:rh,id:nreg++,tag:'normal'};rooms.push(rm);for(y=ry;y<ry+rh;y++)for(x=rx;x<rx+rw;x++)reg[y*w+x]=rm.id;}
+  if(rooms.length<5)return fail('rooms');st.rooms=rooms.length;
+  // 3. growing tree: newest active cell with probability newestBias (long winding halls), otherwise a random one (branchy); one region per flood
+  var D4=[[1,0],[-1,0],[0,1],[0,-1]],act=[],op=[];
+  for(y=1;y<h-1;y+=2)for(x=1;x<w-1;x+=2){if(reg[y*w+x]>=0)continue;var id=nreg++;reg[y*w+x]=id;act.length=0;act.push(y*w+x);
+    while(act.length){var ai=R()<cfg.newestBias?act.length-1:Math.floor(R()*act.length),c=act[ai],cx=c%w,cy=(c/w)|0;op.length=0;
+      for(k=0;k<4;k++){var nx=cx+D4[k][0]*2,ny=cy+D4[k][1]*2;if(nx>0&&ny>0&&nx<w-1&&ny<h-1&&reg[ny*w+nx]<0)op.push(k);}
+      if(!op.length){act.splice(ai,1);continue;}var dk=D4[op[Math.floor(R()*op.length)]];reg[(cy+dk[1])*w+cx+dk[0]]=id;var n2=(cy+dk[1]*2)*w+cx+dk[0]*2;reg[n2]=id;act.push(n2);}}
+  for(i=0;i<N;i++)g[i]=reg[i]>=0?1:0; // 0 wall, 1 floor, 2 door, 3 locked door, 4 fence
+  // 4. connectors (a wall between two different regions); merge outward from a random room, one connector per new region, then extra loops
   function isRoom(r){return r>=0&&r<rooms.length;}
-  var conns=[];
-  for(y=1;y<h-1;y++)for(x=1;x<w-1;x++){if(reg[y*w+x]>=0)continue;var a=reg[y*w+x-1],b=reg[y*w+x+1],c1=reg[(y-1)*w+x],d1=reg[(y+1)*w+x];
+  var conns=[];for(y=1;y<h-1;y++)for(x=1;x<w-1;x++){j=y*w+x;if(reg[j]>=0)continue;var a=reg[j-1],b=reg[j+1],c1=reg[j-w],d1=reg[j+w];
     if(a>=0&&b>=0&&a!==b&&c1<0&&d1<0)conns.push([x,y,a,b]);else if(c1>=0&&d1>=0&&c1!==d1&&a<0&&b<0)conns.push([x,y,c1,d1]);}
-  shuffle(conns);
+  shuffle(conns);st.connectors=conns.length;
   var par=new Int32Array(nreg);for(i=0;i<nreg;i++)par[i]=i;function find(q){while(par[q]!==q){par[q]=par[par[q]];q=par[q];}return q;}
-  var g=new Uint8Array(N);for(i=0;i<N;i++)g[i]=reg[i]>=0?1:0; // 0 wall, 1 floor, 2 door, 3 locked door, 4 fence
-  function nearConn(x,y){for(var yy=-1;yy<=1;yy++)for(var xx=-1;xx<=1;xx++){if(!xx&&!yy)continue;var v=reg[(y+yy)*w+x+xx];if(v<0&&g[(y+yy)*w+x+xx])return true;}return false;}
+  function nearOpen(x,y){for(var yy=-1;yy<=1;yy++)for(var xx=-1;xx<=1;xx++){if(!xx&&!yy)continue;var q=(y+yy)*w+x+xx;if(reg[q]<0&&g[q])return true;}return false;} /* no two openings side by side */
   function open(c){g[c[1]*w+c[0]]=(isRoom(c[2])||isRoom(c[3]))?2:1;}
-  var extra=[];
-  for(var pass=0;pass<2;pass++){for(i=0;i<conns.length;i++){var cc=conns[i];if(g[cc[1]*w+cc[0]])continue;var A=find(cc[2]),B=find(cc[3]);if(A===B){if(!pass)extra.push(cc);continue;}if(!pass&&nearConn(cc[0],cc[1]))continue;par[A]=B;open(cc);}}
-  var root=find(0);for(i=1;i<nreg;i++)if(find(i)!==root)return null;
-  var loops=Math.round(conns.length*LAYOUT.loopFrac)+LAYOUT.loopMin;for(i=0;i<extra.length&&loops>0;i++){var ec=extra[i];if(g[ec[1]*w+ec[0]]||nearConn(ec[0],ec[1]))continue;open(ec);loops--;}
-  // 4. M1.31: a dead end that can break through one wall into another corridor or room links back there (a loop, not a backtrack)
-  function nbN(q){return (g[q-1]?1:0)+(g[q+1]?1:0)+(g[q-w]?1:0)+(g[q+w]?1:0);}
-  function deadLen(q){var len=0,prev=-1,cur=q;while(len<200){var nx=-1,cnt=0,nb=[cur-1,cur+1,cur-w,cur+w];for(var m=0;m<4;m++){if(g[nb[m]]){cnt++;if(nb[m]!==prev)nx=nb[m];}}if(isRoom(reg[cur])||(len>0&&cnt!==2)||nx<0)break;prev=cur;cur=nx;len++;}return len;}
-  for(y=1;y<h-1;y++)for(x=1;x<w-1;x++){j=y*w+x;if(g[j]!==1||isRoom(reg[j])||nbN(j)!==1)continue;if(deadLen(j)<LAYOUT.longDead||R()>=LAYOUT.linkBack)continue; /* only the long ones; short spurs get pruned below */
-    var dirs=shuffle([[1,0],[-1,0],[0,1],[0,-1]]);for(k=0;k<4;k++){var ddx=dirs[k][0],ddy=dirs[k][1],wx=x+ddx,wy=y+ddy,bx2=x+2*ddx,by2=y+2*ddy;if(bx2<1||by2<1||bx2>w-2||by2>h-2)continue;
-      var wj=wy*w+wx,bj=by2*w+bx2;if(g[wj]||!g[bj]||g[bj]===3)continue;var pj1=ddx?wj-w:wj-1,pj2=ddx?wj+w:wj+1;if(g[pj1]||g[pj2])continue;
-      g[wj]=isRoom(reg[bj])?2:1;stats.linkBacks=(stats.linkBacks|0)+1;break;}}
-  // ...and every dead end left is pruned away (M1.31: none kept; they were the long walks to nowhere)
-  var keep=new Uint8Array(N),changed=true,first=true;
-  while(changed){changed=false;for(y=1;y<h-1;y++)for(x=1;x<w-1;x++){j=y*w+x;if(!g[j]||keep[j])continue;var nn=(g[j-1]?1:0)+(g[j+1]?1:0)+(g[j-w]?1:0)+(g[j+w]?1:0);
-    if(nn<=1){if(first&&g[j]===1&&!isRoom(reg[j])&&R()<LAYOUT.keepDead){keep[j]=1;continue;}g[j]=0;changed=true;}}first=false;}
-  // doors need walls on both sides of their plane, otherwise they become plain floor
-  for(j=0;j<N;j++)if(g[j]===2){var lr=!g[j-1]&&!g[j+1]&&g[j-w]&&g[j+w],ud=!g[j-w]&&!g[j+w]&&g[j-1]&&g[j+1];if(!(lr||ud))g[j]=1;}
-  function bfs(sx,sy,blockLocks){var dist=new Int32Array(N).fill(-1),q=[sy*w+sx];dist[q[0]]=0;for(var qi=0;qi<q.length;qi++){var jj=q[qi],nb=[jj-1,jj+1,jj-w,jj+w];for(var m=0;m<4;m++){var n=nb[m];if(dist[n]>=0||!g[n]||g[n]===4)continue;if(blockLocks&&g[n]===3)continue;dist[n]=dist[jj]+1;q.push(n);}}return dist;}
+  var main=pick(rooms).id;
+  for(var guard=0;guard<N;guard++){var M=find(main),grew=false;for(var pass=0;pass<2&&!grew;pass++)for(i=0;i<conns.length;i++){var cc=conns[i];if(g[cc[1]*w+cc[0]])continue;
+      var A=find(cc[2]),B=find(cc[3]);if(A===B||(A!==M&&B!==M))continue;if(!pass&&nearOpen(cc[0],cc[1]))continue;par[A===M?B:A]=M;open(cc);grew=true;}
+    if(!grew)break;}
+  for(i=0;i<nreg;i++)if(find(i)!==find(main))return fail('connect');
+  for(i=0;i<conns.length;i++){var ec=conns[i];if(g[ec[1]*w+ec[0]]||nearOpen(ec[0],ec[1]))continue;if(R()<cfg.extraConnectorChance){open(ec);st.extra++;}}
+  // 5. dead ends: trim each branch back to maxStubLength and keep it as a nook with keepDeadEndChance, else trim it away; never inside rooms
+  var keepTip=new Uint8Array(N);
+  function nb(q){return (g[q-1]?1:0)+(g[q+1]?1:0)+(g[q-w]?1:0)+(g[q+w]?1:0);}
+  function corr(q){return g[q]===1&&!isRoom(reg[q]);}
+  function trim(){var again=true;while(again){again=false;for(j=w+1;j<N-w-1;j++){if(!g[j]||isRoom(reg[j])||g[j]===3||nb(j)>1)continue;
+      if(g[j]===2||nb(j)===0){g[j]=0;keepTip[j]=0;again=true;continue;} /* a door that leads nowhere */
+      var chain=[j],prev=j,cur=-1;[j-1,j+1,j-w,j+w].forEach(function(q){if(g[q])cur=q;});
+      while(cur>=0&&corr(cur)&&nb(cur)===2&&chain.length<N){chain.push(cur);var nx=-1;[cur-1,cur+1,cur-w,cur+w].forEach(function(q){if(g[q]&&q!==prev)nx=q;});prev=cur;cur=nx;}
+      if(keepTip[j]&&chain.length<=cfg.maxStubLength)continue; /* a nook already kept */
+      var keepIt=keepTip[j]?true:R()<cfg.keepDeadEndChance,cut=keepIt?Math.max(0,chain.length-cfg.maxStubLength):chain.length;
+      for(k=0;k<cut;k++){g[chain[k]]=0;keepTip[chain[k]]=0;}st.trimmed+=cut;if(keepIt&&cut<chain.length&&!keepTip[chain[cut]]){keepTip[chain[cut]]=1;st.stubs++;again=true;}if(cut)again=true;}}}
+  function fixDoors(){for(j=0;j<N;j++)if(g[j]===2){var lr=!g[j-1]&&!g[j+1]&&g[j-w]&&g[j+w],ud=!g[j-w]&&!g[j+w]&&g[j-1]&&g[j+1];if(!(lr||ud))g[j]=1;}} /* doors need walls on both sides of their plane */
+  trim();
+  //    braid: some of the remaining dead ends knock through their end wall into the neighbouring corridor (a loop, not a backtrack)
+  for(j=w+1;j<N-w-1;j++){if(!corr(j)||nb(j)!==1||R()>=cfg.braidChance)continue;var x0=j%w,y0=(j/w)|0,back=null;D4.forEach(function(d){if(g[j+d[1]*w+d[0]])back=d;});
+    var dirs=shuffle(D4.filter(function(d){return d!==back;}));dirs.sort(function(p,q){return (p[0]===-back[0]&&p[1]===-back[1]?0:1)-(q[0]===-back[0]&&q[1]===-back[1]?0:1);}); /* straight ahead first */
+    for(k=0;k<dirs.length;k++){var dx=dirs[k][0],dy=dirs[k][1],bx=x0+2*dx,by=y0+2*dy;if(bx<1||by<1||bx>w-2||by>h-2)continue;var wq=j+dy*w+dx,bq=by*w+bx;
+      if(g[wq]||!corr(bq))continue;var p1=dx?wq-w:wq-1,p2=dx?wq+w:wq+1;if(g[p1]||g[p2])continue;g[wq]=1;keepTip[j]=0;st.braids++;break;}}
+  fixDoors();
+  function bfs(s,blockLocks){var dist=new Int32Array(N).fill(-1),q=new Int32Array(N),qh=0,qt=0;dist[s]=0;q[qt++]=s;while(qh<qt){var jj=q[qh++],d=dist[jj]+1,n;
+      n=jj-1;if(dist[n]<0&&g[n]&&g[n]!==4&&!(blockLocks&&g[n]===3)){dist[n]=d;q[qt++]=n;}n=jj+1;if(dist[n]<0&&g[n]&&g[n]!==4&&!(blockLocks&&g[n]===3)){dist[n]=d;q[qt++]=n;}
+      n=jj-w;if(dist[n]<0&&g[n]&&g[n]!==4&&!(blockLocks&&g[n]===3)){dist[n]=d;q[qt++]=n;}n=jj+w;if(dist[n]<0&&g[n]&&g[n]!==4&&!(blockLocks&&g[n]===3)){dist[n]=d;q[qt++]=n;}}return dist;}
   function allReach(d){for(var q=0;q<N;q++)if(g[q]&&g[q]!==4&&d[q]<0)return false;return true;}
-  var start=pick(rooms),sx=start.x+(start.w>>1),sy=start.y+(start.h>>1);
-  if(!allReach(bfs(sx,sy,false)))return null;
+  function center(rm){return (rm.y+(rm.h>>1))*w+rm.x+(rm.w>>1);}
+  function inRoom(rm,q){var qx=q%w,qy=(q/w)|0;return !!rm&&qx>=rm.x&&qx<rm.x+rm.w&&qy>=rm.y&&qy<rm.y+rm.h;}
+  function nearestRoom(d,not){var best=null,bd=1e9;rooms.forEach(function(rm){var v=d[center(rm)];if(rm!==not&&v>=0&&v<bd){bd=v;best=rm;}});return best;}
+  // 6. start and finish: BFS from a random floor tile to its farthest tile A, then from A to its farthest tile B; entrance and exit are the rooms nearest A and B
+  var fl=[];for(j=0;j<N;j++)if(g[j]===1)fl.push(j);var d1=bfs(pick(fl),false),fa=0;for(j=0;j<N;j++)if(d1[j]>d1[fa])fa=j;
+  var dA=bfs(fa,false),fb=0;for(j=0;j<N;j++)if(dA[j]>dA[fb])fb=j;var dB=bfs(fb,false);
+  var near0=nearestRoom(dA,null);if(!near0)return fail('start');var start=near0,roomy=rooms.filter(function(rm){return rm.w*rm.h>=15&&dA[center(rm)]>=0&&dA[center(rm)]<=dA[center(near0)]+12;}).sort(function(p,q){return dA[center(p)]-dA[center(q)];});if(roomy.length)start=roomy[0]; /* not a cramped closet: the nearest roomy room (15+ cells) close to A */var sJ=center(start);
   function ring(rm){var out=[];for(x=rm.x;x<rm.x+rm.w;x++)out.push((rm.y-1)*w+x,(rm.y+rm.h)*w+x);for(y=rm.y;y<rm.y+rm.h;y++)out.push(y*w+rm.x-1,y*w+rm.x+rm.w);return out;}
   function seal(rm){var ents=ring(rm).filter(function(q){return g[q]!==0;}),doors=ents.filter(function(q){return g[q]===2;});if(!doors.length)return -1;
     var keepJ=pick(doors),saved=ents.map(function(q){return g[q];});ents.forEach(function(q){if(q!==keepJ)g[q]=0;});
-    if(!allReach(bfs(sx,sy,false))){ents.forEach(function(q,ii){g[q]=saved[ii];});return -1;}return keepJ;}
-  var d0=bfs(sx,sy,false);function rdist(rm){return d0[(rm.y+(rm.h>>1))*w+rm.x+(rm.w>>1)];}
-  var cands=rooms.filter(function(rm){return rm!==start;}).sort(function(p,q){return rdist(q)-rdist(p);});
-  var exitRoom=null,lockA=-1;for(i=0;i<cands.length&&!exitRoom;i++){var e=seal(cands[i]);if(e>=0){exitRoom=cands[i];lockA=e;}}
-  if(!exitRoom)return null;g[lockA]=3;
+    if(!allReach(bfs(sJ,false))){ents.forEach(function(q,ii){g[q]=saved[ii];});return -1;}return keepJ;}
+  var dS=bfs(sJ,false),exitTry=rooms.filter(function(rm){return rm!==start;}).sort(function(p,q){return dB[center(p)]-dB[center(q)]||dS[center(q)]-dS[center(p)];}); /* the room nearest B first */
+  var exitRoom=null,lockA=-1;for(i=0;i<exitTry.length&&!exitRoom;i++){var e=seal(exitTry[i]);if(e>=0){exitRoom=exitTry[i];lockA=e;}}
+  if(!exitRoom)return fail('exit');g[lockA]=3;var exitJ=center(exitRoom);start.tag='start';exitRoom.tag='exit';
+  //    critical path (shortest route start -> exit, through the lock) and the distance map: each tile's distance from the nearest path tile
+  var path,field,pidx;
+  function survey(){var d=bfs(sJ,false);if(d[exitJ]<0)return false;path=[exitJ];var cur=exitJ;while(cur!==sJ){var nb4=[cur-1,cur+1,cur-w,cur+w],nx=-1;for(var m=0;m<4;m++)if(d[nb4[m]]===d[cur]-1){nx=nb4[m];break;}if(nx<0)return false;cur=nx;path.push(cur);}path.reverse();
+    field=new Int32Array(N).fill(-1);pidx=new Int32Array(N).fill(-1);var q=new Int32Array(N),qh=0,qt=0;path.forEach(function(c,ii){field[c]=0;pidx[c]=ii;q[qt++]=c;});
+    while(qh<qt){var jj=q[qh++],n4=[jj-1,jj+1,jj-w,jj+w];for(var m2=0;m2<4;m2++){var n=n4[m2];if(field[n]>=0||!g[n]||g[n]===4)continue;field[n]=field[jj]+1;pidx[n]=pidx[jj];q[qt++]=n;}}return true;}
+  if(!survey())return fail('path');
+  //    a vault (deeper floors): the room farthest off the critical path gets a locked door - the floor's treasure room
   var vault=null,lockB=-1;
-  if(lvl>=4){for(i=0;i<cands.length&&!vault;i++){if(cands[i]===exitRoom||cands[i].w*cands[i].h<9)continue;var v=seal(cands[i]);if(v>=0){vault=cands[i];lockB=v;}}if(vault)g[lockB]=3;}
-  /* M1.31: sealing the exit room and the vault closes their other doors; the corridors that led there are pruned too */
-  changed=true;while(changed){changed=false;for(j=w+1;j<N-w-1;j++){if(g[j]!==1&&g[j]!==2||isRoom(reg[j]))continue;var n5=(g[j-1]?1:0)+(g[j+1]?1:0)+(g[j-w]?1:0)+(g[j+w]?1:0);if(n5<=1){g[j]=0;changed=true;}}}
-  var obj={};function inRoom(rm,q){var qx=q%w,qy=(q/w)|0;return rm&&qx>=rm.x&&qx<rm.x+rm.w&&qy>=rm.y&&qy<rm.y+rm.h;}
-  var exitJ=(exitRoom.y+(exitRoom.h>>1))*w+exitRoom.x+(exitRoom.w>>1);obj[exitJ]='X';obj[sy*w+sx]='p';
-  // key in the far third of the area reachable without opening a lock
-  var dOpen=bfs(sx,sy,true),open1=[];for(j=0;j<N;j++)if(g[j]===1&&dOpen[j]>0&&!obj[j]&&!inRoom(start,j))open1.push(j);
-  if(open1.length<20)return null;
-  open1.sort(function(p,q){return dOpen[q]-dOpen[p];});var far=open1.slice(0,Math.max(1,Math.floor(open1.length*.33)));obj[pick(far)]='k';
+  if(cfg.vault){var vc=rooms.filter(function(rm){return rm!==start&&rm!==exitRoom&&rm.w*rm.h>=9;}).sort(function(p,q){return field[center(q)]-field[center(p)];});
+    for(i=0;i<vc.length&&!vault;i++){var v=seal(vc[i]);if(v>=0){vault=vc[i];lockB=v;}}if(vault){g[lockB]=3;vault.tag='treasure';}}
+  trim();fixDoors(); /* sealing closed some doors; the corridors that led to them are trimmed like any other dead end */
+  if(!survey())return fail('path');
+  //    1-2 loops that branch off the critical path and rejoin it further along, so the main route isn't one thin line
+  var nLoops=ri(cfg.criticalPathLoops[0],cfg.criticalPathLoops[1]);
+  for(var lp=0;lp<nLoops;lp++){var best=-1,bs=0,bA=0,bB=0;for(y=2;y<h-2;y++)for(x=2;x<w-2;x++){j=y*w+x;if(g[j])continue;var a2,b2;
+      if(g[j-1]&&g[j+1]&&!g[j-w]&&!g[j+w]){a2=j-1;b2=j+1;}else if(g[j-w]&&g[j+w]&&!g[j-1]&&!g[j+1]){a2=j-w;b2=j+w;}else continue;
+      if(g[a2]>=3||g[b2]>=3||inRoom(exitRoom,a2)||inRoom(exitRoom,b2)||inRoom(vault,a2)||inRoom(vault,b2))continue;
+      if(field[a2]<0||field[b2]<0||field[a2]>cfg.bands.near||field[b2]>cfg.bands.near)continue;var span=Math.abs(pidx[a2]-pidx[b2]);if(span<cfg.loopMinSpan)continue;
+      var bad=false;for(var yy=-1;yy<=1&&!bad;yy++)for(var xx=-1;xx<=1;xx++)if(g[j+yy*w+xx]>=2){bad=true;break;}if(bad)continue;var sc=span+R()*4;if(sc>bs){bs=sc;best=j;bA=a2;bB=b2;}}
+    if(best<0)break;g[best]=(isRoom(reg[bA])||isRoom(reg[bB]))?2:1;st.pathLoops++;fixDoors();if(!survey())return fail('path');}
+  // 8. validation: exit reachable from the entrance, every room and tile reachable, few dead ends, a critical path of sensible length
+  var dEnd=0;for(j=w+1;j<N-w-1;j++)if(corr(j)&&nb(j)===1)dEnd++;st.deadEnds=dEnd;st.pathLen=path.length;
+  if(!allReach(bfs(sJ,false)))return fail('reach');if(dEnd>cfg.maxDeadEnds)return fail('deadEnds');
+  if(path.length<Math.round((w+h)*cfg.minPath)||path.length>(w+h)*cfg.maxPath)return fail('pathLen');
+  genLayout.last=st;
+  return {w:w,h:h,N:N,g:g,reg:reg,rooms:rooms,start:start,sJ:sJ,exitRoom:exitRoom,exitJ:exitJ,lockA:lockA,vault:vault,lockB:lockB,path:path,field:field,pidx:pidx,keepTip:keepTip,stats:st,isRoom:isRoom,inRoom:inRoom,center:center};}
+function bossCh(c){for(var k in MOBS)if(MOBS[k].ch===c)return true;return false;}
+var LAYOUT=GEN; /* (old name, kept for the test hook) */
+function genTry(s,lvl,lseed){
+  var cfg=genCfg(lvl,s),Ly=genLayout(cfg);if(!Ly){stats.genRetries=(stats.genRetries|0)+1;stats.genFails=stats.genFails||{};var fw=genLayout.last&&genLayout.last.fail;stats.genFails[fw]=(stats.genFails[fw]|0)+1;return null;}
+  var R=rng(hashSeed(s+':content'));function ri(a,b){return a+Math.floor(R()*(b-a+1));}function pick(a){return a[Math.floor(R()*a.length)];}
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(R()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  var w=Ly.w,h=Ly.h,N=Ly.N,g=Ly.g,reg=Ly.reg,rooms=Ly.rooms,x,y,i,j,k,isRoom=Ly.isRoom,inRoom=Ly.inRoom;
+  function bfs(sx,sy,blockLocks){var dist=new Int32Array(N).fill(-1),q=[sy*w+sx];dist[q[0]]=0;for(var qi=0;qi<q.length;qi++){var jj=q[qi],nb=[jj-1,jj+1,jj-w,jj+w];for(var m=0;m<4;m++){var n=nb[m];if(dist[n]>=0||!g[n]||g[n]===4)continue;if(blockLocks&&g[n]===3)continue;dist[n]=dist[jj]+1;q.push(n);}}return dist;}
+  var start=Ly.start,sx=Ly.sJ%w,sy=(Ly.sJ/w)|0,exitRoom=Ly.exitRoom,lockA=Ly.lockA,vault=Ly.vault,exitJ=Ly.exitJ;
+  var d0=bfs(sx,sy,false);function rdist(rm){return d0[Ly.center(rm)];}
+  // 7. content by distance from the critical path (F): on it (0-1) the key route, near it (2-6) common loot and minor mobs, far (7+) rare loot and secrets
+  var F=Ly.field,PI=Ly.pidx,plen=Ly.path.length,B=cfg.bands;function prog(q){return PI[q]>=0?PI[q]/Math.max(1,plen-1):0;}
+  function wsort(list,wf){var key=list.map(function(q){return Math.pow(R(),1/Math.max(.01,wf(q)));});var ix=list.map(function(q,ii){return ii;});ix.sort(function(a,b){return key[b]-key[a];});return ix.map(function(ii){return list[ii];});} /* weighted random order */
+  var obj={};obj[exitJ]='X';obj[sy*w+sx]='p';
+  //    the key: in a side branch at medium distance (2-6) from the path, reachable without passing the lock, not right by the start
+  var dOpen=bfs(sx,sy,true),open1=0,kc=[];for(j=0;j<N;j++){if(g[j]!==1||dOpen[j]<=0)continue;open1++;if(!obj[j]&&!inRoom(start,j)&&F[j]>=2&&F[j]<=B.near)kc.push(j);}
+  if(open1<20)return null;if(kc.length<3)for(j=0;j<N;j++)if(g[j]===1&&dOpen[j]>0&&!obj[j]&&!inRoom(start,j)&&F[j]>=1&&kc.indexOf(j)<0)kc.push(j);if(!kc.length)return null;
+  kc.sort(function(p,q){return dOpen[q]-dOpen[p];});obj[pick(kc.slice(0,Math.max(1,Math.ceil(kc.length*.6))))]='k';
   if(vault){var vc=[];for(j=0;j<N;j++)if(inRoom(vault,j)&&!obj[j])vc.push(j);shuffle(vc);obj[vc[0]]='k';obj[vc[1]]='h';for(i=2;i<5&&i<vc.length;i++)obj[vc[i]]='c';}
+  //    room tags along the path: the treasure room is the one farthest off it (the vault on deeper floors); a shrine room off it from floor 3
+  function rF(rm){return F[Ly.center(rm)];}
+  var treasure=vault;if(!treasure){var tc=rooms.filter(function(rm){return rm.tag==='normal';}).sort(function(p,q){return rF(q)-rF(p);});if(tc.length&&rF(tc[0])>=2){treasure=tc[0];treasure.tag='treasure';}}
+  if(lvl>=3){var shc=rooms.filter(function(rm){return rm.tag==='normal'&&rm.w>=3&&rm.h>=3&&rF(rm)>=2;});if(shc.length)pick(shc).tag='shrine';}
   // fences: single wall cells between two floor cells with walls on both sides become see-through windows
   var fc=[];for(y=2;y<h-2;y++)for(x=2;x<w-2;x++){j=y*w+x;if(g[j])continue;var hz=g[j-1]===1&&g[j+1]===1&&!g[j-w]&&!g[j+w],vt=g[j-w]===1&&g[j+w]===1&&!g[j-1]&&!g[j+1];if(!(hz||vt))continue;
     var bad=false;for(var yy=-1;yy<=1&&!bad;yy++)for(var xx=-1;xx<=1;xx++){var gv=g[j+yy*w+xx];if(gv>=2){bad=true;break;}}if(!bad)fc.push(j);}
   shuffle(fc);var nf=Math.min(fc.length,2+Math.min(5,lvl));for(i=0,k=0;i<fc.length&&k<nf;i++){j=fc[i];var bad2=false;for(yy=-1;yy<=1;yy++)for(xx=-1;xx<=1;xx++)if(g[j+yy*w+xx]===4)bad2=true;if(bad2)continue;g[j]=4;k++;}
   // enemies and pickups, scaled by level
-  var dAll=bfs(sx,sy,false),free=[];for(j=0;j<N;j++)if(g[j]===1&&dAll[j]>=0&&!obj[j])free.push(j);shuffle(free);
+  var dAll=bfs(sx,sy,false),free=[];for(j=0;j<N;j++)if(g[j]===1&&dAll[j]>=0&&!obj[j])free.push(j);
+  var mobOrder=wsort(free,function(q){var pr=.12+.88*prog(q);return pr*pr*(F[q]<=B.near?1:.5);}); /* M1.36: rooms escalate along the path; minor mobs mostly on or near it */
   var pool=MOB_POOLS[Math.min(5,lvl)],feat=(FEATURED[lvl]||[]).slice(),ne=mobCountFor(lvl),placed=[]; /* M16: L3 also gets a guaranteed kettle and one extra mob so it's tougher than L2 */ /* M1.5-B2: L5 gets one extra mob */
-  for(i=0;i<free.length&&placed.length<ne;i++){j=free[i];if(obj[j]||dAll[j]<7||j===exitJ)continue;var near=false;for(k=0;k<placed.length;k++){var pj=placed[k];if(Math.abs(pj%w-j%w)+Math.abs(((pj/w)|0)-((j/w)|0))<3){near=true;break;}}if(near)continue;
+  for(i=0;i<mobOrder.length&&placed.length<ne;i++){j=mobOrder[i];if(obj[j]||dAll[j]<7||j===exitJ)continue;var near=false;for(k=0;k<placed.length;k++){var pj=placed[k];if(Math.abs(pj%w-j%w)+Math.abs(((pj/w)|0)-((j/w)|0))<3){near=true;break;}}if(near)continue;
     var type=feat.length?feat.shift():pick(pool);obj[j]=MOBS[type].ch;placed.push(j);}
-  var nc=coinCountFor(lvl),nh=1+(lvl>=5?1:0);for(i=0;i<free.length&&(nc>0||nh>0);i++){j=free[i];if(obj[j])continue;if(nh>0&&dAll[j]>5){obj[j]='h';nh--;}else if(nc>0){obj[j]='c';nc--;}}
+  var nc=coinCountFor(lvl),nh=1+(lvl>=5?1:0);
+  if(treasure&&!vault){var tq=[];for(j=0;j<N;j++)if(inRoom(treasure,j)&&g[j]===1&&!obj[j])tq.push(j);shuffle(tq);if(tq.length){obj[tq[0]]='h';nh--;}for(i=1;i<3&&i<tq.length;i++){obj[tq[i]]='c';nc--;}} /* the treasure room off the path */
+  function nook(q){return Ly.keepTip[q]||(g[q]===1&&!isRoom(reg[q])&&((g[q-1]?1:0)+(g[q+1]?1:0)+(g[q-w]?1:0)+(g[q+w]?1:0))===1);}
+  var heartOrder=wsort(free,function(q){return F[q]>B.near||nook(q)?1:.08;}),coinOrder=wsort(free,function(q){return F[q]>B.path&&F[q]<=B.near?1:F[q]>B.near?.6:.35;});
+  for(i=0;i<heartOrder.length&&nh>0;i++){j=heartOrder[i];if(obj[j]||dAll[j]<=5)continue;obj[j]='h';nh--;} /* rare loot: far pockets and dead-end nooks */
+  for(i=0;i<coinOrder.length&&nc>0;i++){j=coinOrder[i];if(obj[j])continue;obj[j]='c';nc--;} /* common loot: just off the path */
   // facing: the direction with the longest open run from the start
   var best=0,bestA=0;[[1,0,0],[0,1,Math.PI/2],[-1,0,Math.PI],[0,-1,-Math.PI/2]].forEach(function(d){var n=0,qx=sx,qy=sy;while(g[(qy+d[1])*w+qx+d[0]]===1){qx+=d[0];qy+=d[1];n++;}if(n>best){best=n;bestA=d[2];}});
   // M18: a slot machine on some floors (always on floor 3, 45% of other floors from 2), against a room wall; it must not block any path
@@ -620,7 +680,7 @@ function genTry(s,lvl,lseed){
   // The exit door is no longer locked (the key it needed is gone; with a vault, the vault's spare key goes); the portal stays sealed until the boss falls.
   var bossI=bossFor(lvl),arena=null,bossJ=-1;
   if(bossI){var ac=rooms.filter(function(rm){return rm!==start&&rm!==shopRoom&&rm!==slotRoom&&rm!==vault;}).sort(function(a,b){return b.w*b.h-a.w*a.h||rdist(b)-rdist(a);});
-    arena=exitRoom.w*exitRoom.h>=35?exitRoom:(ac[0]||exitRoom);var acx=arena.x+(arena.w>>1),acy=arena.y+(arena.h>>1),bc=[];
+    var acL=ac.filter(function(rm){return prog(Ly.center(rm))>=.6&&rm!==treasure;});arena=exitRoom.w*exitRoom.h>=35?exitRoom:(acL[0]||ac.slice().sort(function(p,q){return prog(Ly.center(q))-prog(Ly.center(p));})[0]||exitRoom);arena.tag='arena'; /* M1.36: a big arena near the exit */var acx=arena.x+(arena.w>>1),acy=arena.y+(arena.h>>1),bc=[];
     for(y=arena.y;y<arena.y+arena.h;y++)for(x=arena.x;x<arena.x+arena.w;x++){j=y*w+x;if(g[j]===1&&!obj[j]&&!(arena===exitRoom&&Math.abs(x-exitJ%w)+Math.abs(y-((exitJ/w)|0))<2))bc.push(j);}
     bc.sort(function(a,b){return (Math.abs(a%w-acx)+Math.abs(((a/w)|0)-acy))-(Math.abs(b%w-acx)+Math.abs(((b/w)|0)-acy));});
     if(bc.length){bossJ=bc[0];var movedB=[];for(y=arena.y;y<arena.y+arena.h;y++)for(x=arena.x;x<arena.x+arena.w;x++){j=y*w+x;if(mobCh[obj[j]]){movedB.push(obj[j]);delete obj[j];}}
@@ -636,7 +696,7 @@ function genTry(s,lvl,lseed){
           var span=dx?rh:rw;for(var off=0;off<span;off++){var x0,y0;if(dx){x0=dx>0?cx+1:cx-rw;y0=cy-off;}else{y0=dy>0?cy+1:cy-rh;x0=cx-off;}
             if(x0<1||y0<1||x0+rw>w-1||y0+rh>h-1)continue;var okR=true;for(var yy=y0-1;yy<=y0+rh&&okR;yy++)for(var xx=x0-1;xx<=x0+rw;xx++){if(rlx&&(yy===y0-1||yy===y0+rh)&&(xx===x0-1||xx===x0+rw))continue;if(g[yy*w+xx]!==0||(obj[yy*w+xx]&&obj[yy*w+xx]!=='#')){okR=false;break;}}
             if(okR)cand.push({cx:cx,cy:cy,fx:cx-dx,fy:cy-dy,x:x0,y:y0,w:rw,h:rh});}}}
-      if(cand.length)secret=p9(cand);}
+      if(cand.length){var tier=function(c){var fq=c.fy*w+c.fx;return F[fq]>B.near||nook(fq)?2:F[fq]>2?1:0;},top=Math.max.apply(null,cand.map(tier));secret=p9(cand.filter(function(c){return tier(c)===top;}));}}
     if(!secret)return;for(var yy=secret.y;yy<secret.y+secret.h;yy++)for(var xx=secret.x;xx<secret.x+secret.w;xx++)g[yy*w+xx]=1;
     var inner=[];for(yy=secret.y;yy<secret.y+secret.h;yy++)for(xx=secret.x;xx<secret.x+secret.w;xx++)inner.push(yy*w+xx);
     var entry=inner.slice().sort(function(a,b){return (Math.abs(a%w-secret.cx)+Math.abs(((a/w)|0)-secret.cy))-(Math.abs(b%w-secret.cx)+Math.abs(((b/w)|0)-secret.cy));});
@@ -659,7 +719,7 @@ function genTry(s,lvl,lseed){
         if(cs.length){obj[p9(cs)]=MOBS[p9(pool9)].ch;extraMobs++;placedM=true;}}
       if(!placedM&&addDeco(rm,1+Math.floor(R9()*3))===0&&rm!==start&&rm!==shopRoom&&nMob()<MOBCAP9){var cs2=[];for(yy=rm.y;yy<rm.y+rm.h;yy++)for(xx=rm.x;xx<rm.x+rm.w;xx++){q=yy*w+xx;if(g[q]===1&&!obj[q]&&!pitA[q]&&reachA[q]>=7)cs2.push(q);}if(cs2.length){obj[p9(cs2)]=MOBS[p9(pool9)].ch;extraMobs++;}}}
     else if(R9()<.3)addDeco(rm,1);});
-  var nMobs9=0;for(j=0;j<N;j++)if(mobCh[obj[j]])nMobs9++;
+  var nMobs9=0,mobsE=0,mobsL=0,heartsF=0,heartsN=0,keyF=-1;for(j=0;j<N;j++){if(mobCh[obj[j]]){nMobs9++;if(prog(j)<.5)mobsE++;else mobsL++;}if(obj[j]==='h'&&!inRoom(vault,j)&&!inRoom(treasure,j)){heartsN++;if(F[j]>B.near||nook(j))heartsF++;}if(obj[j]==='k'&&!inRoom(vault,j))keyF=F[j];}
   // 5. characters
   /* M1.31: the new layouts are tighter; a floor that ends up with no secret room or with an empty room is thrown away and
      the next attempt is used (genLevel tries up to 60), so every generated floor keeps both rules */
@@ -671,7 +731,8 @@ function genTry(s,lvl,lseed){
     else if(gv2===2)ch='D';else if(gv2===3)ch='L';else if(gv2===4)ch='F';else if(P9&&P9[j])ch='P';else ch=O9[j]||'.';row+=ch;}out.push(row);}return out;}
   rows=rowsOf(g,obj,pitA);var map18=rowsOf(g18,obj18,null);
   return {name:'LEVEL '+lvl+': '+theme.name,ang:bestA,floor:theme.floor,ceil:theme.ceil,map:rows,map18:map18,gen:true,seed:lseed,lvl:lvl,rooms:rooms.length,locks:vault?2:1,enemies:nMobs9,enemies18:placed.length,
-    boss:bossI?{type:bossI.type,x:bossJ%w,y:(bossJ/w)|0,room:{x:arena.x,y:arena.y,w:arena.w,h:arena.h},exitArena:arena===exitRoom}:null,secret:secret,shop:shopJ>=0?{x:shopJ%w,y:(shopJ/w)|0,room:shopRoom}:null,pits:pitList.length,decos:decoN,extraMobs:extraMobs,roomRects:rooms.map(function(r){return {x:r.x,y:r.y,w:r.w,h:r.h,start:r===start,shop:r===shopRoom};})};
+    boss:bossI?{type:bossI.type,x:bossJ%w,y:(bossJ/w)|0,room:{x:arena.x,y:arena.y,w:arena.w,h:arena.h},exitArena:arena===exitRoom}:null,secret:secret,shop:shopJ>=0?{x:shopJ%w,y:(shopJ/w)|0,room:shopRoom}:null,pits:pitList.length,decos:decoN,extraMobs:extraMobs,layout:{rooms:rooms.length,pathLen:plen,keyF:keyF,mobsEarly:mobsE,mobsLate:mobsL,heartsFar:heartsF,hearts:heartsN,deadEnds:Ly.stats.deadEnds,stubs:Ly.stats.stubs,braids:Ly.stats.braids,extra:Ly.stats.extra,pathLoops:Ly.stats.pathLoops,tags:rooms.map(function(r){return r.tag;})},
+    roomRects:rooms.map(function(r){return {x:r.x,y:r.y,w:r.w,h:r.h,start:r===start,shop:r===shopRoom,tag:r===shopRoom?'shop':r.tag};})};
 }
 var levelCache={};
 function levelDef(idx){if(idx===0)return LEVELS[0];var key=G.seed+':'+(idx+1);if(!levelCache[key])levelCache[key]=genLevelFor(G.seed,idx+1);return levelCache[key];}
@@ -1259,6 +1320,7 @@ function addFloorExtras(idx){var L=G.L,floor=idx+1,out={};if(idx<1)return out;va
   // 2. shrine against a room wall
   R=rng(hashSeed(G.seed+':'+floor+':shrine'));if(floor>=3&&R()<SHRINE.chance){var sc=[];rr.forEach(function(r){if(r.w<3||r.h<3)return;for(var y=r.y;y<r.y+r.h;y++)for(var x=r.x;x<r.x+r.w;x++){if(x!==r.x&&x!==r.x+r.w-1&&y!==r.y&&y!==r.y+r.h-1)continue;var c=C(x,y),j=y*W0+x;if(c.t!==0||used[j]||dist[j]<3||nearDoor(x,y)||inA(x,y))continue;
       var nw=0;[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(o){var g=C(x+o[0],y+o[1]);if(g&&g.t===1)nw++;});if(nw&&!pitNear(x,y))sc.push(c);}});
+    var shR=(L.def.roomRects||[]).filter(function(r){return r.tag==='shrine';})[0],scS=sc.filter(function(c){return inR(shR,c.x,c.y);});if(scS.length)sc=scS; /* M1.36: the shrine room the generator tagged */
     if(sc.length){var sh=sc[Math.floor(R()*sc.length)];sh.t=8;L.shrine={x:sh.x,y:sh.y};used[sh.y*W0+sh.x]=1;out.shrine={x:sh.x,y:sh.y};G.dist=null;}}
   // 3. coin trapdoor (never on a boss floor)
   R=rng(hashSeed(G.seed+':'+floor+':trap'));if(!boss&&R()<TRAP.chance){var tc=[];rr.forEach(function(r){for(var y=r.y+1;y<r.y+r.h-1;y++)for(var x=r.x+1;x<r.x+r.w-1;x++){var c=C(x,y),j=y*W0+x;if(c.t!==0||used[j]||dist[j]<4||nearDoor(x,y)||pitNear(x,y))continue;tc.push(c);}});
@@ -1276,10 +1338,10 @@ function updateDoors(dt){G.L.doors.forEach(function(d){
   if(d.state==='opening'){d.open+=dt*1.8;if(d.open>=1){d.open=1;d.state='open';d.timer=4;}}
   else if(d.state==='open'){d.timer-=dt;if(d.timer<=0){if(cellOccupied(d))d.timer=.5;else{d.state='closing';SFX.door();}}}
   else if(d.state==='closing'){if(cellOccupied(d)){if(!d.bossLock)d.state='opening';}else{d.open-=dt*1.8;if(d.open<=0){d.open=0;d.state='closed';}}}});}
-function computeDist(fly){var L=G.L,n=L.w*L.h,dist=new Int16Array(n).fill(-1),q=new Int32Array(n),h=0,t=0,s=Math.floor(G.p.y)*L.w+Math.floor(G.p.x);dist[s]=0;q[t++]=s;
+function computeDist(fly){var L=G.L,n=L.w*L.h,dist=new Int16Array(n).fill(-1),q=new Int32Array(n),h=0,t=0,s=Math.floor(G.p.y)*L.w+Math.floor(G.p.x);if(!(s>=0&&s<n))return dist; /* off the map (never in play): nobody paths */dist[s]=0;q[t++]=s;
   while(h<t){var i=q[h++],x=i%L.w,y=(i/L.w)|0,nb=[[x+1,y],[x-1,y],[x,y+1],[x,y-1]];for(var k=0;k<4;k++){var nx=nb[k][0],ny=nb[k][1];if(nx<0||ny<0||nx>=L.w||ny>=L.h)continue;var j=ny*L.w+nx;if(dist[j]>=0)continue;var c=L.cells[j];if(c.t===1||c.t===3||c.t===5||c.t===7||c.t===8||c.t===10||(!fly&&c.t===6)||(c.t===2&&c.open<.8))continue;dist[j]=dist[i]+1;if(dist[j]<24)q[t++]=j;}}
   return dist;}
-function computeDistG(){var L=G.L,n=L.w*L.h,dist=new Int16Array(n).fill(-1),q=new Int32Array(n),h=0,t=0,s=Math.floor(G.p.y)*L.w+Math.floor(G.p.x);dist[s]=0;q[t++]=s;
+function computeDistG(){var L=G.L,n=L.w*L.h,dist=new Int16Array(n).fill(-1),q=new Int32Array(n),h=0,t=0,s=Math.floor(G.p.y)*L.w+Math.floor(G.p.x);if(!(s>=0&&s<n))return dist; /* off the map (never in play): nobody paths */dist[s]=0;q[t++]=s;
   while(h<t){var i=q[h++],x=i%L.w,y=(i/L.w)|0,nb=[i+1,i-1,i+L.w,i-L.w],ok=[x+1<L.w,x>0,y+1<L.h,y>0];for(var k=0;k<4;k++){if(!ok[k])continue;var j=nb[k];if(dist[j]>=0)continue;var c=L.cells[j];if(c.t===1||c.t===5||c.t===7||c.t===8||c.t===10)continue;dist[j]=dist[i]+1;if(dist[j]<30)q[t++]=j;}}return dist;}
 function mobZ(e){if(e.mount&&!e.mount.gone&&e.mount.state!=='dead')return mobZ(e.mount)+MOBS[e.mount.type].h*(e.mount.scale||1)*.8;if(e.flying&&!MOBS[e.type].fly)return .32+Math.sin(e.ph*2.5)*.06;switch(e.type){case 'yellow':return .02+Math.sin(e.ph*1.4)*.02;case 'masque':return .1+Math.sin(e.ph*1.8)*.04;case 'king':return .18+Math.sin(e.ph*2)*.05;case 'owl':return .2+Math.sin(e.ph*2.3)*.05;case 'screamer':return .30+Math.sin(e.ph*3)*.07;case 'springle':return e.z;case 'wisp':return .1+Math.sin(e.ph*2)*.05;case 'zapfly':return .32+Math.sin(e.ph*5)*.07;default:return 0;}}
 function headZ(e){return mobZ(e);}
@@ -2612,11 +2674,16 @@ api.kingForce=function(k){G.ents.forEach(function(e){if(e.type==='yellow'){e.atk
 api.bossIntro=true; /* tests may switch the cut scene off to start fights at once */
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
-api.sealed=function(){return !!G.L.sealed;};api.status=function(){var o={};var p=G.p;if(p&&p.st)Object.keys(p.st).forEach(function(k){o[k]=+p.st[k].t.toFixed(2);});return o;};api.addStatus=function(k,t){addStatus(k,t);};api.infernalName=function(i){return infernalName(G.ents[i]);};api.inf=INF;api.layout9=LAYOUT;api.layoutStats=function(seeds,floors){var o={floors:0,deadEnds:0,maxDead:0,loops:0,cells:0};seeds.forEach(function(sd){floors.forEach(function(f){var d=genLevel(levelSeed(String(sd),f),f),m=d.map,H=m.length,Wd=m[0].length,wall=function(c){return TEXCH[c]!==undefined||c==='F'||c==='Y'||c==='N';},op=function(x,y){return x>=0&&y>=0&&x<Wd&&y<H&&!wall(m[y][x]);};var V=0,E=0,dead=[];
+api.sealed=function(){return !!G.L.sealed;};api.status=function(){var o={};var p=G.p;if(p&&p.st)Object.keys(p.st).forEach(function(k){o[k]=+p.st[k].t.toFixed(2);});return o;};api.addStatus=function(k,t){addStatus(k,t);};api.infernalName=function(i){return infernalName(G.ents[i]);};api.inf=INF;api.layout9=LAYOUT;api.gen=GEN;api.genStats=function(seeds,floors){var o={keyBand:0,mobsEarly:0,mobsLate:0,heartsFar:0,hearts:0,floors:0,pathLen:0,minPath:1e9,maxPath:0,deadEnds:0,maxDeadEnds:0,stubs:0,braids:0,extra:0,pathLoops:0,attempts:0,treasure:0,tags:{},fallback:0};
+  seeds.forEach(function(sd){floors.forEach(function(f){var d=genLevel(levelSeed(String(sd),f),f);if(d.fallback){o.fallback++;return;}var L=d.layout;o.floors++;o.pathLen+=L.pathLen;o.minPath=Math.min(o.minPath,L.pathLen);o.maxPath=Math.max(o.maxPath,L.pathLen);o.deadEnds+=L.deadEnds;o.maxDeadEnds=Math.max(o.maxDeadEnds,L.deadEnds);
+    o.keyBand+=(L.keyF>=2&&L.keyF<=GEN.bands.near)?1:0;o.mobsEarly+=L.mobsEarly;o.mobsLate+=L.mobsLate;o.heartsFar+=L.heartsFar;o.hearts+=L.hearts;o.stubs+=L.stubs;o.braids+=L.braids;o.extra+=L.extra;o.pathLoops+=L.pathLoops;o.attempts+=d.attempt;if(L.tags.indexOf('treasure')>=0)o.treasure++;L.tags.forEach(function(t){o.tags[t]=(o.tags[t]|0)+1;});});});
+  ['pathLen','deadEnds','stubs','braids','extra','pathLoops','attempts'].forEach(function(k){o[k]=+(o[k]/Math.max(1,o.floors)).toFixed(2);});return o;};
+api.layoutTime=function(wd,ht,seed){var c=genCfg(10,0);c.width=wd;c.height=ht;c.roomAttempts=Math.round(wd*ht/40);c.roomMax=11;c.maxDeadEnds=Math.round(wd*ht/100);var t=performance.now(),L=null,n=0;while(!L&&n<20){c.seed=hashSeed(seed+'/'+n);L=genLayout(c);n++;}
+  return {ms:+(performance.now()-t).toFixed(1),tries:n,ok:!!L,stats:genLayout.last};};api.layoutStats=function(seeds,floors){var o={floors:0,deadEnds:0,maxDead:0,loops:0,cells:0};seeds.forEach(function(sd){floors.forEach(function(f){var d=genLevel(levelSeed(String(sd),f),f),m=d.map,H=m.length,Wd=m[0].length,wall=function(c){return TEXCH[c]!==undefined||c==='F'||c==='Y'||c==='N';},op=function(x,y){return x>=0&&y>=0&&x<Wd&&y<H&&!wall(m[y][x]);};var V=0,E=0,dead=[];
     for(var y=0;y<H;y++)for(var x=0;x<Wd;x++){if(!op(x,y))continue;V++;var n=(op(x+1,y)?1:0)+(op(x-1,y)?1:0)+(op(x,y+1)?1:0)+(op(x,y-1)?1:0);if(op(x+1,y))E++;if(op(x,y+1))E++;if(n===1)dead.push([x,y]);}
     var md=0;dead.forEach(function(t){var len=0,px=-1,py=-1,cx=t[0],cy=t[1];while(len<200){var nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(q){var nx=cx+q[0],ny=cy+q[1];return op(nx,ny)&&!(nx===px&&ny===py);});var deg=nb.length+(px>=0?1:0);if(deg!==2&&len>0)break;if(!nb.length)break;px=cx;py=cy;cx+=nb[0][0];cy+=nb[0][1];len++;}md=Math.max(md,len);});
     o.floors++;o.deadEnds+=dead.length;o.maxDead=Math.max(o.maxDead,md);o.loops+=E-V+1;o.cells+=V;});});o.deadPerFloor=o.deadEnds/o.floors;o.loopsPerFloor=o.loops/o.floors;return o;};api.unlocks=function(){return loadUnlocks();};api.setUnlocks=function(o){saveUnlocks(o||{floors:[],last:1});G.startPicked=false;buildMenu();};api.startFloors=function(){return startFloors();};api.startFloor=function(){return G.startFloor||1;};api.cycleStart=function(d){cycleStart(d);};api.entSet=function(i,o){var e=G.ents[i];if(e)Object.keys(o).forEach(function(k){e[k]=o[k];});};api.clearBody=function(a,b,c,d,r){return clearBody(a,b,c,d,r);};api.keyHeld=function(c){return !!keys[c];};api.watchdog=function(){inputWatchdog();};api.hitWith=function(i,src){hitEnemy(G.ents[i],src||{dmg:1,ball:'blue',hits:[]});};api.infWorld=function(){return {bolts:G.bolts.length,webs:G.webs.length,pots:G.pots.length,fires:G.fires.length};};api.mounted=function(i){var e=G.ents[i];return e&&e.mount?G.ents.indexOf(e.mount):-1;};api.entInfo=function(i){var e=G.ents[i];return e?{type:e.type,hp:e.hp,maxHp:e.maxHp,state:e.state,gone:!!e.gone,stolen:e.stolen||null,usedLife:!!e.usedLife,x:e.x,y:e.y,child:!!e.child,flying:!!e.flying}:null;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.35-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.36-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

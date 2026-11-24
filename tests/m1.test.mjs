@@ -39,6 +39,7 @@ const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy mask
 const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status effects, 1 px glow)
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
+const V136=atLeast('1.36'); // M1.36+: new level generator (rooms and mazes, growing tree, braiding, distance-map content)
 const V135=atLeast('1.35'); // M1.35+: the treasure knight smashes doors and fences; doors match their wall style
 const V131=atLeast('1.31'); // M1.31+: no dead-end corridors (long ones link back, short spurs pruned)
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
@@ -60,9 +61,10 @@ const RETIRED_M123=[/^M1\.4 (walking over a power-up|slot full|same item already
   /^phone: ITEM button only shows/,/^M1\.9 (a used power-up lasts|power-ups stack for the floor|every effect ends on the next floor|rebalance values|shop rows: Red|keyboard: W\/S choose|mouse: click a row|single-use power-ups fill|CONTINUE restores the permanent|gamepad: X talks|balloon type switching|touch: the BALL button)/,
   /^M1\.17 a Torch pushes/];
 // M1.31 rebuilt the level layout on purpose (no dead ends), so the checks that pin floors to their older layouts retire from M1.31 on
+const RETIRED_M136=[/^M1\.31 no corridors that lead nowhere/];
 const RETIRED_M131=[/^M1\.8 floors 2-8 keep their M1\.7 layouts/,/^M1\.10 floors without a boss are generated exactly as in M1\.9\.1/];
 const retired=[];
-function check(name,cond,detail=''){if((V123&&RETIRED_M123.some(re=>re.test(name)))||(V131&&RETIRED_M131.some(re=>re.test(name)))){retired.push(name);console.log('RETIRED  '+name);return;}results.push({name,ok:!!cond,detail});if(!cond)failed++;console.log((cond?'PASS':'FAIL')+'  '+name+(detail?'  ('+detail+')':''));}
+function check(name,cond,detail=''){if((V123&&RETIRED_M123.some(re=>re.test(name)))||(V131&&RETIRED_M131.some(re=>re.test(name)))||(V136&&RETIRED_M136.some(re=>re.test(name)))){retired.push(name);console.log('RETIRED  '+name);return;}results.push({name,ok:!!cond,detail});if(!cond)failed++;console.log((cond?'PASS':'FAIL')+'  '+name+(detail?'  ('+detail+')':''));}
 const browser=await chromium.launch();
 const consoleProblems=[];const badRequests=[];
 async function newPage(opts={}){
@@ -299,7 +301,7 @@ async function m110Tests(){
   // ---- 1. generation: which floors, which boss, the arena, the unlocked exit door, keys
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m110-gen'});
-    const g=await G(page,()=>{const out={floors:0,bossFloors:0,wrongType:[],bad:[],noBossOk:true,arenaSizes:{},exitArena:0,tiers:{}};const B=__game.bosses,order=__game.bossOrder,ch={};order.forEach(t=>ch[B[t].ch]=t);
+    const g=await G(page,(V136)=>{const out={floors:0,bossFloors:0,wrongType:[],bad:[],noBossOk:true,arenaSizes:{},exitArena:0,tiers:{}};const B=__game.bosses,order=__game.bossOrder,ch={};order.forEach(t=>ch[B[t].ch]=t);
       for(let sd=1;sd<=30;sd++)for(let f=2;f<=60;f++){const d=__game.genMap(sd,f),m=d.map,RR=__game.genRooms(sd,f),h=m.length,w=m[0].length;out.floors++;
         let bosses=[],nk=0,nl=0,start=null,exit=null;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if(ch[c])bosses.push({t:ch[c],x,y});if(c==='k')nk++;if(c==='L')nl++;if(c==='p')start=[x,y];if(c==='X')exit=[x,y];}
         const want=__game.bossFor(f);if(!want){if(bosses.length){out.noBossOk=false;out.bad.push(`${sd}:${f} boss on a non-boss floor`);}continue;}
@@ -308,16 +310,19 @@ async function m110Tests(){
         if(A.start||A.shop)out.bad.push(`${sd}:${f} arena is the start or shop room`);const sz=A.w*A.h;out.arenaSizes[sz]=(out.arenaSizes[sz]||0)+1;
         const inA=(x,y)=>x>=A.x&&x<A.x+A.w&&y>=A.y&&y<A.y+A.h;if(inA(exit[0],exit[1]))out.exitArena++;
         const ringHas=(r,c)=>{for(let x=r.x-1;x<=r.x+r.w;x++)if(m[r.y-1][x]===c||m[r.y+r.h][x]===c)return true;for(let y=r.y;y<r.y+r.h;y++)if(m[y][r.x-1]===c||m[y][r.x+r.w]===c)return true;return false;},hasY=r=>{for(let y=r.y;y<r.y+r.h;y++)if(m[y].slice(r.x,r.x+r.w).includes('Y'))return true;return false;};
-        const biggest=Math.max(...RR.filter(r=>!r.start&&!r.shop&&!hasY(r)&&!ringHas(r,'L')).map(r=>r.w*r.h)); /* the slot machine's room and the vault are never arenas */if(!inA(exit[0],exit[1])&&sz<35&&sz<biggest)out.bad.push(`${sd}:${f} arena ${sz} smaller than the biggest room ${biggest}`);
+        const biggest=Math.max(...RR.filter(r=>!r.start&&!r.shop&&!hasY(r)&&!ringHas(r,'L')).map(r=>r.w*r.h)); /* the slot machine's room and the vault are never arenas */if(V136){ /* M1.36: a big arena near the exit - the exit room if it has 35+ cells, else a room in the back half of the route */
+          const dd=new Map([[start.join(),0]]),qq=[start];const wk=c=>!(/[#SWTMKRCVOABEIZ+=FPYN]/.test(c));while(qq.length){const [x,y]=qq.shift();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(dd.has(k)||!wk(m[ny][nx]))continue;dd.set(k,dd.get(x+','+y)+1);qq.push([nx,ny]);}}
+          const ac=(A.x+(A.w>>1))+','+(A.y+(A.h>>1)),de=dd.get(exit.join());if(!inA(exit[0],exit[1])&&sz<35&&!(dd.get(ac)>=.5*de))out.bad.push(`${sd}:${f} arena ${sz} not near the exit (${dd.get(ac)} of ${de} steps)`);}
+        else if(!inA(exit[0],exit[1])&&sz<35&&sz<biggest)out.bad.push(`${sd}:${f} arena ${sz} smaller than the biggest room ${biggest}`);
         for(let y=A.y;y<A.y+A.h;y++)for(let x=A.x;x<A.x+A.w;x++){const c=m[y][x];if(c==='P')out.bad.push(`${sd}:${f} pit in the arena`);if(/[ebtgrzs]/.test(c))out.bad.push(`${sd}:${f} mob ${c} in the arena`);}
         if(nk!==nl)out.bad.push(`${sd}:${f} keys ${nk} != locks ${nl}`);if(nl>1)out.bad.push(`${sd}:${f} ${nl} locks`);
         // reachable from the start without any key: boss and portal
         const seen=new Set([start.join()]),q=[start];const walk=c=>!(/[#SWTMKRCVOABEIZ+=FLPYN]/.test(c));while(q.length){const [x,y]=q.shift();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(seen.has(k)||!walk(m[ny][nx]))continue;seen.add(k);q.push([nx,ny]);}}
         if(!seen.has(b.x+','+b.y)||!seen.has(exit.join()))out.bad.push(`${sd}:${f} boss or portal not reachable without a key`);
         out.tiers[want.tier]=(out.tiers[want.tier]||0)+1;}
-      return out;});
+      return out;},V136);
     check(`M1.10 a boss on every 5th floor and nowhere else (${g.bossFloors} boss floors in ${g.floors} floors, 30 seeds x floors 2-60), in the order King Gloop, Luggernaut, Coghoot`,g.bossFloors===30*12&&g.noBossOk&&g.wrongType.length===0&&g.bad.filter(b=>/bosses|non-boss/.test(b)).length===0,JSON.stringify({wrong:g.wrongType.slice(0,4),bad:g.bad.slice(0,4)}));
-    check('M1.10 the arena is the exit room when it has 35+ cells, else the biggest room; never the start or shop room; no pits or other mobs inside',g.bad.filter(b=>/arena|pit|mob /.test(b)).length===0,JSON.stringify({bad:g.bad.filter(b=>/arena|pit|mob /.test(b)).slice(0,4),exitArena:g.exitArena,sizes:g.arenaSizes}));
+    check(V136?'M1.10 the arena is the exit room when it has 35+ cells, else a big room near the exit (M1.36); never the start or shop room; no pits or other mobs inside':'M1.10 the arena is the exit room when it has 35+ cells, else the biggest room; never the start or shop room; no pits or other mobs inside',g.bad.filter(b=>/arena|pit|mob /.test(b)).length===0,JSON.stringify({bad:g.bad.filter(b=>/arena|pit|mob /.test(b)).slice(0,4),exitArena:g.exitArena,sizes:g.arenaSizes}));
     check('M1.10 boss floors: the exit door is unlocked (keys match locks, at most the vault lock), and the boss and portal are reachable without a key',g.bad.filter(b=>/keys|locks|reachable/.test(b)).length===0,JSON.stringify(g.bad.filter(b=>/keys|locks|reachable/.test(b)).slice(0,4)));
     // non-boss floors are exactly as in M1.9.1; boss floors keep the M1.8 layout (map18)
     const cur=await G(page,()=>{const o={};for(const sd of [1,777,4242])for(let f=2;f<=26;f++){const d=__game.genMap(sd,f);o[sd+':'+f]=(__game.bossFor(f)?d.map18:d.map).join('\n');}return o;});
@@ -460,15 +465,15 @@ async function m111Tests(){
     const a=__game.knight();__game.damageMob(a.i,5);__game.advance(1.0);const b=__game.knight();__game.knightSet({shieldT:0,shieldCD:9});__game.damageMob(a.i,2);const c=__game.knight();
     return {hp0:a.hp,afterShield:b.hp,moved:Math.hypot(b.x-a.x,b.y-a.y),frame:a.frame,afterOpen:c.hp};});
   check('M1.11 with his shield up the knight takes no damage and does not move; shield down, hits land',kb.afterShield===kb.hp0&&kb.moved<0.02&&kb.frame===2&&kb.afterOpen===kb.hp0-2,JSON.stringify(kb));
-  const kc=await G(page,()=>{__game.setSeed(777);__game.startLevel(3);__game.state().enemies.forEach((e,i)=>{if(e.type!=='knight')__game.damageMob(i,99);});__game.advance(0.2);const k0=__game.knight();
-    let best=null;for(const [dx,dy,a] of [[3,0,Math.PI],[-3,0,0],[0,3,-Math.PI/2],[0,-3,Math.PI/2]]){const x=k0.x+dx,y=k0.y+dy;if(!__game.solidAt(x,y)&&__game.clearPath(k0.x,k0.y,x,y)){best=[x,y,a];break;}}if(!best)return {skip:true};
+  const kc=await G(page,(V136)=>{let k0,best=null;const pitFree=(x0,y0,dx,dy,n)=>{if(!V136)return true;for(let t=0;t<=n;t+=.25){const c=__game.cellAt(Math.floor(x0+dx*t),Math.floor(y0+dy*t));if(!c||c.t===6||__game.solidAt(x0+dx*t,y0+dy*t))return false;}return true;}; const toWall=(x0,y0,dx,dy)=>{if(!V136)return true;for(let t=0;t<40;t+=.25){const x=x0+dx*t,y=y0+dy*t,c=__game.cellAt(Math.floor(x),Math.floor(y));if(!c)return false;if(c.t===1)return true;if(c.t!==0)return false;}return false;}; /* M1.36: never stand on (or charge over) a pit, and the charge ends on a real wall; try more seeds for a clear setup */
+    for(const sd of V136?[777,778,779,780,781,782,783,784,785,786,787,788]:[777]){__game.setSeed(sd);__game.startLevel(3);__game.state().enemies.forEach((e,i)=>{if(e.type!=='knight')__game.damageMob(i,99);});__game.advance(0.2);k0=__game.knight();if(!k0)continue;for(const [dx,dy,a] of [[3,0,Math.PI],[-3,0,0],[0,3,-Math.PI/2],[0,-3,Math.PI/2]]){const x=k0.x+dx,y=k0.y+dy;if(!__game.solidAt(x,y)&&__game.clearPath(k0.x,k0.y,x,y)&&pitFree(k0.x,k0.y,dx/3,dy/3,3)&&toWall(k0.x,k0.y,dx/3,dy/3)){best=[x,y,a];break;}}if(best)break;}if(!best)return {skip:true};
     __game.teleport(best[0],best[1],best[2]);__game.knightSet({woke:true,state:'chase',chargeCD:0,shieldCD:9});let tele=false,charge=false,maxSp=0,daze=false,prev=__game.knight();
     for(let i=0;i<80;i++){__game.setHearts(5);const s=__game.advance(0.05);const k=__game.knight();if(k.tele>0)tele=true;if(k.chargeT>0){charge=true;maxSp=Math.max(maxSp,Math.hypot(k.x-prev.x,k.y-prev.y)/0.05);}if(k.daze>0)daze=true;prev=k;if(daze&&i>30)break;}
-    return {tele,charge,maxSp,daze,dents:__game.dents(),slams:__game.state().stats.knightSlams};});
+    return {tele,charge,maxSp,daze,dents:__game.dents(),slams:__game.state().stats.knightSlams};},V136);
   check('M1.11 the knight telegraphs, charges straight and fast (about 6.5 cells/s), slams into the wall (round crack) and is dazed',kc.skip||(kc.tele&&kc.charge&&kc.maxSp>5&&kc.daze&&kc.slams>=1&&kc.dents>=1),JSON.stringify(kc));
-  if(atLeast('1.14.2')){const sl=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(3);G.state().enemies.forEach((e,i)=>{if(e.type!=='knight')G.damageMob(i,99);});G.advance(0.3);const k=G.knight();let best=null;for(const [dx,dy,a] of [[1.4,0,Math.PI],[-1.4,0,0],[0,1.4,-Math.PI/2],[0,-1.4,Math.PI/2]]){if(!G.solidAt(k.x+dx,k.y+dy)&&G.clearPath(k.x,k.y,k.x+dx*2.2,k.y+dy*2.2)&&!G.solidAt(k.x+dx*2.2,k.y+dy*2.2)){best=[k.x+dx,k.y+dy,a];break;}}if(!best)return {skip:true};
+  if(atLeast('1.14.2')){const sl=await G(page,(V136)=>{const G=__game;let k,best=null;for(const sd of V136?[777,778,779,780,781,782,783,784,785,786,787,788]:[777]){G.setSeed(sd);G.startLevel(3);G.state().enemies.forEach((e,i)=>{if(e.type!=='knight')G.damageMob(i,99);});G.advance(0.3);k=G.knight();if(!k)continue;const pitFree=(x0,y0,dx,dy,n)=>{if(!V136)return true;for(let t=0;t<=n;t+=.25){const c=G.cellAt(Math.floor(x0+dx*t),Math.floor(y0+dy*t));if(!c||c.t===6||G.solidAt(x0+dx*t,y0+dy*t))return false;}return true;}; /* M1.36: room to be knocked back, no pit in the way; more seeds for a clear setup */for(const [dx,dy,a] of [[1.4,0,Math.PI],[-1.4,0,0],[0,1.4,-Math.PI/2],[0,-1.4,Math.PI/2]]){if(!G.solidAt(k.x+dx,k.y+dy)&&G.clearPath(k.x,k.y,k.x+dx*2.2,k.y+dy*2.2)&&!G.solidAt(k.x+dx*2.2,k.y+dy*2.2)&&pitFree(k.x,k.y,dx/1.4,dy/1.4,3.4)){best=[k.x+dx,k.y+dy,a];break;}}if(best)break;}if(!best)return {skip:true};
       G.teleport(best[0],best[1],best[2]);G.knightSet({woke:true,state:'chase',slamCD:0,chargeCD:9,shieldCD:9,atkT:9});G.setHearts(5);let tell=false,ring=0,s;const p0=G.state().player;const TF=G.rings?4:2;for(let i=0;i<60;i++){s=G.advance(0.05);if(G.knight().frame===TF)tell=true;if(G.rings)ring=Math.max(ring,G.rings().length);if(s.player.hearts<5)break;}
-      const p1=s.player;return {tell,ring,hearts:s.player.hearts,push:Math.hypot(p1.x-p0.x,p1.y-p0.y),cracks:G.cracks(),n:s.stats.knightSlamHits};});
+      const p1=s.player;return {tell,ring,hearts:s.player.hearts,push:Math.hypot(p1.x-p0.x,p1.y-p0.y),cracks:G.cracks(),n:s.stats.knightSlamHits};},V136);
     check(atLeast('1.19')?'M1.14.2/M1.19 up close the knight raises his sword overhead (flashing, 1.2 s) and slams: a ring of dust rolls out and hits for 2 + knockback':'M1.14.2 up close the knight raises his shield and slams it down: a ring of cracks, 2 damage and a knockback',sl.skip||(!atLeast('1.19')||sl.ring>=1)&&sl.tell&&sl.hearts===3&&sl.push>1&&sl.cracks>=1&&sl.n>=1,JSON.stringify(sl));}
   await G(page,()=>{const k=__game.knight();const s=__game.state();__game.teleport(s.player.x,s.player.y,Math.atan2(k.y-s.player.y,k.x-s.player.x));__game.advance(0.05);});await shot(page,'knight');
   if(!V123){ // M1.23 replaced golden, permanent and these power-ups with run items (m123Tests)
@@ -538,7 +543,7 @@ async function m112Tests(){
   const sk2=await G(page,()=>{__game.advance(3.2);return __game.faceT();});
   check('M1.12 a skitter runs at you fast and jumps on your face: the screen is covered for 3 s (no damage), then it fades',sk&&sk.t<1.5&&sk.hearts===5&&sk.face>2.8&&sk.gone&&sk2===0,JSON.stringify({sk,sk2}));
   const sp=await G(page,()=>{const G=__game;let skitt=0,big=0,floors=0;for(const sd of [777,4242,1,2]){G.setSeed(sd);G.startLevel(9,{hearts:5,coins:0,perm:{pit:50}});if(!G.pits().length)continue;floors++;G.state().enemies.forEach((e,i)=>G.damageMob(i,99));PITs:{}
-      for(let k=0;k<700;k++){G.setHearts(5);const s=G.advance(0.1);const pits=G.pits();if(k%50===0&&pits.length){const pp=pits[k/50%pits.length|0];G.teleport(pp.x+.5,pp.y-2.5);if(G.solidAt(pp.x+.5,pp.y-2.5))G.teleport(pp.x+.5,pp.y+3.5);}s.enemies.forEach(e=>{if(e.spawned&&e.type==='skitter')skitt++;if(e.spawned&&e.type==='bigspider')big++;});}}
+      for(let k=0;k<700;k++){G.setHearts(5);const s=G.advance(0.1);const pits=G.pits();if(k%50===0&&pits.length){const pp=pits[k/50%pits.length|0];const st0=G.state(),inMap=(x,y)=>x>0&&y>0&&x<st0.mapW-1&&y<st0.mapH-1;const spots=[[pp.x+.5,pp.y-2.5],[pp.x+.5,pp.y+3.5],[pp.x-2.5,pp.y+.5],[pp.x+3.5,pp.y+.5]].filter(([x,y])=>inMap(x,y)&&!G.solidAt(x,y));if(spots.length)G.teleport(spots[0][0],spots[0][1]);} /* M1.36: stay inside the map (pits can sit near its edge) */s.enemies.forEach(e=>{if(e.spawned&&e.type==='skitter')skitt++;if(e.spawned&&e.type==='bigspider')big++;});}}
     G.startLevel(9,{hearts:5,coins:0,perm:{pit:50}});const b=G.spawn('bigspider',1,1,false,[]);return {floors,skitt:skitt>0,big:big>0,lvl:G.spiderLvl(),bigHp:__game.state().enemies[b].hp};});
   check('M1.12 at 50 coins big Brood Spiders (8 HP) also climb out of the pits and attack, alongside the skitters',sp.lvl===2&&sp.skitt&&sp.big&&sp.bigHp===8,JSON.stringify(sp));
   // ---- floor 15
@@ -577,8 +582,8 @@ async function m112Tests(){
   await shot(page,'coin_door_open');
   const shr=await G(page,()=>{const G=__game;for(const sd of [1,2,3,4,5,6,7,8,9,10])for(let f=3;f<=12;f++){G.setSeed(sd);G.startLevel(f-1,{hearts:3,coins:40,perm:{}});const e=G.extras();if(!e.shrine)continue;const c=e.shrine;
       const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];for(const d of dirs){const x=c.x+d[0],y=c.y+d[1];if(G.cellType(x,y)===0){G.teleport(x+.5,y+.5,d[2]);break;}}G.state().enemies.forEach((e2,i)=>G.damageMob(i,99));G.advance(0.8);
-      const ut=G.state().useTarget;G.use();let s=G.advance(0.1);const c1=s.player.coins,msg=s.msg;G.use();s=G.advance(0.1);return {ut:!!ut,c1,msg,again:s.msg,c2:s.player.coins};}return null;});
-  check('M1.12 a shrine takes 15 coins for a blessing (or, rarely, a curse), once per floor',shr&&shr.ut&&shr.c1<=25&&/BLESSED|CURSED/.test(shr.msg)&&/SILENT/.test(shr.again),JSON.stringify(shr));
+      const ut=G.state().useTarget,c0=G.state().player.coins;G.use();let s=G.advance(0.1);const c1=s.player.coins,msg=s.msg;G.use();s=G.advance(0.1);return {ut:!!ut,c0,c1,msg,again:s.msg,c2:s.player.coins};}return null;});
+  check('M1.12 a shrine takes 15 coins for a blessing (or, rarely, a curse), once per floor',shr&&shr.ut&&(V136?shr.c1<=shr.c0-14:shr.c1<=25)&& /* M1.36: a coin may lie next to the shrine; count from just before the offering *//BLESSED|CURSED/.test(shr.msg)&&/SILENT/.test(shr.again),JSON.stringify(shr));
   await shot(page,'shrine');
   const trp=await G(page,()=>{const G=__game;for(const sd of [1,2,3,4,5,6,7,8,9,10])for(let f=2;f<=12;f++){if(f%5===0)continue;G.setSeed(sd);G.startLevel(f-1,{hearts:5,coins:20,perm:{}});const e=G.extras();if(!e.trap)continue;G.state().enemies.forEach((e2,i)=>G.damageMob(i,99));G.advance(0.05);
       G.teleport(e.trap.x+.5,e.trap.y+.5);G.advance(0.05);const near=G.nearUse();G.use();let s=G.advance(0.2);const mode=s.mode;s=G.advance(1.2);return {f,near,mode,level:s.level,m2:s.mode,coins:s.player.coins};}return null;});
@@ -963,6 +968,25 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m136Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m136'});
+  const r=await G(page,()=>{const G=__game,t0=performance.now(),st=G.genStats([1,2,3,4,5,6,7,8,9,10,777,4242],[2,4,6,8,10,13,20,30]);st.ms=Math.round(performance.now()-t0);
+    const ls=G.layoutStats([1,2,3,4,5,6,7,8,9,10,777,4242],[2,4,6,8,10,13,20,30]);const a=JSON.stringify(G.genMap(55,9).map),b=JSON.stringify(G.genMap(55,9).map),c=JSON.stringify(G.genMap(56,9).map);
+    const big=G.layoutTime(151,151,7);return {st,ls,same:a===b,differ:a!==c,big,cfg:G.gen};});
+  const st=r.st,cfg=r.cfg;
+  check('M1.36 every knob lives in one config (room attempts and sizes, newestBias 0.8, extra connectors 0.08, stubs up to 3 kept 25%, braid 0.1, 1-2 path loops, distance bands)',cfg&&cfg.newestBias===.8&&cfg.extraConnectorChance===.08&&cfg.maxStubLength===3&&cfg.keepDeadEndChance===.25&&cfg.braidChance===.1&&cfg.criticalPathLoops.join()==='1,2'&&cfg.bands.near===6&&'roomAttempts' in cfg&&'roomMin' in cfg&&'roomMax' in cfg,JSON.stringify(cfg));
+  check(`M1.36 every floor passes validation on a seed (96 floors, no fallback, ${st.attempts} retries per floor on average): exit and all rooms reachable, at most ${st.maxDeadEnds} dead ends (avg ${st.deadEnds}), critical path ${st.minPath}-${st.maxPath} tiles`,st.floors===96&&st.fallback===0&&st.maxDeadEnds<=cfg.maxDeadEnds&&st.minPath>=20,JSON.stringify(st));
+  check(`M1.36 dead ends are short nooks: the longest is ${r.ls.maxDead} cells (stubs are trimmed to 3; the secret-room pocket or slot alcove can add one)`,r.ls.maxDead<=cfg.maxStubLength+1,JSON.stringify(r.ls));
+  check(`M1.36 loops: extra connectors (${st.extra}/floor), braided dead ends (${st.braids}/floor) and 1-2 loops around the critical path (${st.pathLoops}/floor)`,st.extra>3&&st.pathLoops>=1&&st.braids>0,JSON.stringify({extra:st.extra,braids:st.braids,pathLoops:st.pathLoops}));
+  check(`M1.36 room tags: a start and a treasure room on every floor (${st.treasure}/96), an arena on every boss floor (${st.tags.arena||0}), shrine rooms off the path`,st.treasure===96&&st.tags.start===96&&(st.tags.arena||0)===36&&(st.tags.shrine||0)>40,JSON.stringify(st.tags));
+  check(`M1.36 content by distance from the critical path: the key sits 2-6 tiles off it on ${st.keyBand}/96 floors; rooms escalate: clearly more mobs in the second half of the route (${st.mobsLate}) than the first (${st.mobsEarly}); hearts mostly in far pockets or nooks (${st.heartsFar} of ${st.hearts})`,st.keyBand>=90&&st.mobsLate>st.mobsEarly*1.3&&st.heartsFar>=st.hearts*.6,JSON.stringify({keyBand:st.keyBand,early:st.mobsEarly,late:st.mobsLate,heartsFar:st.heartsFar,hearts:st.hearts}));
+  check('M1.36 the same seed always gives the same map; another seed gives another',r.same&&r.differ);
+  check(`M1.36 a 151 x 151 layout generates in ${r.big.ms} ms (under 250)`,r.big.ok&&r.big.ms<250,JSON.stringify(r.big));
+  await G(page,()=>{const G=__game;G.manual=true;G.setSeed(4242);G.startLevel(7,{hearts:5,coins:0});G.seeAll&&G.seeAll();G.clearMobs();G.openMap();G.advance(0.05);});
+  await page.screenshot({path:`${SHOTS}/m136_layout_map.png`});
+  await ctx.close();
+}
+
 async function m135Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m135'});
   const st=await G(page,()=>{const G=__game,styles={},sigs={};G.manual=true;G.freeze=false;
@@ -1052,6 +1076,7 @@ if(V129&&want('m129')){ await m129Tests(); }
 if(V130&&want('m130')){ await m130Tests(); }
 if(V131&&want('m131')){ await m131Tests(); }
 if(V135&&want('m135')){ await m135Tests(); }
+if(V136&&want('m136')){ await m136Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2221,18 +2246,18 @@ async function m16Tests(){
     const cols=await G(page,()=>__game.modCols());const hx=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)],dist=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
     const wisp=[[0xf5,0x9a,0xc0],[0xff,0xb8,0xe4]];
     const pairs=[['ranged','kettle'],['slime','springle'],['beefy','clunk'],['fast','screamer'],['regen','wisp']];
-    const r=await G(page,({pairs,cols,V17})=>{const hx=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];const D=__game.dims;
+    const r=await G(page,({pairs,cols,V17,V136})=>{const hx=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];const D=__game.dims;
       const hsv=p=>{const [r,g,b]=p.map(v=>v/255),mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d+6)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;}return [h*60,mx?d/mx:0,mx];};
       const hd=(a,b)=>{const d=Math.abs(a-b)%360;return Math.min(d,360-d);};
       const grab=()=>{const a=[];for(let y=0;y<D.H;y++)for(let x=0;x<D.W;x++)a.push(__game.pixelAt(x,y));return a;};
-      const set=(t,m)=>{__game.manual=true;__game.viewOverride=14; /* M1.17: this check looks 6 cells away, past the fog */__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.setHearts(99);__game.teleport(7.5,1.5,0);__game.freeze=true;if(t)__game.spawn(t,13.5,1.5,false,m?[m]:[]);__game.advance(0.02);};
+      const set=(t,m)=>{__game.manual=true;__game.viewOverride=14; /* M1.17: this check looks 6 cells away, past the fog */__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.setHearts(99);let P=[7,1];if(V136){const st=__game.state();outer:for(let y=1;y<st.mapH-1;y++)for(let x=1;x<st.mapW-9;x++){let ok=true;for(let k=0;k<=6&&ok;k++){const c=__game.cellAt(x+k,y);if(!c||c.t!==0)ok=false;}const e=__game.cellAt(x+7,y);if(ok&&e&&e.t===1&&__game.solidAt(x+.5,y-.5)&&__game.solidAt(x+.5,y+1.5)){P=[x,y];break outer;}}} /* M1.36: a 6-cell straight run to a wall (layouts changed) */__game.teleport(P[0]+.5,P[1]+.5,0);__game.freeze=true;if(t)__game.spawn(t,P[0]+6.5,P[1]+.5,false,m?[m]:[]);__game.advance(0.02);};
       set(null);const wall=grab();let br=[0,0,0],bn=0;for(let y=60;y<140;y++)for(let x=0;x<150;x++){const q=wall[y*D.W+x];br[0]+=q[0];br[1]+=q[1];br[2]+=q[2];bn++;}br=br.map(v=>Math.round(v/bn));
       const out={brick:br};for(const [m,t] of pairs){const c=hx(cols[m]),hc=hsv(c);const like=q=>{const h=hsv(q);return h[1]>(hc[1]>.35?.3:.15)&&h[2]>.55&&(!V17||(q[0]+q[1]+q[2])/3>115)&&(hc[1]<.35?h[1]<hc[1]+.25:true)&&hd(h[0],hc[0])<20;};
         set(t,null);const A=grab();set(t,m);const B=grab();let ring=0,dark=0,inWall=0;
         for(let i=0;i<A.length;i++){const a=A[i],b=B[i],ch=Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2])>30;if(ch&&like(b))ring++;if(ch&&b[0]+b[1]+b[2]<60&&a[0]+a[1]+a[2]>=60)dark++;}
         for(let y=45;y<200;y++)for(let x=0;x<390;x++)if(like(wall[y*D.W+x]))inWall++;
         out[m]={ring,dark,inWall,iconPx:+__game.state().stats.iconPx.toFixed(1)};}
-      return out;},{pairs,cols,V17});
+      return out;},{pairs,cols,V17,V136});
     const brick=r.brick;delete r.brick;
     check('Elite modifier icons are outlined and at least 8 px tall on screen at distance 6',Object.values(r).every(v=>v.iconPx>=8),Object.entries(r).map(([m,v])=>`${m} ${v.iconPx}px`).join(', '));
     check('Elite glow at distance 6 on red brick: each colour ring is strong (60+ px) with a dark frame, and the colour barely appears in the brick itself',Object.values(r).every(v=>v.ring>=60&&v.dark>=30&&(V131?v.inWall<v.ring*.3:v.inWall<30)), /* M1.31: the new brick art has orange in it, so the ring must clearly outweigh it */Object.entries(r).map(([m,v])=>`${m}: ring ${v.ring}, frame ${v.dark}, in brick ${v.inWall}`).join('; ')+`; brick ${brick}`);
@@ -2272,7 +2297,7 @@ async function m17Tests(){
   const inter=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
   const ri=(a,e)=>a[0]<e[0]+e[2]&&a[0]+a[2]>e[0]&&a[1]<e[1]+e[3]&&a[1]+a[3]>e[1];
   const {execFileSync}=await import('child_process');
-  const corridor=(t,m,d,pitch)=>{__game.manual=true;__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.setHearts(99);__game.teleport(13.5-d,1.5,0);__game.freeze=true;__game.setPitch(pitch||0);__game.spawn(t,13.5,1.5,false,m);const s=__game.advance(0.02).stats;return {mode:s.iconMode,ic:s.iconRects||[],eb:s.enemyBoxes||[],px:s.iconPx};};
+  const corridor=(t,m,d,pitch)=>{__game.manual=true;__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.setHearts(99);let X=13.5,Y=1.5;const open=(x,y)=>{const c=__game.cellAt(x,y);return c&&c.t===0;},run=(x,y)=>{for(let k=0;k<10;k++)if(!open(x+k,y))return false;return true;};if(!run(4,1)){const st=__game.state();outer:for(let y=1;y<st.mapH-1;y++)for(let x=1;x<st.mapW-11;x++)if(run(x,y)){X=x+9.5;Y=y+.5;break outer;}} /* M1.36: layouts changed; any clear 10-cell run */__game.teleport(X-d,Y,0);__game.freeze=true;__game.setPitch(pitch||0);__game.spawn(t,X,Y,false,m);const s=__game.advance(0.02).stats;return {mode:s.iconMode,ic:s.iconRects||[],eb:s.enemyBoxes||[],px:s.iconPx};};
   // ---------- M16-A1: icons never drawn over the sprite ----------
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m17-a1',noFog:true});
@@ -2328,7 +2353,7 @@ c.save('${SHOTS}/m17_beefy_wisp_icons_d1.8_d3_d6_d6up_d6down.png')`]);}catch(e){
     const hue=p=>{const [r,g,b]=p.map(v=>v/255),mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d+6)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;}return h*60;},hd=(a,b)=>{const d=Math.abs(hue(a)-hue(b))%360;return Math.min(d,360-d);};
     const R=hx(cols.ranged),brickQA=[134,56,39],wisps=['#f59ac0','#e07aa6','#ffd4e6','#b85486','#ffb8e4'].map(hx);
     const others=Object.entries(cols).filter(([k])=>k!=='ranged');
-    const brickGame=await G(page,()=>{const D=__game.dims;__game.manual=true;__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.teleport(7.5,1.5,0);__game.freeze=true;__game.advance(0.02);const v=[];for(let y=60;y<140;y++)for(let x=0;x<150;x++)v.push(__game.pixelAt(x,y));const med=i=>v.map(p=>p[i]).sort((a,b)=>a-b)[v.length>>1];return [med(0),med(1),med(2)];});
+    const brickGame=await G(page,()=>{const D=__game.dims;__game.manual=true;__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();let P=[7,1];const open=(x,y)=>{const c=__game.cellAt(x,y);return c&&c.t===0;};let ok0=true;for(let k=0;k<=6;k++)if(!open(7+k,1))ok0=false;if(!ok0){const st=__game.state();outer:for(let y=1;y<st.mapH-1;y++)for(let x=1;x<st.mapW-9;x++){let ok=true;for(let k=0;k<=6&&ok;k++)if(!open(x+k,y))ok=false;const e=__game.cellAt(x+7,y);if(ok&&e&&e.t===1&&__game.solidAt(x+.5,y-.5)&&__game.solidAt(x+.5,y+1.5)){P=[x,y];break outer;}}} /* M1.36: a 6-cell run to a brick wall (layouts changed) */__game.teleport(P[0]+.5,P[1]+.5,0);__game.freeze=true;__game.advance(0.02);const v=[];for(let y=60;y<140;y++)for(let x=0;x<150;x++)v.push(__game.pixelAt(x,y));const med=i=>v.map(p=>p[i]).sort((a,b)=>a-b)[v.length>>1];return [med(0),med(1),med(2)];});
     const info={col:cols.ranged,crQA:cr(R,brickQA),crGame:cr(R,brickGame),crOld:cr(hx('#ff2f5a'),brickQA),wispHue:Math.min(...wisps.map(w=>hd(R,w))),wispDist:Math.min(...wisps.map(w=>Math.hypot(...R.map((v,i)=>v-w[i])))),others:others.map(([k,v])=>`${k} ${hd(R,hx(v)).toFixed(0)}°`).join(', '),minOther:Math.min(...others.map(([,v])=>hd(R,hx(v))))};
     check('RANGED is a lighter red-pink with about 2.9:1 contrast on red brick (was 2.23:1)',info.col==='#ff6a7a'&&info.crQA>=2.85&&info.crGame>=2.6&&info.crQA>info.crOld,`${info.col}: ${info.crQA.toFixed(2)}:1 vs QA brick median ${brickQA}, ${info.crGame.toFixed(2)}:1 vs in-game brick median ${brickGame}; old #ff2f5a ${info.crOld.toFixed(2)}:1`);
     check(V128?'RANGED stays distinct from every Hazewisp pink (15°+ hue, 50+ RGB; M1.28: with 40 powers the 35° gap to every other colour no longer applies)':'RANGED stays distinct from the other elite colours (35°+ hue) and from every Hazewisp pink (15°+ hue, 50+ RGB)',(V128||info.minOther>=35)&&info.wispHue>=15&&info.wispDist>=50,`others: ${info.others}; wisp hue ${info.wispHue.toFixed(0)}°, RGB distance ${info.wispDist.toFixed(0)}`);

@@ -53,12 +53,33 @@ Hazewisp) cross over. They never block the only route and never sit on the spawn
 (10 coins, 60%) or a run item (40%; M1.23), and 90% also have a mob. The opened state is saved for
 that floor.
 
-## Level layout (M1.31)
+## Level layout (M1.36)
 
-Rooms, then winding corridors in the space between, joined into one network with a few extra loops (`LAYOUT` in the game:
-6% of the possible links, at least 2; corridors keep going straight 75% of the time). Dead-end corridors 6+ cells long link
-back through a single wall into another corridor or room (85%); all remaining dead ends are pruned, so the only dead ends are
-the secret-room pocket and the alcoves beside the slot machine and the shop.
+"Rooms and mazes" (Bob Nystrom's approach) with a growing-tree corridor fill, partial braiding and a distance map for content.
+Every knob is in `GEN` in the game (`genCfg()` sizes it per floor; the layout itself is `genLayout()`):
+
+| Knob | Value | What it does |
+|---|---|---|
+| width x height | 25x21, +2/+2 per floor to 39x31 | map size (the generator handles up to ~151x151 in ~15 ms) |
+| roomAttempts | 30 + 5 per floor (to floor 12) | random room placements tried; overlapping or touching ones are rejected |
+| roomMin / roomMax | 3 / 7 (9 from floor 4) | odd room sizes, placed on odd coordinates |
+| newestBias | 0.8 | growing tree: grow from the newest corridor cell 80% of the time (long winding halls), a random one otherwise (branchy) |
+| extraConnectorChance | 0.08 | after the spanning merge, each unused connector opens with this chance (loops); never two openings side by side |
+| maxStubLength / keepDeadEndChance | 3 / 0.25 | dead-end branches are trimmed back; a quarter stay as nooks of at most 3 cells, the rest go |
+| braidChance | 0.1 | a remaining dead end knocks through its end wall into the next corridor |
+| criticalPathLoops | 1-2 | loops that leave the critical path and rejoin it 8+ tiles further on |
+| bands | path 0-1, near 2-6, far 7+ | content placement by distance from the critical path |
+| maxDeadEnds, minPath, maxPath | 12, 0.45 and 3 x (w+h) | validation; a failing seed is thrown away and the next one used |
+
+- **Start and exit:** BFS from a random floor tile to its farthest tile A, then from A to its farthest tile B. The entrance is the
+  nearest roomy room (15+ cells) to A, the exit the room nearest B, sealed to one locked door. The critical path is the shortest
+  route between them.
+- **Content:** the key sits 2-6 tiles off the critical path, reachable without the lock (in the farther 60% of such spots).
+  Mobs are placed mostly on or near the path, weighted towards its far end, so rooms get busier as you go. Coins sit just off
+  the path; hearts and the secret room prefer far pockets (7+) and dead-end nooks.
+- **Room tags:** start, exit, treasure (the room farthest off the path: the locked vault from floor 4, else a room with a heart
+  and 2 coins), shrine (off the path, from floor 3; the shrine prefers it), arena (boss floors: the exit room if it has 35+
+  cells, else a big room in the last 40% of the route).
 
 ## Infernal mobs (M1.28)
 

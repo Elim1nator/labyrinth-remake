@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.36: new level generator
+- Floors are built with "rooms and mazes" (Bob Nystrom's approach): rooms placed first, a growing-tree maze in the space between (newest cell 80% of the time), regions merged outward from a random room, then 8% of the spare connectors opened as loops. Dead ends are trimmed to nooks of at most 3 cells (a quarter kept), 10% of the rest braided into the next corridor.
+- The entrance and exit are found with a double BFS (they sit at opposite ends of the floor), and 1-2 loops branch off the critical path and rejoin it.
+- Content uses a distance map from the critical path: the key 2-6 tiles off it (never behind the lock), mobs weighted towards the far end of the route, coins just off the path, hearts and the secret room in far pockets and nooks. Rooms are tagged start / exit / treasure / shrine / arena; there is a treasure room on every floor, and the boss arena is a big room near the exit.
+- Every floor is validated (exit and every room reachable, at most 12 dead ends, a critical path of sensible length) and regenerated from the next seed if a check fails. All knobs are in `GEN`; see BALANCE.md, Level layout. Every generated floor changes.
+- Tests: the M1.31 dead-end check retires; layout-dependent checks (the knight's charge and slam, elite glow and icons, brick contrast) find a clear spot instead of fixed coordinates.
+- QA build `m1.36-qa` (debug hook on).
+
 ## M1.35: knight smashes doors and fences; doors match their walls
 - The Treasure Knight's charge now crashes through doors and fences and keeps going (it used to stop dead and get dazed), and the dust ring from his ground slam breaks any door or fence it reaches. Smashed doors and fences become open floor for the rest of the floor. Locked and coin doors break too; boss-arena doors hold.
 - Every wall style has its own door: oak planks in brick halls, a teal panel in the baths, a barn door in the attic, riveted iron in basalt and rust, a carved slab in sandstone, glowing seams in the ember core, and so on. A door takes the style of the wall it sits in, framed by that wall. Locked doors keep the gold lock plate and gold bands, so they still read as locked.

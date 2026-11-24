@@ -7,7 +7,7 @@ on the inspiration are kept out of this repository.
 ## Pillars
 
 - **Feel of a classic raycaster:** grid mazes, keys and doors, visible dodgeable projectiles,
-  coins and a luck minigame, timed power-ups, a light-hearted, non-gory tone.
+  coins and a luck minigame, stacking run items, a light-hearted, non-gory tone.
 - **Everything original:** title, protagonist, every enemy and item design, textures,
   sprites, UI, sound and level layouts. Enemy designs get an originality check before they go in.
 - **Modern comforts:** minimap and full map, auto-save per floor, mouse look and pitch,
@@ -15,8 +15,8 @@ on the inspiration are kept out of this repository.
 
 ## Tech approach
 
-- **One self-contained HTML file:** all JS, CSS, generated assets and the web manifest inline;
-  no external requests.
+- **One self-contained HTML file:** all JS, CSS, packed PNG art, synthesized audio and the web
+  manifest inline; no external requests.
 - **Canvas 2D software raycaster** into a low-res `ImageData` buffer (320×200 in M1, 480×300
   from M1.3), scaled with `image-rendering: pixelated`:
   - DDA wall casting with a z-buffer
@@ -24,11 +24,11 @@ on the inspiration are kept out of this repository.
   - billboard sprites
   - fog shading and pitch via y-shearing
 - **Fixed-timestep logic,** decoupled from rendering.
-- **Assets generated in code at startup:**
-  - procedural wall textures
-  - hand-made palette-indexed pixel art
-  - a pixel font
-  - WebAudio-synthesised sound effects
+- **Art and audio:**
+  - From M1.21, wall, monster, boss, projectile and item art lives as PNG sheets in `assets/`
+    and is embedded by `tools/assets.mjs pack` (releases pack automatically). Variations,
+    shading, cracks and some HUD or decoration sprites are still derived in code.
+  - A pixel font and WebAudio-synthesised sound effects and music are generated at startup.
 - **Levels:**
   - floor 1 is hand-built
   - floors 2+ use seeded "Rooms and Mazes" generation ([research/procgen.md](research/procgen.md)), verified solvable by tests
@@ -45,12 +45,14 @@ on the inspiration are kept out of this repository.
 | M1.3–M1.9 | done | Procedural floors, new mobs, elites and power-ups, balance, endless floors, score, high scores, slot machine, shop, pits, Rattlebone (see [CHANGELOG.md](CHANGELOG.md)) |
 | M1.9.1 | done | Fixes for the M1.9 known issues, release tooling |
 | M1.10 | done | Bosses every 5th floor: King Gloop, Luggernaut, Coghoot; the portal opens when the boss falls |
-| Next | planned | More weapon families, shop machine, music, further polish |
+| M1.11–M1.23 | done | Treasure Knight, masks, coin pits and shrines, King in Yellow, fog of war, cheat console, music, revive, item revamp (run items, balloon colours, use-items); world art moves to PNG sheets (see [CHANGELOG.md](CHANGELOG.md)) |
+| M1.24 | done | Boss props, portals and projectiles also packed from `assets/boss/*.png`. Current release. |
+| Next | planned | More weapon families, further polish |
 
 ## Risks we watch
 
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size budget.
+- File size budget (1 MB cap from M1.21; the M1.24 build is about 625 KB).
 - Keeping the slot machine coin-only with printed odds.

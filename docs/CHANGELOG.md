@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.34: wall art rolled back
+- The wall textures go back to the M1.21-M1.24 art (`assets/walls.png`); the M1.25 hand-made wall sheet is retired. Item icons and the bolder secret-wall crack from M1.25 stay.
+- QA build `m1.34-qa` (debug hook on).
+
 ## M1.33: new Screamer King and Grand Masque art
 - The Screamer King is now a crowned, fanged blue-stone skull with stone wings, and the Grand Masque's tragedy and comedy faces are polished gold with glowing red eyes and mouths (from your reference art). Same sheet sizes and animations: the King's wings flap at the shoulder and the purple orb still glows in his mouth while he charges; the masks still bob and tilt.
 - QA build `m1.33-qa` (debug hook on).

@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.33: new Screamer King and Grand Masque art
+- The Screamer King is now a crowned, fanged blue-stone skull with stone wings, and the Grand Masque's tragedy and comedy faces are polished gold with glowing red eyes and mouths (from your reference art). Same sheet sizes and animations: the King's wings flap at the shoulder and the purple orb still glows in his mouth while he charges; the masks still bob and tilt.
+- QA build `m1.33-qa` (debug hook on).
+
 ## M1.32: new monster art
 - New art (same sizes and frame counts) for the tragedy and comedy masks, the Grand Masque (both faces), the King in Yellow, the Broodmother, pit skitters, brood spiders, the face-hug overlay (now a proper top-down spider), egg sacs (grow over 4 frames), Springle, Hazewisp, the Luggernaut, Clunkbot and the King in Yellow's rag shot. Darker, grittier palettes; red eyes stay the danger accent. Hazewisp's third frame sits 1 px lower so all 4 frames differ.
 - The Screamer King and the wall textures are unchanged.

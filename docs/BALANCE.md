@@ -167,6 +167,7 @@ Backpack (30 coins, a second use-item slot). RARE WARES: Piggy Bank 40, Mystery 
 
 ## Treasure Knight and items (M1.11)
 
+- Treasure Knight (M1.29): charges only with a clear body-wide run at you; after a wall slam his charge cooldown is x1.5, he moves x1.7 for 2 s after the daze, and his ground slam is ready.
 - Treasure Knight: every floor from 2; HP `10 + 3·(L − 2)` (M1.17.1, no cap); overhead sword slam within 2 cells (1.2 s tell; a dust ring rolls out at 3.2 cells/s to 3 cells, 2 damage + knockback on contact; 5.5 s cooldown, M1.19.1); walks 1.15 cells/s; shield 1.5–2.1 s (70% chance when a balloon flies within 2.8 cells, 2.2 s cooldown); charge every 4.2 s after a 0.7 s tell, 6.5 cells/s, dazed 1.3 s on a wall; drops a run item + 5 coins (M1.23); counts as an elite.
 - Comedy masks: 35% of masks; unkillable, harmless, keep ~1.3 cells away. Tragedy masks: Zapfly stats (1 HP, 2.6 cells/s).
 - The Treasure Knight drops a run item (M1.23; was a golden power-up). Bosses drop a run item (a heart once everything is maxed) and a use-item.

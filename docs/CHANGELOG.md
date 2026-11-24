@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.29: playtest fixes (stuck input, knight corners, map markers)
+- Stuck walking fixed: a walk key whose release got lost (focus or mouse lock went away mid-stride) is let go after 0.4 s once it stops auto-repeating; coming back to the window starts with no keys held; a mouse button let go outside the window is let go; losing focus without a blur event (some embeds) now pauses too.
+- Treasure Knight: he only charges when his whole body has a clear run at you, so baiting him into corners no longer works; after a wall slam his next charge waits longer, he hurries back (70% faster for 2 s) and his ground slam is ready if you stay close.
+- Maps: monsters are a red X, hearts a pink heart, items a green diamond/ring, coins a small plus (hearts and monsters used to be look-alike red squares); the full map legend matches.
+- Test fix: the Kettlegrump charge check no longer depends on its random first-charge delay.
+- QA build `m1.29-qa` (debug hook on).
+
 ## M1.28: Infernal mobs
 - Elites are now **Infernal** mobs ("INFERNAL CLUNKBOT: POISONOUS + STORM") with 40 powers: 29 new (Poisonous, Armoured, Blinding, Withering, Tosser, Thief, Bulwark, Rust, Sapper, 1UP, Cloaked, Ghastly, Storm, Webber, Vengeance, Weakness, Berserk, Potions, Mama, Molten, Archer, Necromancer, Firework, Gravity, Flying, Mounted, Morph, Ghost, Confusing), 5 renamed (Sprint, Lifesteal, Explode, Ender, Quicksand) and the 6 earlier ones. Full table in `docs/BALANCE.md`.
 - Player status effects: poison, wither, burning, blindness, weakness, rust, levitation, confusion, slowness (screen tint + timer pills under the item row).

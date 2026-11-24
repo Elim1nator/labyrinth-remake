@@ -37,6 +37,7 @@ const V125=atLeast('1.25'); // M1.25+: hand-made wall and item art (busier textu
 const V126=atLeast('1.26'); // M1.26+: the Screamer King replaces King Gloop
 const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy masks
 const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status effects, 1 px glow)
+const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -909,6 +910,30 @@ async function m128Tests(){
   await ctx.close();
 }
 
+async function m129Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m129'});
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  await G(page,()=>{__game.manual=false;__game.menuPick(0);});await sleep(150);
+  const K=(type,code,repeat)=>page.evaluate(([t,c,rp])=>window.dispatchEvent(new KeyboardEvent(t,{code:c,repeat:rp})),[type,code,repeat]);
+  await K('keydown','KeyW',false);for(let i=0;i<10;i++){await K('keydown','KeyW',true);await sleep(30);}const held=await G(page,()=>__game.keyHeld('KeyW'));await sleep(600);const lost=await G(page,()=>__game.keyHeld('KeyW'));
+  await K('keydown','KeyW',false);for(let i=0;i<5;i++){await K('keydown','KeyW',true);await sleep(30);}await K('keydown','KeyD',false);for(let i=0;i<25;i++){await K('keydown','KeyD',true);await sleep(30);}const both=await G(page,()=>__game.keyHeld('KeyW')&&__game.keyHeld('KeyD'));
+  await K('keyup','KeyW',false);await K('keyup','KeyD',false);await K('keydown','KeyA',false);await sleep(700);const norep=await G(page,()=>__game.keyHeld('KeyA'));
+  await G(page,()=>window.dispatchEvent(new Event('focus')));const afterFocus=await G(page,()=>__game.keyHeld('KeyA'));
+  check('M1.29 a walk key whose release got lost (it stopped auto-repeating) is let go after 0.4 s; holding two keys or a key with repeat off is not touched; regaining focus starts clean',held&&!lost&&both&&norep&&!afterFocus,JSON.stringify({held,lost,both,norep,afterFocus}));
+  const kn=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:0});G.clearMobs();const s=G.state();let R=1,thinOnly=0,bodyNoThin=0,n=0;const rnd=()=>{R=(R*16807)%2147483647;return R/2147483647;};
+    for(let i=0;i<4000;i++){const x0=1+rnd()*(s.mapW-2),y0=1+rnd()*(s.mapH-2),a=rnd()*6.283,d=2+rnd()*5,x1=x0+Math.cos(a)*d,y1=y0+Math.sin(a)*d;if(G.solidAt(x0,y0)||G.solidAt(x1,y1))continue;n++;const t=G.clearPath(x0,y0,x1,y1),b=G.clearBody(x0,y0,x1,y1,.3);if(t&&!b)thinOnly++;if(b&&!t)bodyNoThin++;}
+    return {n,thinOnly,bodyNoThin};});
+  check('M1.29 the Treasure Knight only charges when his whole body has a clear run: many corner lines that a thin sight line passes are refused',kn.thinOnly>20&&kn.bodyNoThin===0,JSON.stringify(kn));
+  const rec=await G(page,()=>{const G=__game;G.manual=true;let k=null;for(let sd=1;sd<60&&!k;sd++){G.setSeed(sd);G.startLevel(3,{hearts:5,coins:0});k=G.knight();}if(!k)return null;const s=G.state();
+    G.knightSet({chargeT:3,cdx:1,cdy:0,hitP:true,tele:0,woke:true,state:'chase',chargeCD:0,slamCD:4});for(let i=0;i<120;i++){G.setHearts(5);G.advance(1/30);if(G.state().stats.knightSlams>0)break;}
+    const st=G.state().stats;let after=null;G.ents_dbg=0;return {slams:st.knightSlams,recovers:st.knightRecovers};});
+  check('M1.29 after he slams into a wall: a longer charge cooldown, a quick recovery, and his ground slam ready',rec&&rec.slams>0&&rec.recovers>0,JSON.stringify(rec));
+  const mp=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:0});G.seeAll&&G.seeAll();const p=G.state().player;G.spawn('clunk',p.x+1.5,p.y,false,[]);G.spawnItem('heart',null,p.x,p.y+1.5);G.advance(0.05);return G.state().stats.mapShapes;});
+  check('M1.29 on the minimap monsters are a red X and hearts a pink heart (no more look-alike red squares)',mp.x>0&&mp.heart>0,JSON.stringify(mp));
+  await G(page,()=>{__game.openMap();__game.advance(0.05);});await page.screenshot({path:`${SHOTS}/m129_map_legend.png`});
+  await ctx.close();
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -959,6 +984,7 @@ if(V124&&want('m124')){ await m124Tests(); }
 if(V126&&want('m126')){ await m126Tests(); }
 if(V127&&want('m127')){ await m127Tests(); }
 if(V128&&want('m128')){ await m128Tests(); }
+if(V129&&want('m129')){ await m129Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -1374,7 +1400,7 @@ async function m13Tests(){
     // behaviours
     const hop=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=false;__game.setHearts(99);__game.teleport(7.2,3.5,0);__game.spawn('springle',12.5,3.5,true);let mx=0,mn=9;for(let i=0;i<150;i++){const e=__game.advance(1/60).enemies[0];mx=Math.max(mx,e.z);mn=Math.min(mn,e.z);}return {mx,mn};});
     check('M1.3 Springle bounces along in hops',hop.mx>0.15&&hop.mn<0.03,`z ${hop.mn.toFixed(2)}..${hop.mx.toFixed(2)}`);
-    const ch=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=false;__game.setHearts(99);__game.teleport(6.6,3.5,0);__game.spawn('kettle',10.5,3.5,true);const s0=__game.state().stats;let vmax=0,px=10.5;for(let i=0;i<120;i++){const e=__game.advance(1/60).enemies[0];vmax=Math.max(vmax,Math.abs(e.x-px)*60);px=e.x;}const s=__game.state().stats;return {charges:s.charges-s0.charges,steam:s.steam-s0.steam,vmax};});
+    const ch=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=false;__game.setHearts(99);__game.teleport(6.6,3.5,0);const ki=__game.spawn('kettle',10.5,3.5,true);if(__game.entSet)__game.entSet(ki,{cool:0}); /* M1.29: its first charge waits a random 1-3 s; on a long roll it had walked up to you first */const s0=__game.state().stats;let vmax=0,px=10.5;for(let i=0;i<120;i++){const e=__game.advance(1/60).enemies[0];vmax=Math.max(vmax,Math.abs(e.x-px)*60);px=e.x;}const s=__game.state().stats;return {charges:s.charges-s0.charges,steam:s.steam-s0.steam,vmax};});
     check('M1.3 Kettlegrump charges at you and puffs steam',ch.charges>=1&&ch.steam>=1&&ch.vmax>2.5,JSON.stringify(ch));
     const gh=await G(page,()=>{const run=(t)=>{__game.startLevel(0);__game.clearMobs();__game.freeze=false;__game.setHearts(99);__game.teleport(8.5,9.5,-Math.PI/2);__game.spawn(t,8.5,4.5,true);let crossed=false;for(let i=0;i<240;i++){const e=__game.advance(1/60).enemies[0];if(e.y>6.6&&e.x>7&&e.x<10)crossed=true;}const e=__game.state().enemies[0];return {crossed,y:e.y};};return {wisp:run('wisp'),screamer:run('screamer')};});
     check('M1.3 Hazewisp drifts through fences (a Screamer cannot)',gh.wisp.crossed&&!gh.screamer.crossed&&gh.screamer.y<6,JSON.stringify(gh));

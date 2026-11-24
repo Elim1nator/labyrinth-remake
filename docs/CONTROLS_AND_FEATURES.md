@@ -54,7 +54,7 @@ RESUME, SOUND (on/off), LOOK SPEED (50%–200%, ◄ ► arrows), INVERT Y. Setti
 
 ## Map
 
-A corner minimap (colour-coded keys, doors, exit, mobs, items, pits) and a full-screen map
+A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X, hearts a pink heart, items a green ring, coins a small plus) and a full-screen map
 (M / Tab / Back / MAP button / tap the minimap).
 
 ## Items and pickups (M1.23)

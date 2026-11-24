@@ -1,0 +1,11 @@
+{
+  "sheets": {
+    "walls": {
+      "file": "walls.png",
+      "tile": 64,
+      "cols": 10,
+      "tiles": ["brick", "stone", "wood", "tile", "moss", "door", "locked", "fence", "basalt", "rust",
+                "slate", "glyph", "ember", "sandstone", "granite", "cobble", "limestone", "dripstone", "shale", "ironbound"]
+    }
+  }
+}

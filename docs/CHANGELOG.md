@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.21: wall art in PNG files
+- All 20 wall textures now come from `assets/walls.png` (10 x 2 tiles of 64 x 64), embedded into the single HTML file by `tools/assets.mjs pack` (releases pack automatically). Pixel-identical to M1.20.
+- The wall-drawing code is gone; shading, damaged / pillared / torch variations, cracks and dents are still made in code from the PNG tiles.
+- Missing art shows magenta check walls instead of crashing. The size limit is now 1 MB (the build is about 565 KB).
+- QA build `m1.21-qa` (debug hook on).
+
 ## M1.20: realistic stone walls
 - Crystal (L17) and void runes (L25) replaced by blue slate (SLATE HALLS) and ember rock with glowing joints (THE EMBER CORE).
 - 7 new stone styles, one every 4 floors: sandstone (L29), granite (L33), cobblestone (L37), limestone (L41), dripstone (L45), chasm shale (L49), ironbound stone (L53).

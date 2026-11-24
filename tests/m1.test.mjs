@@ -29,6 +29,7 @@ const V114=atLeast('1.14'); // M1.14+: the King in Yellow on floor 20
 const V116=atLeast('1.16'); // M1.16+: cheat console (type "cheat")
 const V117=atLeast('1.17'); // M1.17+: fog of war, sight items, ambience, damage indicators
 const V120=atLeast('1.20'); // M1.20+: realistic stone walls (slate, ember rock + 7 new styles), damaged/structural/decorative wall variations
+const V121=atLeast('1.21'); // M1.21+: wall art comes from assets/walls.png, embedded in the build
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -707,6 +708,24 @@ async function m120Tests(){
   await ctx.close();
 }
 
+async function m121Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m121'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets.walls;
+  const a=await G(page,()=>({st:__game.assetState(),n:__game.texCount(),names:__game.texNames,emb:__game.embedded('walls'),png:__game.atlasPng('walls')}));
+  check('M1.21 the walls load from the embedded PNG sheet (20 tiles, named as in assets/atlas.json)',a.st.walls==='png'&&a.n===20&&JSON.stringify(a.names)===JSON.stringify(atlas.tiles)&&a.emb.startsWith('data:image/png;base64,'),JSON.stringify(a.st)+' '+a.names.join(','));
+  const cmp=await G(page,async(url)=>{const im=new Image();im.src=url;await im.decode();const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);const u=new Uint32Array(cx.getImageData(0,0,im.width,im.height).data.buffer);
+    const b=await new Promise(r=>{const i2=new Image();i2.onload=()=>r(i2);i2.src=__game.atlasPng('walls');});const cv2=document.createElement('canvas');cv2.width=b.width;cv2.height=b.height;const c2=cv2.getContext('2d');c2.drawImage(b,0,0);const v=new Uint32Array(c2.getImageData(0,0,b.width,b.height).data.buffer);
+    let diff=0;for(let i=0;i<u.length;i++){const p=u[i]>>>24>=128?u[i]|0xff000000:0,q=v[i]>>>24>=128?v[i]|0xff000000:0;if(p!==q)diff++;}return {w:im.width,h:im.height,diff};},a.emb);
+  check('M1.21 the walls in game are exactly the pixels of the PNG (export round-trips)',cmp.w===640&&cmp.h===128&&cmp.diff===0,JSON.stringify(cmp));
+  await ctx.close();
+  // a build whose art is missing still runs (magenta check walls), instead of crashing
+  const tmp=`${OUT}/m121_noart.html`;fs.writeFileSync(tmp,fs.readFileSync(FILE,'utf8').replace(/var ASSETS=\{.*\};/,'var ASSETS={};'));
+  const c2=await browser.newContext({viewport:{width:1280,height:720}});const p2=await c2.newPage();const errs=[];p2.on('pageerror',e=>errs.push(e.message));
+  await p2.goto('file://'+tmp);await p2.waitForFunction(()=>!!window.__game,null,{timeout:10000});
+  const m=await p2.evaluate(()=>{__game.manual=true;__game.setSeed(5);__game.startLevel(0);__game.advance(0.1);return {st:__game.assetState(),mode:__game.state().mode};});await c2.close();fs.unlinkSync(tmp);
+  check('M1.21 with the art missing the game still starts (walls show a magenta check)',m.st.walls==='missing'&&m.mode==='play'&&!errs.length,JSON.stringify(m)+errs.join(';'));
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -750,10 +769,11 @@ if(V116&&want('m116')){ await m116Tests(); }
 if(V117&&want('m117')){ await m117Tests(); }
 if(V118&&want('m118')){ await m118Tests(); }
 if(V120&&want('m120')){ await m120Tests(); }
+if(V121&&want('m121')){ await m121Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
-const size=fs.statSync(FILE).size,LIM=atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
+const size=fs.statSync(FILE).size,LIM=V121?1024:atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
 await browser.close();
 fs.writeFileSync(`${OUT}/results.json`,JSON.stringify({build:BUILD,file:FILE,date:new Date().toISOString(),passed:results.length-failed,failed,results},null,1));
 console.log(`\n${results.length-failed}/${results.length} passed`);
@@ -1401,7 +1421,7 @@ async function m13Tests(){
     await ctx.close();
     fs.unlinkSync(`${SHOTS}/_tmp_screamer_6x.png`);
     const html=fs.readFileSync(FILE,'utf8');
-    check('M1.3 no large embedded bitmap in the build (all art is drawn in code)',!/data:image\/png;base64,iVBOR[\s\S]{4000,}/.test(html));
+    check(V121?'M1.3 no large embedded bitmap in the build outside the art sheets from assets/ (M1.21+)':'M1.3 no large embedded bitmap in the build (all art is drawn in code)',!/data:image\/png;base64,iVBOR[\s\S]{4000,}/.test(V121?html.replace(/var ASSETS=\{.*\};/g,''):html));
   }
   fs.writeFileSync(`${SHOTS}/../perf.json`,JSON.stringify(PERF,null,1));
   console.log('PERF',JSON.stringify(PERF));
@@ -1758,7 +1778,7 @@ async function m15Tests(){
     await ctx.close();
     fs.unlinkSync(`${SHOTS}/_tmp_screamer15_6x.png`);
     const html=fs.readFileSync(FILE,'utf8');
-    check('M1.5 no large embedded bitmap in the build (all art is drawn in code)',!/data:image\/png;base64,iVBOR[\s\S]{4000,}/.test(html));
+    check(V121?'M1.5 no large embedded bitmap in the build outside the art sheets from assets/ (M1.21+)':'M1.5 no large embedded bitmap in the build (all art is drawn in code)',!/data:image\/png;base64,iVBOR[\s\S]{4000,}/.test(V121?html.replace(/var ASSETS=\{.*\};/g,''):html));
   }
 }
 
@@ -1961,7 +1981,7 @@ c.save('${SHOTS}/m16_elite_icons_at_distance6_brick.png')`]);}catch(e){consolePr
     await ctx.close();
     fs.unlinkSync(`${SHOTS}/_tmp_screamer16_6x.png`);
     const html=fs.readFileSync(FILE,'utf8');
-    check('M1.6 no large embedded bitmap in the build (all art is drawn in code)',!/data:image\/png;base64,iVBOR[\s\S]{4000,}/.test(html));
+    check(V121?'M1.6 no large embedded bitmap in the build outside the art sheets from assets/ (M1.21+)':'M1.6 no large embedded bitmap in the build (all art is drawn in code)',!/data:image\/png;base64,iVBOR[\s\S]{4000,}/.test(V121?html.replace(/var ASSETS=\{.*\};/g,''):html));
   }
 }
 
@@ -2130,7 +2150,7 @@ c.save('${SHOTS}/m17_screamer_m16_vs_m17_4x.png')`]);}catch(e){consoleProblems.p
     await ctx.close();
     fs.unlinkSync(`${SHOTS}/_tmp_screamer17_6x.png`);
     const html=fs.readFileSync(FILE,'utf8')+fs.readFileSync(`${BUILDS}/${BUILD}/index.html`,'utf8');
-    check('M1.7 no large embedded bitmap in the build (all art is drawn in code)',!/data:image\/png;base64,iVBOR[\s\S]{4000,}/.test(html));
+    check(V121?'M1.7 no large embedded bitmap in the build outside the art sheets from assets/ (M1.21+)':'M1.7 no large embedded bitmap in the build (all art is drawn in code)',!/data:image\/png;base64,iVBOR[\s\S]{4000,}/.test(V121?html.replace(/var ASSETS=\{.*\};/g,''):html));
   }
 }
 

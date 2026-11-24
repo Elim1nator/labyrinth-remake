@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Freeze builds from src/index.html.
 //
+//   Both first embed the art from assets/ (tools/assets.mjs pack).
 //   node tools/release.mjs m1.10        set src/ to M1.10, write builds/m1.10 and builds/m1.10-qa,
 //                                       update builds/SHA256SUMS and the version in tests/package.json
 //   node tools/release.mjs dev [m1.10] [--test]
@@ -14,6 +15,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { packInto } from './assets.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src/index.html');
@@ -25,6 +27,7 @@ if (!target || !(target === 'dev' || /^m\d+(\.\d+){0,2}$/.test(target))) {
 }
 
 let src = fs.readFileSync(SRC, 'utf8');
+try { src = packInto(src); } catch (e) { console.error(e.message); process.exit(1); } // M1.21: always build with the current art from assets/
 const cur = (src.match(/var VERSION='(M[\d.]+)';/) || [])[1];
 if (!cur) { console.error("src/index.html: no \"var VERSION='Mx.y';\" line"); process.exit(1); }
 const devVer = args.slice(1).find(a => /^m\d+(\.\d+){0,2}$/.test(a));

@@ -49,10 +49,10 @@ Each `boss/*.png` is a strip of frames like the monsters:
 | `lectern.png` | the King in Yellow's lectern (unlit, lit) | 2 |
 | `ysign.png` | the Yellow Sign he scrawls | 2 |
 | `hali.png` | the mist of Lake Hali | 2 |
-| `goo.png` | King Gloop's goo puddle | 2 |
+| `goo.png` | goo puddles (slime-trail elites) | 2 |
 | `groundCrack.png` | the Treasure Knight's slam crack | 1 |
 | `script.png` | the torn play script (the pickup token is made from it) | 1 |
-| `shot_*.png` | projectiles: boss shots (gloop, sock, gear, goldball, web, egg, rag, sun) and elite shots (steam, zap, laser, sonic, wisp, fluff) | 1 |
+| `shot_*.png` | projectiles: boss shots (porb and bigorb = the Screamer King's purple orbs, gloop, sock, gear, goldball, web, egg, rag, sun) and elite shots (steam, zap, laser, sonic, wisp, fluff) | 1 |
 
 ## Editing item icons
 
@@ -77,7 +77,7 @@ Each `mobs/*.png` is a strip of animation frames, left to right, all the same wi
 | `eggsac.png` | egg sac, growing until it hatches | 4 |
 | `worm.png` | googly worm, drawn in pink `#ff5a8a` (see below) | 4 |
 | `faceSpider.png` | the spider sprawled over your face (full-screen overlay) | 2 |
-| `king.png` | King Gloop (rest, squash, airborne, rest 2) | 4 |
+| `king.png` | the Screamer King: 4 wing flaps, then the same 4 with his mouth open (an orb glowing) | 8 |
 | `owl.png`, `brood.png`, `yellow.png` | Coghoot, the Broodmother, the King in Yellow | 4 |
 | `lugg.png` | Luggernaut, two frames each with a stack of 3, 2, then 1 suitcase | 6 |
 | `masque.png`, `masqueH.png` | the Grand Masque (tragedy face / comedy face) | 4 |

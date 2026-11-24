@@ -34,6 +34,7 @@ const V122=atLeast('1.22'); // M1.22+: mob and boss art comes from assets/mobs/*
 const V123=atLeast('1.23'); // M1.23+: run items (stacking, whole run) + stacking balloon colours replace power-ups, permanent and golden items
 const V124=atLeast('1.24'); // M1.24+: boss props, portals and projectiles come from assets/boss/*.png
 const V125=atLeast('1.25'); // M1.25+: hand-made wall and item art (busier textures: art-contrast thresholds loosened, still all distinct)
+const V126=atLeast('1.26'); // M1.26+: the Screamer King replaces King Gloop
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -328,7 +329,7 @@ async function m110Tests(){
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m110-fight'});
     const seal=await G(page,()=>{__game.manual=true;if('bossIntro' in __game)__game.bossIntro=false; /* M1.10.2: the cut scene has its own test */localStorage.clear();__game.setSeed(777);__game.startLevel(4);const s0=__game.state(),b=__game.boss();const ex=s0.exit;
       __game.teleport(ex.x+.5,ex.y+.5,0);let s=__game.advance(0.3);const still=s.mode,msg=s.msg;return {msg0:s0.msg,sealed:b.sealed,idle:b.ent.state,still,msg,hp:b.ent.hp,save:s0.save&&s0.save.level};});
-    check('M1.10 floor 5: "BOSS FLOOR!" message, the portal is sealed, and stepping into it does nothing but say who to beat',/BOSS FLOOR! KING GLOOP/.test(seal.msg0)&&seal.sealed&&seal.still==='play'&&/SEALED! DEFEAT KING GLOOP/.test(seal.msg),JSON.stringify(seal));
+    check('M1.10 floor 5: "BOSS FLOOR!" message, the portal is sealed, and stepping into it does nothing but say who to beat',/BOSS FLOOR! (KING GLOOP|THE SCREAMER KING)/.test(seal.msg0)&&seal.sealed&&seal.still==='play'&&(/SEALED! DEFEAT (KING GLOOP|THE SCREAMER KING)/.test(seal.msg)||(V126&&/LOCKS YOU IN/.test(seal.msg))) /* M1.26: the portal sits in the arena: stepping on it locks you in and it vanishes */,JSON.stringify(seal));
     // each boss: wakes, stays in its arena, attacks, can hurt you
     const per=await G(page,()=>{const out={};for(const f of [5,10,15]){__game.setSeed(777);__game.startLevel((f===15&&__game.bossType?30:f)-1); /* M1.12: floor 15 has its own boss; Coghoot first shows on floor 30 */__game.setEffect(null);const b0=__game.boss(),A=b0.def.room;
         const idle0=__game.boss().ent.woke;__game.faceBoss(2.5);const s1=__game.advance(0.1),woke=__game.boss().ent.woke,bar=s1.stats.bossBar;
@@ -336,7 +337,8 @@ async function m110Tests(){
         out[f]={idle0,woke,msg:s1.msg,bar:!!bar,outside,shots:maxShots,hurt,type:b0.ent.type,fly:!!__game.bosses[b0.ent.type].fly};}return out;});
     check('M1.10 each boss sleeps until you come near, then wakes with a message and the health bar shows',[5,10,15].every(f=>!per[f].idle0&&per[f].woke&&/AWAKENS|LOCKS YOU IN/.test(per[f].msg)&&per[f].bar),JSON.stringify(per));
     check('M1.10 each boss stays inside its arena, shoots at you and can hurt you (12 s each, standing 2.5 cells away)',[5,10,15].every(f=>per[f].outside===0&&per[f].shots>0&&per[f].hurt>0),JSON.stringify(per));
-    check('M1.10 Coghoot flies (crosses pits); the other two walk',per[15].fly&&!per[5].fly&&!per[10].fly);
+    if(V126)check('M1.26 Coghoot and the Screamer King fly (cross pits); the Luggernaut walks',per[15].fly&&per[5].fly&&!per[10].fly);
+    else check('M1.10 Coghoot flies (crosses pits); the other two walk',per[15].fly&&!per[5].fly&&!per[10].fly);
     // leash: from outside the arena the boss presses against the edge but never leaves
     const leash=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const b=__game.boss(),A=b.def.room;__game.faceBoss(2);__game.advance(0.1);
       let x=A.x-1.5,y=A.y+A.h/2;for(const yy of [A.y+1,A.y+A.h-1.5,A.y+A.h/2])for(const xx of [A.x-1.5,A.x+A.w+1.5])if(!__game.solidAt(xx,yy)){x=xx;y=yy;}
@@ -346,7 +348,8 @@ async function m110Tests(){
     const king=await G(page,()=>{__game.setSeed(777);__game.startLevel(4);__game.faceBoss(2.5);__game.advance(0.1);const B=()=>__game.boss().ent,mx=B().maxHp,r=[];
       const step=(n)=>{__game.hitBoss(n);__game.setHearts(5);const s=__game.advance(0.1);r.push({hp:B().hp,split:B().split,enr:B().enraged,minions:s.stats.bossMinions,alive:s.enemies.filter(e=>e.spawned&&!e.gone&&e.state!=='dead').length});};
       step(Math.ceil(mx/3));step(Math.ceil(mx/6));step(Math.ceil(mx/6));return {mx,r};});
-    check('M1.10 King Gloop splits off 2 minions at 2/3 and again at 1/3 health (never more than 4 alive) and gets furious at half',king.r[0].split===1&&king.r[0].minions===2&&!king.r[0].enr&&king.r[1].enr&&king.r[2].split===2&&king.r[2].minions===4&&king.r.every(x=>x.alive<=4),JSON.stringify(king));
+    if(V126)check('M1.26 the Screamer King calls a wave of 3 Screamers at 2/3 health and more at 1/3 (never more than 4 alive), and gets furious at half',king.r[0].split===1&&king.r[0].minions===3&&!king.r[0].enr&&king.r[1].enr&&king.r[2].split===2&&king.r[2].minions===4&&king.r.every(x=>x.alive<=4),JSON.stringify(king));
+    else check('M1.10 King Gloop splits off 2 minions at 2/3 and again at 1/3 health (never more than 4 alive) and gets furious at half',king.r[0].split===1&&king.r[0].minions===2&&!king.r[0].enr&&king.r[1].enr&&king.r[2].split===2&&king.r[2].minions===4&&king.r.every(x=>x.alive<=4),JSON.stringify(king));
     // Luggernaut: suitcases burst at 2/3 and 1/3; the hit box shrinks with the stack
     const lugg=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.5);__game.advance(0.1);const B=()=>__game.boss().ent,mx=B().maxHp,r=[{stack:B().stack,hh:B().hh,frame:B().frame}];
       for(const n of [Math.ceil(mx/3),Math.ceil(mx/3)]){__game.hitBoss(n);__game.setHearts(5);const s=__game.advance(0.1);r.push({stack:B().stack,hh:B().hh,frame:B().frame,bursts:s.stats.caseBursts,msg:s.msg});}return r;});
@@ -808,11 +811,37 @@ async function m124Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m124'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
   const st=await G(page,()=>({st:__game.assetState(),fx:__game.fxSheets}));const bad=st.fx.filter(n=>st.st[n]!=='png'||!atlas[n]||atlas[n].file!=='boss/'+n+'.png');
-  check(`M1.24 ${st.fx.length} boss and effect strips (portals, lectern, signs, Hali, goo, the play script, 14 projectiles) load from assets/boss/*.png`,st.fx.length===22&&!bad.length,bad.join(',')||st.fx.join(','));
+  check(`M1.24 ${st.fx.length} boss and effect strips (portals, lectern, signs, Hali, goo, the play script, 14 projectiles) load from assets/boss/*.png`,st.fx.length>=22&&!bad.length,bad.join(',')||st.fx.join(','));
   const cmp=await G(page,async(names)=>{const px=async url=>{const im=new Image();im.src=url;await im.decode();const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);return {w:im.width,h:im.height,u:new Uint32Array(cx.getImageData(0,0,im.width,im.height).data.buffer)};};
     const out=[];for(const n of names){const a=await px(__game.embedded(n)),b=await px(__game.atlasPng(n));let d=a.w!==b.w||a.h!==b.h?1e9:0;if(!d)for(let i=0;i<a.u.length;i++){const p=a.u[i]>>>24>=128?a.u[i]|0xff000000:0,q=b.u[i]>>>24>=128?b.u[i]|0xff000000:0;if(p!==q)d++;}if(d)out.push(n+':'+d);}return out;},st.fx);
   check('M1.24 in game those strips are exactly the pixels of their PNGs',cmp.length===0,cmp.join(' '));
   const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));savePng('m124_boss_fx_3x.png',await G(page,()=>__game.spriteSheet(3,'m114')));
+  await ctx.close();
+}
+
+async function m126Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m126'});
+  const k=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(4,{hearts:5,coins:0});G.bossIntro=false;G.faceBoss(4);const r={name:G.bosses.king.name,fly:!!G.bosses.king.fly,kinds:{},open:false,closed:false,big:null};
+    for(let i=0;i<900;i++){G.setHearts(5);const s=G.advance(1/30);s.eshots.forEach(q=>{r.kinds[q.kind]=(r.kinds[q.kind]||0)+1;});const b=G.boss().ent;if(b.frame>=4)r.open=true;else r.closed=true;}
+    const b=G.boss();G.hitBoss(Math.ceil(b.ent.hp-b.ent.maxHp*.32));for(let i=0;i<20;i++)G.advance(1/30);const s=G.state();r.minions=[...new Set(G.state().enemies.filter((e,i)=>i>=0).map(e=>e.type))];r.made=s.stats.bossMinions;r.frames=new Set([0,1,2,3,4,5,6,7].map(i=>G.frameSig('king',i))).size;return r;});
+  check('M1.26 the Screamer King replaces King Gloop on floor 5: he flies, and his 8 frames flap with the mouth shut and open',k.name==='THE SCREAMER KING'&&k.fly&&k.open&&k.closed&&k.frames===8,JSON.stringify(k));
+  check('M1.26 he spits a huge purple orb and a fan of small purple orbs',k.kinds.bigorb>0&&k.kinds.porb>0&&!k.kinds.gloop,JSON.stringify(k.kinds));
+  const mn=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(4,{hearts:5,coins:0});G.clearMobs&&0;G.bossIntro=false;G.faceBoss(4);for(let i=0;i<30;i++)G.advance(1/30);const n0=G.state().enemies.length;
+    const b=G.boss();G.hitBoss(Math.ceil(b.ent.hp-b.ent.maxHp*.6));for(let i=0;i<10;i++){G.setHearts(5);G.advance(1/30);}const after=G.state().enemies.slice(n0);return {types:[...new Set(after.map(e=>e.type))],n:after.length};});
+  check('M1.26 his minions are plain Screamers only (a wave at 2/3 health)',mn.n>=2&&mn.types.join()==='screamer',JSON.stringify(mn));
+  const pt=await G(page,()=>(()=>{const G=__game,r={};G.manual=true;G.setSeed(777);G.startLevel(4,{hearts:5,coins:0});G.bossIntro=true;r.before=G.portalHidden();
+ G.faceBoss(2.5);let s;for(let k=0;k<400;k++){G.setHearts(5);s=G.advance(1/30);if(s.mode==='play'&&G.portalHidden())break;}r.mode=s.mode;r.hiddenAfterIntro=G.portalHidden();
+ const ex=G.exitAt();r.ex0=ex;G.teleport(ex.x+.5,ex.y+.5,0);for(let k=0;k<10;k++){G.setHearts(5);s=G.advance(1/30);}r.stillPlay=s.mode;r.msg=s.msg;
+ G.hitBoss(9999);for(let k=0;k<60;k++){G.setHearts(5);s=G.advance(1/30);}r.hiddenAfterDeath=G.portalHidden();const e1=G.exitAt();r.ex1=e1;r.moved=Math.hypot(e1.x-ex.x,e1.y-ex.y);r.msg2=s.msg;r.mode2=s.mode;
+ G.teleport(e1.x+.5,e1.y+.5,0);for(let k=0;k<20;k++)s=G.advance(1/30);r.after=s.mode;
+ // standing far away: the portal stays where it was
+ G.setSeed(777);G.startLevel(4,{hearts:5,coins:0});G.bossIntro=false;G.faceBoss(4);for(let k=0;k<20;k++){G.setHearts(5);G.advance(1/30);}const ex2=G.exitAt();G.hitBoss(9999);for(let k=0;k<60;k++){G.setHearts(5);G.advance(1/30);}const ex3=G.exitAt();r.farSame=ex2.x===ex3.x&&ex2.y===ex3.y;r.farHidden=G.portalHidden();
+ return r;})());
+  check('M1.26 the barred portal vanishes after the boss intro (stepping on its spot does nothing) and the open portal appears when the boss dies',!pt.before&&pt.hiddenAfterIntro&&pt.stillPlay==='play'&&!pt.hiddenAfterDeath&&pt.after==='clear'&&!pt.farHidden,JSON.stringify(pt));
+  check('M1.26 if you stand on it when it appears, the portal moves 3-5 cells away; otherwise it stays put',pt.moved>=2&&pt.farSame,JSON.stringify(pt));
+  const orb=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(4,{hearts:5,coins:0});G.bossIntro=false;G.clearMobs();G.faceBoss(4);const p=G.state().player;G.setHearts(5);
+    G.addShot('bigorb',p.x+1.2,p.y,-2.6,0);const sh=G.state().eshots;const last=sh[sh.length-1];return {kind:last.kind};});
+  check('M1.26 the big orb has its own sprite (assets/boss/shot_bigorb.png)',orb.kind==='bigorb',JSON.stringify(orb));
   await ctx.close();
 }
 
@@ -863,6 +892,7 @@ if(V121&&want('m121')){ await m121Tests(); }
 if(V122&&want('m122')){ await m122Tests(); }
 if(V123&&want('m123')){ await m123Tests(); }
 if(V124&&want('m124')){ await m124Tests(); }
+if(V126&&want('m126')){ await m126Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

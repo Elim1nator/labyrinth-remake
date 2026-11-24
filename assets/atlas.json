@@ -29,7 +29,7 @@
     "eggsac": { "file": "mobs/eggsac.png", "frames": 4, "k": 1.5 },
     "worm": { "file": "mobs/worm.png", "frames": 4, "k": 1.5 },
     "faceSpider": { "file": "mobs/faceSpider.png", "frames": 2, "k": 1 },
-    "king": { "file": "mobs/king.png", "frames": 4, "k": 1.5 },
+    "king": { "file": "mobs/king.png", "frames": 8, "k": 1.5 },
     "lugg": { "file": "mobs/lugg.png", "frames": 6, "k": 1.5 },
     "owl": { "file": "mobs/owl.png", "frames": 4, "k": 1.5 },
     "masque": { "file": "mobs/masque.png", "frames": 4, "k": 2.2 },
@@ -57,6 +57,8 @@
     "shot_web": { "file": "boss/shot_web.png", "frames": 1, "k": 1 },
     "shot_egg": { "file": "boss/shot_egg.png", "frames": 1, "k": 1 },
     "shot_rag": { "file": "boss/shot_rag.png", "frames": 1, "k": 1 },
-    "shot_sun": { "file": "boss/shot_sun.png", "frames": 1, "k": 1 }
+    "shot_sun": { "file": "boss/shot_sun.png", "frames": 1, "k": 1 },
+    "shot_porb": { "file": "boss/shot_porb.png", "frames": 1, "k": 1 },
+    "shot_bigorb": { "file": "boss/shot_bigorb.png", "frames": 1, "k": 1 }
   }
 }

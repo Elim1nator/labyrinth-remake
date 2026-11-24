@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.26: the Screamer King
+- King Gloop is replaced by **the Screamer King** (floors 5, 20, 35, ...): a crowned, purple Screamer that flies and hovers just out of reach. With his mouth open he spits either one huge purple orb (slow, 2 damage, hard to dodge) or a fan of small purple orbs (5, or 7 when furious). His minions are plain Screamers: a wave of 3 at 2/3 and 1/3 health, and he calls one more every 13 s while fewer than 3 are around.
+- On every boss floor the barred portal vanishes once the boss intro ends (or you're locked in) and the open portal appears when the boss dies; if you're standing on its spot it appears 3-5 cells away instead.
+- New art: `assets/mobs/king.png` (8 frames) and `assets/boss/shot_porb.png`, `shot_bigorb.png`. A deeper royal scream.
+- QA build `m1.26-qa` (debug hook on).
+
 ## M1.25: new wall and item art
 - New hand-made art for all 20 wall textures (`assets/walls.png`) and all 34 item icons (`assets/items.png`), scaled from your sheets: walls 200 px -> 64 px tiles, icons 164 px -> 24 px with the backdrop removed. The fence's dark gaps stay see-through. The secret-wall crack is drawn a little bolder so it still reads on the busier art. Damaged / pillared / torch variations, cracks and dents are still made from the new tiles.
 - QA build `m1.25-qa` (debug hook on).

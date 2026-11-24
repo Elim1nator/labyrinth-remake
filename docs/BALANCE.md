@@ -133,13 +133,13 @@ A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
 
 | Boss | Base HP | Moves | Attacks | Phases |
 |---|---|---|---|---|
-| King Gloop | 36 | Hops at you (0.9 cells/s, faster in the air) | Fan of 5 jelly blobs every 3.2 s (0.6 s tell) | 2 minions at 2/3 and 1/3 HP (max 4 alive); furious at 1/2: fan of 7, faster hops, landings leave goo |
+| The Screamer King (M1.26; was King Gloop) | 36 | Flies; hovers 2.2–3.4 cells from you (0.9 cells/s) | Every 3 s (0.6–0.8 s tell, mouth open): one huge purple orb (2.6 cells/s, 2 damage, wider hit) or a fan of 5 small purple orbs (7 when furious) | Calls plain Screamers only: a wave of 3 at 2/3 and 1/3 health, one more every 13 s while fewer than 3 are left |
 | Luggernaut | 45 | Walks at you (1.0 cells/s) | Sock fan (3, 5, then 2 fast ones) or a charge (4.6 cells/s, stunned 0.7 s on a wall) every 2.4 s | A suitcase bursts at 2/3 and 1/3 HP: ring of 10 socks + 3 coins; speed ×1.35, then ×1.75; shorter target |
 | Coghoot | 40 | Flies circles about 3 cells from you (1.7 cells/s) | 3 homing gears or a swoop (5 cells/s) every 2.6 s | Furious at 1/2: rings of 8 gears, ×1.25 speed |
 
 - Contact and every shot cost 1 heart. A boss never leaves its arena. It wakes when you step into the arena, or see it from within 7 cells.
 - Boss HP = ceil(base × round bonus) + 5 × (floor − 1) (M1.13.1). Each full round of three adds a tier: HP +40% (max ×3, from floor 80), attacks 8% more often (max 1/0.6), speed +6% (max ×1.3). Floor 20's King Gloop has 51 HP; floor 80's has 108.
-- At 0.8 s per throw, a floor-5 King Gloop takes at least 29 s of hits.
+- At 0.8 s per throw, a floor-5 Screamer King takes at least 29 s of hits.
 - Loot: 15 coins spray out, plus a run item (a heart once all are maxed) and a use-item (M1.23). The boss counts as a kill and an elite (+150 score). The score formula is unchanged.
 - Arena: the exit room if it has 35+ cells (so the boss stands by the portal), else the biggest room (never the start, shop, slot or vault room). Other mobs move out and no pits are dug there. Once you are inside, its doors lock until the boss falls (M1.10.1).
 - The exit door on a boss floor is not locked and its key is not placed (with a vault, the vault keeps its lock and the open-area key opens it).

@@ -1,4 +1,4 @@
-# Balance (M1.9)
+# Balance (M1.17)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -31,7 +31,7 @@ had modifiers).
 | Coins | `min(30, 8 + 2L)` |
 | Hearts | 1, or 2 from L5 |
 | Fences | `2 + min(5, L)` |
-| Power-ups | 1 in the tutorial; 2, or 3 from L5 |
+| Items | tutorial: Running Shoes; then 2, or 3 from L5: the first is a run item (while any are left), the rest use-items |
 | Vault | from L4 |
 | Pits | from L3: `min(6, 1 + floor(L/2))` (2 on L3, cap reached on L10) |
 | Shop (Old Murkle) | every even floor from L2 |
@@ -50,15 +50,15 @@ and one Hazewisp); if still short, extra Kettlegrumps are placed far from the st
 Hazewisp) cross over. They never block the only route and never sit on the spawn or on loot.
 
 **Secret rooms:** a subtly cracked wall opens after 3 balloon hits. The room holds a coin bag
-(10 coins, 60%) or a power-up (40%), and 90% also have a mob. The opened state is saved for
+(10 coins, 60%) or a run item (40%; M1.23), and 90% also have a mob. The opened state is saved for
 that floor.
 
 ## Elites
 
 - Chance per mob: 5% × L, capped at 60% (reached on L12). 0% on the tutorial.
 - Two modifiers: 50% on L6, 75% on L7, 100% from L8.
-- Loot: one modifier drops 2 coins plus a 50% chance of a power-up; two modifiers drop 4 coins
-  plus a power-up.
+- Loot: one modifier drops 2 coins plus a 50% chance of a use-item; two modifiers drop 4 coins
+  plus a use-item.
 
 | Modifier | Effect |
 |---|---|
@@ -68,56 +68,91 @@ that floor.
 | FAST | +40% speed. |
 | REGEN | Heals 1 HP every 2.5 s while not hit. |
 
-## Power-ups
+## Items (M1.23)
 
-Once used, a power-up lasts for the rest of the floor. Several can run at once; they all end
-when the next floor starts. Active effects show as a HUD icon row (no countdown).
+Full list with effects in [CONTROLS_AND_FEATURES.md](CONTROLS_AND_FEATURES.md#items-and-pickups-m123).
+Tuning lives in `ITEMS` (name, max, shop price) and `ITEM_FX` in the game.
 
-| Power-up | Effect |
-|---|---|
-| SPEED SNEAKERS | 1.35× move speed (was 1.6× for 10 s) |
-| SHIELD BUBBLE | Absorbs 3 hits (was all damage for 8 s) |
-| TRIPLE BALLOON | Three balloons, ±10° spread |
-| FREEZE POP | Enemies and their shots move at 60% speed (was 35% for 8 s) |
-| COIN MAGNET | Pulls coins within 6 cells |
-| GIANT BALLOON | 1 damage splash within 1.2 cells (2 on a direct hit); blocked by walls, doors and fences (was 2 within 1.4 cells for 9 s) |
-
-## Balloon types
-
-The default Water balloons are always owned. The other types are permanent shop items, saved
-with the run. Throw cooldown is 0.80 s (was 0.42 s).
-
-| Type | Price | Effect |
-|---|---|---|
-| Water (default) | — | Speed 6.6 |
-| Red | 35 | Faster (speed 9.6) and longer range |
-| Green | 45 | Poison: 2 extra damage ticks, 1 s apart (a new hit restarts them) |
-| Yellow | 50 | Leaves a 4 s puddle (radius 0.55) that deals 1 damage per 0.8 s to mobs, never to you |
+- **Run items** (23 + 6 balloon colours) last the whole run and stack up to their max. When all
+  copies of an item are owned it no longer turns up; a maxed one you still find is worth 5 coins.
+- Stacking numbers: Running Shoes +12% speed each; Dumbbell +1 damage each; Coffee ×0.82 throw
+  cooldown each (0.80 s → 0.66 / 0.54 / 0.44 s); Cheeseburger eye +0.12 and body radius +0.03
+  each; Glasses +1 sight each; Baseball Glove ×1.25 / ×1.5 balloon speed; Pocket Watch ×0.8 enemy
+  shot speed each; Garlic 1 damage per Garlic to a biter (you're still bitten); Leather Jacket 20%
+  per jacket; Fridge Magnet 3 cells per magnet; Hand Mirror 3 bounced shots per mirror per floor;
+  Bubble Wrap 1 blocked hit per wrap per floor; Rubber Duck 1 wall bounce per duck.
+- Balloon colours all apply at once. Red: speed 9.6 (water 6.6). Green: 2 poison ticks 1 s apart.
+  Yellow: 4 s puddle (radius 0.55, 1 damage / 0.8 s to mobs). Black: 1 damage within 1.2 cells of
+  where it pops (walls block it), and 1 heart to you if you're inside that. Purple: passes through
+  up to 4 monsters. Pink: turns up to 3.2 rad/s toward the nearest monster within 6 cells ahead.
+  Ice Cube: hit monsters move at half speed for 1.5 s.
+- Use-items (one slot, two with the Backpack): Healing Herb +2 hearts; Warding Bell stuns within
+  4.5 cells; Flare: 16 cells of sight for 8 s; Freeze Pop: monsters and their shots at 60% speed for
+  the floor; Firecracker: 3 damage within 2.4 cells (walls block it), never to you.
 
 ## Shop (Old Murkle)
 
-A hooded merchant appears every even floor from L2 (never the tutorial). Permanent items are
-saved with the run. He also offers two random one-use power-ups at 10 coins each, once per
-floor.
+A hooded merchant appears every even floor from L2 (never the tutorial). Each floor he offers
+three run items (at their price, 20–50 coins) and two use-items (10 coins each), plus the
+Backpack (30 coins, a second use-item slot). RARE WARES: Piggy Bank 40, Mystery Box 25
+(30% a run item, 40% a use-item, else a heart and 10 coins).
 
-| Item | Price | Effect |
-|---|---|---|
-| Red Balloons | 35 | See above |
-| Green Balloons | 45 | See above |
-| Yellow Balloons | 50 | See above |
-| Backpack | 30 | A second power-up slot |
+## Screamers (M1.19.1)
 
-The four permanent items cost 160 coins together. Floors 2–8 place 200 coins if you collect
-every coin and pop every mob (before elite loot, secret-room bags and the slot), so a full
-shop spend is a long-run investment rather than a first-shop impulse buy.
+- Every Screamer fires the sonic ring (as RANGED, but cooldown ×1.4, first shot 0.6–1.8 s after waking).
+
+## Sight (M1.17)
+
+- View distance 5 cells (fog starts at 30% of it, fully hazy at 100%). Owl Eyes +1 each (max 3, rare wares 45 + 30n), Torch +3 (floor), Candle Lantern +2 (floor), Flare: 16 for 8 s.
+
+## The King in Yellow (M1.14)
+
+- Floor 20 only. HP 70 × round bonus + 5 per floor (193). Attack every 2.4 s (1.6 s furious), 0.6 s tell. Sign: 1.1 s fuse, radius 0.75, 1 heart + 3 s reversed controls. Robes: 5 (7) rags, 1 heart + 1.5 s slow. Carcosa: 6 s, 2 homing suns. Hali: 3 (4) pools, radius 0.7 (0.9), 8 s, 1 heart per 1.2 s.
+
+## Mob HP and elites (M1.13)
+
+- Regular mob max HP = base + (floor − 1); BEEFY = ceil(that × 2.5); SPLITTER children 1/3. Replaces the M1.8 ×1.06 per floor past 8 (`deepHpMul` is no longer applied).
+- Elite modifiers: RANGED 3, SLIME 3, BEEFY 3, FAST 2, REGEN 1, SHIELDED 2, SPLITTER 2, VAMPIRE 2, EXPLOSIVE 2, FROST 2 (floor 4+), BLINK 1 (floor 5+) (weights).
+
+## Coins and pits (M1.12)
+
+- Pit milestones 10 / 50 / 100 (whole run). Skitters: 1 HP, 4.4 cells/s, one every 14–22 s near a pit (cap 1, 2 from floor 12); face-hug 3 s. Brood Spiders: 8 HP (× deep HP), 1.9 cells/s, one every 26–36 s (cap 2), elite rules apply.
+- Grand Masque 55 HP (happy 4 s / sad 5 s; 3 gold balls every 1.6 s; 2 Tragedy masks every 9 s, max 3; barrage every 22 s: 2 shots/s for 10 s). Broodmother 60 HP (web 3 s slow ×0.5; egg sac 4 HP, bursts after 10 s into 2 Skitters + 1 Brood Spider, max 3 sacs; summons).
+- Coin door 45% of floors from 2 (if a spot fits): 5/10/20 coins; loot 30% a run item, 8% Piggy Bank, else a use-item; 22% a mob (40% of those a Treasure Knight). Shrine 35% (floor 3+): 15 coins, 15% curse. Trapdoor 30% (not boss floors): 15 coins.
+
+## Treasure Knight and items (M1.11)
+
+- Treasure Knight: every floor from 2; HP `10 + 3·(L − 2)` (M1.17.1, no cap); overhead sword slam within 2 cells (1.2 s tell; a dust ring rolls out at 3.2 cells/s to 3 cells, 2 damage + knockback on contact; 5.5 s cooldown, M1.19.1); walks 1.15 cells/s; shield 1.5–2.1 s (70% chance when a balloon flies within 2.8 cells, 2.2 s cooldown); charge every 4.2 s after a 0.7 s tell, 6.5 cells/s, dazed 1.3 s on a wall; drops a run item + 5 coins (M1.23); counts as an elite.
+- Comedy masks: 35% of masks; unkillable, harmless, keep ~1.3 cells away. Tragedy masks: Zapfly stats (1 HP, 2.6 cells/s).
+- The Treasure Knight drops a run item (M1.23; was a golden power-up). Bosses drop a run item (a heart once everything is maxed) and a use-item.
+- Damage per hit: 1 + Dumbbells (×2 with the Piggy Bank).
+
+## Bosses (M1.10)
+
+A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
+
+| Boss | Base HP | Moves | Attacks | Phases |
+|---|---|---|---|---|
+| King Gloop | 36 | Hops at you (0.9 cells/s, faster in the air) | Fan of 5 jelly blobs every 3.2 s (0.6 s tell) | 2 minions at 2/3 and 1/3 HP (max 4 alive); furious at 1/2: fan of 7, faster hops, landings leave goo |
+| Luggernaut | 45 | Walks at you (1.0 cells/s) | Sock fan (3, 5, then 2 fast ones) or a charge (4.6 cells/s, stunned 0.7 s on a wall) every 2.4 s | A suitcase bursts at 2/3 and 1/3 HP: ring of 10 socks + 3 coins; speed ×1.35, then ×1.75; shorter target |
+| Coghoot | 40 | Flies circles about 3 cells from you (1.7 cells/s) | 3 homing gears or a swoop (5 cells/s) every 2.6 s | Furious at 1/2: rings of 8 gears, ×1.25 speed |
+
+- Contact and every shot cost 1 heart. A boss never leaves its arena. It wakes when you step into the arena, or see it from within 7 cells.
+- Boss HP = ceil(base × round bonus) + 5 × (floor − 1) (M1.13.1). Each full round of three adds a tier: HP +40% (max ×3, from floor 80), attacks 8% more often (max 1/0.6), speed +6% (max ×1.3). Floor 20's King Gloop has 51 HP; floor 80's has 108.
+- At 0.8 s per throw, a floor-5 King Gloop takes at least 29 s of hits.
+- Loot: 15 coins spray out, plus a run item (a heart once all are maxed) and a use-item (M1.23). The boss counts as a kill and an elite (+150 score). The score formula is unchanged.
+- Arena: the exit room if it has 35+ cells (so the boss stands by the portal), else the biggest room (never the start, shop, slot or vault room). Other mobs move out and no pits are dug there. Once you are inside, its doors lock until the boss falls (M1.10.1).
+- The exit door on a boss floor is not locked and its key is not placed (with a vault, the vault keeps its lock and the open-area key opens it).
 
 ## Endless floors (M1.8)
 
 - The floor limit is 10,000. M1.8 scaling still applies on top of the M1.9 floor features above.
 - Mob HP past L8: × `(1 + 0.06·(L − 8))`, max ×1.6 (reached on L18).
 - Caps: 22 mobs, 30 coins, 60% elite chance.
-- Deep wall styles unlock every 4 floors: L9 basalt, L13 rusted iron, L17 crystal, L21 glyph
-  stone, L25 void runes. A deep floor uses one unlocked style, the newest about half the time.
+- Deep wall styles unlock every 4 floors: L9 basalt, L13 rusted iron, L17 slate, L21 glyph
+  stone, L25 ember rock, L29 sandstone, L33 granite, L37 cobblestone, L41 limestone, L45 dripstone,
+  L49 chasm shale, L53 ironbound (M1.20). A deep floor uses one unlocked style, the newest about half the time.
+- Wall cells vary (M1.20): ~72% plain, ~14% damaged, ~9% pillared bay, ~5% torch/sigil bay (cosmetic only).
 
 ## Score
 
@@ -126,7 +161,7 @@ score = 1000·(L − 1) + 50 per mob popped + 100 extra per elite + 5 per coin
 score = min(score, L·100,000, 10,000,000)
 ```
 
-The cap keeps every score valid for the high score API. The formula is unchanged in M1.9.
+The cap keeps every score valid for the high score API. The formula is unchanged in M1.9 and M1.10 (a boss scores as a mob plus an elite).
 
 ## Slot machine
 
@@ -138,11 +173,11 @@ The cap keeps every score valid for the high score API. The formula is unchanged
 | Nothing | 62% | — |
 | Coins +5 | 14% | 5 coins |
 | Heart | 8% | +1 heart |
-| Power-up | 6% | random power-up |
+| Use-item | 6% | random use-item |
 | Jackpot | 2% | 25 coins spray out across the room |
 | Three skulls (crit fail) | 8% | `min(8, 1 + floor(L / 3))` monsters appear next to the machine |
 
 Expected coin return: (0.14 × 5 + 0.02 × 25) / 3 = **0.40 × cost**. Three 100,000-spin
 simulations returned 0.397 / 0.420 / 0.407 × cost. Even counting the coin each crit-fail
 monster can drop, the return stayed below 1×, so the machine can't be used to farm coins.
-Hearts and power-ups are the real prize.
+Hearts and use-items are the real prize.

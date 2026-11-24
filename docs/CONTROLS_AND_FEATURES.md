@@ -1,4 +1,4 @@
-# Controls and features (M1.9)
+# Controls and features (M1.23)
 
 ## Keyboard and mouse
 
@@ -10,7 +10,6 @@
 | Throw a balloon | Space, Ctrl or left click |
 | Use (doors, slot machine, shop) | E or Enter |
 | Use the held item | Q or right click |
-| Switch balloon type | R (Shift+R for the previous type), 1–4 (Water, Red, Green, Yellow), or the mouse wheel |
 | Switch backpack slot | F, or tap a slot of the item bar |
 | Full-screen map | M or Tab |
 | Hide / show minimap | Shift+M (saved) |
@@ -30,7 +29,6 @@ pauses the game and clears held inputs; one click resumes.
 | Throw | A or RT |
 | Use | X |
 | Item | Y |
-| Switch balloon type | LB |
 | Switch backpack slot | RB |
 | Map | Back / View |
 | Pause | Start |
@@ -43,8 +41,7 @@ On-screen prompts switch to gamepad buttons when a pad is in use.
 
 - Floating stick on the left half (appears where your thumb lands; push far to run).
 - Drag on the right half to look; double-tap there to recentre.
-- Buttons: THROW, USE (shown only when something usable is in front), ITEM, BALL (shown once
-  you own more than one balloon type), MAP and pause.
+- Buttons: THROW, USE (shown only when something usable is in front), ITEM, MAP and pause.
 - Tap a slot of the item bar to pick it (Backpack).
 - Tap the minimap to open the full map.
 - Portrait shows a "turn your phone sideways" screen and pauses.
@@ -60,23 +57,65 @@ RESUME, SOUND (on/off), LOOK SPEED (50%–200%, ◄ ► arrows), INVERT Y. Setti
 A corner minimap (colour-coded keys, doors, exit, mobs, items, pits) and a full-screen map
 (M / Tab / Back / MAP button / tap the minimap).
 
-## Items and pickups
+## Items and pickups (M1.23)
 
 - **Coins** (from the floor, popped mobs and coin bags), **hearts**, **gold keys** that open locked doors.
-- **Power-ups** (held in the item bar, use with Q / Y / ITEM): SPEED SNEAKERS, SHIELD BUBBLE,
-  TRIPLE BALLOON, FREEZE POP, COIN MAGNET, GIANT BALLOON. Once used they last the rest of the
-  floor and show as a HUD icon row. The Backpack (a shop item) adds a second slot, switched
-  with F / RB / a tap on the bar. Details in [BALANCE.md](BALANCE.md).
-- **Balloon types:** Water balloons are the default. Red, Green and Yellow are bought from the
-  shop and switched with R / 1–4 / mouse wheel / LB / BALL.
+- **Run items** work the moment you pick them up and last the whole run (saved with it). Picking
+  up another of the same stacks it, up to its max. They show as an icon row under the item slot.
+  Floor 1 always has Running Shoes; every later floor hides one; secret rooms, the Treasure Knight,
+  bosses, coin doors and Old Murkle have more.
+
+| Item | Effect | Max |
+|---|---|---|
+| Running Shoes | run 12% faster | 3 |
+| Dumbbell | +1 balloon damage | 3 |
+| Cheeseburger | you grow bigger: your view (and throw) is higher up; hearts unchanged | 2 |
+| Coffee | throw 18% faster | 3 |
+| Reading Glasses | +1 sight in the dark | 3 |
+| Heart in a Jar | +1 max heart | 3 |
+| Baseball Glove | balloons fly 25% faster and farther | 2 |
+| Rubber Duck | balloons bounce off a wall (once per duck) | 2 |
+| Pocket Watch | enemy shots 20% slower | 2 |
+| Garlic | a monster that bites you takes 1 damage (2 with two) | 2 |
+| Leather Jacket | 20% chance to shrug off a hit (40% with two) | 2 |
+| Fridge Magnet | pulls in coins from 3 cells (6 with two) | 2 |
+| Compass | the key and exit show on your map | 1 |
+| Old Map | every floor starts fully mapped | 1 |
+| Four-Leaf Clover | coins are worth double | 1 |
+| Vitamins | +1 heart on every new floor | 1 |
+| Party Hat | throw 3 balloons at once | 1 |
+| Balloon Pump | big balloons that splash around | 1 |
+| Hand Mirror | bounces 3 enemy shots back each floor (6 with two) | 2 |
+| Bubble Wrap | blocks the first hit each floor (two hits with two) | 2 |
+| Wax Wings | float over pits | 1 |
+| Ice Cube | balloons chill monsters (slower for 1.5 s) | 1 |
+| Rubber Boots | webs, frost and goo can't touch you | 1 |
+
+- **Balloon colours** are run items too, and they stack: every colour you own is on every balloon
+  (the HUD balloon box shows a dot per colour).
+
+| Colour | Effect |
+|---|---|
+| Red | faster, flies twice as far |
+| Green | poison: 2 more damage ticks |
+| Yellow | leaves a puddle that hurts monsters |
+| Black | explodes on hit (1 damage around it), and hurts you too if you are within about a cell |
+| Purple | pierces through up to 4 monsters |
+| Pink | homes in on the nearest monster ahead |
+
+- **Use-items** go in the item slot and are used with Q / Y / ITEM: Healing Herb (+2 hearts),
+  Warding Bell (stuns monsters around you), Flare (lights up the dark), Freeze Pop (monsters slow
+  down for the floor), Firecracker (3 damage to everything near you). Elites drop them. The
+  Backpack (a shop item) adds a second slot, switched with F / RB / a tap on the bar.
 - **Vaults** (from level 4): a second locked room with a spare key and a heart.
+- Item icons are in `assets/items.png` (see `assets/README.md`).
 
 ## Shop (Old Murkle)
 
 Appears every even floor from floor 2 (never the tutorial). Talk to him with E / X / USE / a
-tap. The shop is modal and pauses the game. He sells permanent balloon types and a Backpack,
-plus two one-use power-ups per floor (see [BALANCE.md](BALANCE.md)). While it is open the
-panel covers the top-left HUD.
+tap. The shop is modal and pauses the game. He sells three run items and two use-items per floor,
+plus a Backpack (see [BALANCE.md](BALANCE.md)). While it is open the
+HUD (hearts, coins, keys, balloon type, item slots) stays visible; the panel covers the minimap.
 
 ## Slot machine
 
@@ -94,6 +133,34 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
   4.5 s unless you smash the pile with a balloon.
 - **Hazewisp** drifts through fences and closed doors, and flies over pits.
 
+## Treasure Knight, masks and items (M1.11)
+
+A Treasure Knight guards every floor from 2: hit him when his shield is down or while he is
+dazed after charging into a wall; he drops a run item (M1.23; it was a golden power-up). Smiling
+Comedy masks just follow you and can't be hurt; frowning Tragedy masks attack. On both maps every
+monster is the same red mark.
+
+## Coins: pits, doors, shrines, trapdoors (M1.12)
+
+Next to a pit, E tosses a coin in (10 / 50 / 100 coins unlock pit spiders, big spiders and the
+Broodmother on floor 15). Coin doors, shrines and trapdoors ask for coins with E. Old Murkle's
+second page (RARE WARES >) sells the Piggy Bank and a Mystery Box.
+
+## The King in Yellow (floor 20)
+
+Find the torn play script on floor 20 and place it on the lectern in his hall (E / USE) to summon him.
+Step off the Yellow Sign quickly, out of the dark pools, and away from the twin suns.
+
+## Boss floors
+
+Every 5th floor a boss guards the portal: King Gloop (5, 20, 35, ...), Luggernaut (10, 25, ...)
+and Coghoot (15, 30, ...). The band says "BOSS FLOOR!" at the start. The portal is barred and
+dim (also on both maps) until the boss falls; the exit door itself needs no key. The boss stays
+in its arena room and wakes when you walk in. Opening its door plays a 5-second cut scene: you are pulled
+inside, every door slams and locks until the boss falls, and "VS <BOSS>" comes up. While it fights, its name and a health bar show
+in the message band. Beat it for coins, a heart and a power-up, and the portal opens.
+CONTINUE on a boss floor restarts the fight.
+
 ## Floors, score and high scores
 
 - Floor 1 is a hand-built tutorial; floors 2+ are procedurally generated, and floors are
@@ -104,6 +171,14 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - The HIGH SCORES page (also on the title) uses the same-origin API
   ([research/highscore-api.md](research/highscore-api.md)); otherwise a LOCAL top 10
   (`labyrinthRemake.localScores.v1`).
+
+## Revive (M1.18)
+
+On the death screen, R (gamepad X/Y, or tap the button) revives you for 10 coins × your deaths this run.
+
+## Cheat console (M1.16)
+
+Type `cheat` while playing to open it; `help` lists the commands (`jump N` goes to floor N, `give NAME` gives any item, `items` lists yours). Cheated runs are not sent to the high scores.
 
 ## URL options
 

@@ -1,14 +1,18 @@
 #!/usr/bin/env node
-// Game art lives as PNG sheets in assets/ and is embedded into src/index.html (so the game stays one file that
+// Game art lives as PNG files in assets/ and is embedded into src/index.html (so the game stays one file that
 // works from file://). See assets/README.md.
 //
-//   node tools/assets.mjs pack            embed every sheet listed in assets/atlas.json into src/index.html
-//   node tools/assets.mjs check           exit 1 if src/index.html's embedded art differs from assets/ (run pack)
-//   node tools/assets.mjs export <sheet>  re-draw a sheet from what the game currently has loaded (needs Playwright,
-//                                         installed in tests/); handy for starting a new sheet from in-game art
+//   node tools/assets.mjs pack                 embed every sheet listed in assets/atlas.json into src/index.html
+//   node tools/assets.mjs check                exit 1 if src/index.html's embedded art differs from assets/ (run pack)
+//   node tools/assets.mjs export <name | all>  write a sheet's PNG from the art the game has loaded (needs Playwright,
+//                                              installed in tests/); handy for resetting a file you broke
+//
+// pack accepts any PNG an art tool saves (palette, greyscale, RGB, RGBA, 1-16 bit) and embeds it as 8-bit RGBA,
+// which is all the game's built-in reader handles. Pixels under 50% opacity become fully clear.
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { decodePng, encodePng } from './png.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src/index.html');
@@ -18,19 +22,22 @@ const END = '/* ASSETS:END */';
 
 export function readAtlas() { return JSON.parse(fs.readFileSync(path.join(ASSETS, 'atlas.json'), 'utf8')); }
 
-function pngSize(buf, file) {
-  if (buf.length < 24 || buf.toString('latin1', 1, 4) !== 'PNG' || buf.toString('latin1', 12, 16) !== 'IHDR') throw new Error(`${file}: not a PNG file`);
-  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
-}
-
-// the embedded line for the current assets/ folder; throws with a clear message if a sheet is the wrong size
+// the embedded line for the current assets/ folder; throws with a clear message if a sheet doesn't fit its entry
 export function assetLine() {
-  const atlas = readAtlas(), out = {};
-  for (const [name, sh] of Object.entries(atlas.sheets)) {
-    const file = path.join(ASSETS, sh.file), buf = fs.readFileSync(file);
-    const { w, h } = pngSize(buf, sh.file), rows = Math.ceil(sh.tiles.length / sh.cols);
-    if (w !== sh.cols * sh.tile || h !== rows * sh.tile) throw new Error(`${sh.file} is ${w}x${h}; it must be ${sh.cols * sh.tile}x${rows * sh.tile} (${sh.cols} x ${rows} tiles of ${sh.tile}px)`);
-    out[name] = 'data:image/png;base64,' + buf.toString('base64');
+  const out = {};
+  for (const [name, sh] of Object.entries(readAtlas().sheets)) {
+    const file = path.join(ASSETS, sh.file);
+    if (!fs.existsSync(file)) throw new Error(`assets/${sh.file} is missing (listed in assets/atlas.json as "${name}")`);
+    const { w, h, rgba } = decodePng(fs.readFileSync(file), `assets/${sh.file}`), e = { png: '' };
+    if (sh.tiles) {
+      const rows = Math.ceil(sh.tiles.length / sh.cols);
+      if (w !== sh.cols * sh.tile || h !== rows * sh.tile) throw new Error(`assets/${sh.file} is ${w}x${h}; it must be ${sh.cols * sh.tile}x${rows * sh.tile} (${sh.cols} x ${rows} tiles of ${sh.tile}px)`);
+    } else {
+      if (!(sh.frames >= 1) || w % sh.frames) throw new Error(`assets/${sh.file} is ${w}px wide, which doesn't split into ${sh.frames} equal frames`);
+      e.frames = sh.frames; e.k = sh.k || 1;
+    }
+    e.png = encodePng(w, h, rgba).toString('base64');
+    out[name] = e;
   }
   return `var ASSETS=${JSON.stringify(out)};`;
 }
@@ -54,17 +61,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       if (packInto(src) !== src) { console.error('src/index.html is out of date with assets/: run node tools/assets.mjs pack'); process.exit(1); }
       console.log('art is up to date');
     } else if (cmd === 'export' && arg) {
-      const sheet = readAtlas().sheets[arg];
-      if (!sheet) throw new Error(`no sheet "${arg}" in assets/atlas.json`);
+      const sheets = readAtlas().sheets, names = arg === 'all' ? Object.keys(sheets) : [arg];
+      for (const n of names) if (!sheets[n]) throw new Error(`no sheet "${n}" in assets/atlas.json`);
       const { chromium } = await import(pathToFileURL(path.join(ROOT, 'tests/node_modules/playwright/index.mjs')).href);
       const b = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
       const p = await b.newPage();
       await p.goto(pathToFileURL(SRC).href + '?debug'); await p.waitForFunction(() => !!window.__game);
-      const url = await p.evaluate(n => __game.atlasPng(n), arg); await b.close();
-      fs.writeFileSync(path.join(ASSETS, sheet.file), Buffer.from(url.split(',')[1], 'base64'));
-      console.log(`wrote assets/${sheet.file}`);
+      for (const n of names) {
+        const url = await p.evaluate(x => __game.atlasPng(x), n), d = decodePng(Buffer.from(url.split(',')[1], 'base64'));
+        const file = path.join(ASSETS, sheets[n].file); fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, encodePng(d.w, d.h, d.rgba)); console.log(`wrote assets/${sheets[n].file}`);
+      }
+      await b.close();
     } else {
-      console.error('usage: node tools/assets.mjs <pack | check | export <sheet>>'); process.exit(2);
+      console.error('usage: node tools/assets.mjs <pack | check | export <name | all>>'); process.exit(2);
     }
   } catch (e) { console.error(e.message); process.exit(1); }
 }

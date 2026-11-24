@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.22: monster and boss art in PNG files
+- All monsters, bosses, the Treasure Knight, spiders, worms and the face-hug overlay come from `assets/mobs/*.png` (one strip of frames per creature). Pixel-identical to M1.21; their drawing code is removed.
+- The game reads the embedded PNGs itself at startup (a small built-in PNG reader), so there is no loading delay. `tools/assets.mjs pack` accepts any PNG an editor saves and converts it.
+- Worm colours are swapped from one pink template; a missing sheet shows a magenta check.
+- QA build `m1.22-qa` (debug hook on).
+
 ## M1.21: wall art in PNG files
 - All 20 wall textures now come from `assets/walls.png` (10 x 2 tiles of 64 x 64), embedded into the single HTML file by `tools/assets.mjs pack` (releases pack automatically). Pixel-identical to M1.20.
 - The wall-drawing code is gone; shading, damaged / pillared / torch variations, cracks and dents are still made in code from the PNG tiles.

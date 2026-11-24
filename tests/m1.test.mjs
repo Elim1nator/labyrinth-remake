@@ -30,6 +30,7 @@ const V116=atLeast('1.16'); // M1.16+: cheat console (type "cheat")
 const V117=atLeast('1.17'); // M1.17+: fog of war, sight items, ambience, damage indicators
 const V120=atLeast('1.20'); // M1.20+: realistic stone walls (slate, ember rock + 7 new styles), damaged/structural/decorative wall variations
 const V121=atLeast('1.21'); // M1.21+: wall art comes from assets/walls.png, embedded in the build
+const V122=atLeast('1.22'); // M1.22+: mob and boss art comes from assets/mobs/*.png
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -726,6 +727,26 @@ async function m121Tests(){
   check('M1.21 with the art missing the game still starts (walls show a magenta check)',m.st.walls==='missing'&&m.mode==='play'&&!errs.length,JSON.stringify(m)+errs.join(';'));
 }
 
+async function m122Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m122'});
+  const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const st=await G(page,()=>({st:__game.assetState(),mobs:__game.mobSheets}));
+  const missing=st.mobs.filter(n=>st.st[n]!=='png');
+  check(`M1.22 all ${st.mobs.length} mob and boss sprite strips load from their embedded PNGs (each listed in assets/atlas.json)`,st.mobs.length>=23&&!missing.length&&st.mobs.every(n=>atlas[n]&&atlas[n].file==='mobs/'+n+'.png'),missing.join(',')||st.mobs.join(','));
+  const cmp=await G(page,async(names)=>{const px=async url=>{const im=new Image();im.src=url;await im.decode();const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);return {w:im.width,h:im.height,u:new Uint32Array(cx.getImageData(0,0,im.width,im.height).data.buffer)};};
+    const bad=[];for(const n of names){const a=await px(__game.embedded(n)),b=await px(__game.atlasPng(n));let d=a.w!==b.w||a.h!==b.h?1e9:0;if(!d)for(let i=0;i<a.u.length;i++){const p=a.u[i]>>>24>=128?a.u[i]|0xff000000:0,q=b.u[i]>>>24>=128?b.u[i]|0xff000000:0;if(p!==q)d++;}if(d)bad.push(n+':'+d);}return bad;},['walls',...st.mobs]);
+  check('M1.22 the game\'s own PNG reader gives exactly the pixels the browser decodes, for every sheet (mobs in game = the PNG files)',cmp.length===0,cmp.join(' '));
+  savePng('m122_mobs_3x.png',await G(page,()=>__game.spriteSheet(3,'boss')));
+  await ctx.close();
+  // one mob's art missing: that mob shows a magenta check, everything else keeps working
+  const tmp=`${OUT}/m122_noscreamer.html`;fs.writeFileSync(tmp,fs.readFileSync(FILE,'utf8').replace(/"screamer":\{[^}]*\},/,''));
+  const c2=await browser.newContext({viewport:{width:1280,height:720}});const p2=await c2.newPage();const errs=[];p2.on('pageerror',e=>errs.push(e.message));
+  await p2.goto('file://'+tmp);await p2.waitForFunction(()=>!!window.__game,null,{timeout:10000});
+  const m=await p2.evaluate(()=>{const G=__game;G.manual=true;G.setSeed(5);G.startLevel(2);G.clearMobs();const p=G.state().player;G.spawn('screamer',p.x+1.5,p.y,false,[]);G.advance(0.5);return {st:G.assetState().screamer,king:G.assetState().king,mode:G.state().mode};});await c2.close();fs.unlinkSync(tmp);
+  check('M1.22 a missing mob sheet shows that mob as a magenta check without breaking the game',m.st==='missing'&&m.king==='png'&&m.mode==='play'&&!errs.length,JSON.stringify(m)+errs.join(';'));
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -770,6 +791,7 @@ if(V117&&want('m117')){ await m117Tests(); }
 if(V118&&want('m118')){ await m118Tests(); }
 if(V120&&want('m120')){ await m120Tests(); }
 if(V121&&want('m121')){ await m121Tests(); }
+if(V122&&want('m122')){ await m122Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -1094,7 +1116,7 @@ async function m12Tests(){
     st=await G(page,()=>__game.state());
     check('M1.2 green pear enemy is gone; every enemy is a Screamer',!names.includes('blob')&&names.includes('screamer')&&st.enemies.every(e=>e.type==='screamer'),names.join(','));
     check('M1.2 Screamer has 4 distinct ear-flap frames',new Set(fsig).size===4,fsig.join(','));
-    const px=await G(page,()=>{__game.startLevel(0);__game.freeze=true;__game.teleport(9.0,4.5,0);__game.advance(0.05);const D=__game.dims||{W:320,H:200};const d=document.getElementById('screen').getContext('2d').getImageData(0,0,D.W,D.H).data;let purple=0,lime=0,slate=0;for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2];if(b>150&&r>100&&g<120&&b>r)purple++;if(g>180&&r<170&&b<90)lime++;if(b>110&&b>r+35&&b>g+15&&g>r-5&&r<150)slate++;}return {purple,lime,slate};});
+    const px=await G(page,()=>{if(__game.setSeed)__game.setSeed(777); /* a fixed floor: a random elite's purple glow could land in view */__game.startLevel(0);__game.freeze=true;__game.teleport(9.0,4.5,0);__game.advance(0.05);const D=__game.dims||{W:320,H:200};const d=document.getElementById('screen').getContext('2d').getImageData(0,0,D.W,D.H).data;let purple=0,lime=0,slate=0;for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2];if(b>150&&r>100&&g<120&&b>r)purple++;if(g>180&&r<170&&b<90)lime++;if(b>110&&b>r+35&&b>g+15&&g>r-5&&r<150)slate++;}return {purple,lime,slate};});
     if(V13)check('M1.3 Screamer renders slate-blue (no purple, no lime-green pear pixels)',px.slate>2500&&px.purple<50&&px.lime===0,JSON.stringify(px));
     else check('M1.2 Screamer renders (purple) with no lime-green pear pixels',px.purple>800&&px.lime===0,JSON.stringify(px));
     await page.screenshot({path:`${SHOTS}/m12_screamer_closeup_1280x800.png`});

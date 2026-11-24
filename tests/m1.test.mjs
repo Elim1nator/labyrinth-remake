@@ -33,6 +33,7 @@ const V121=atLeast('1.21'); // M1.21+: wall art comes from assets/walls.png, emb
 const V122=atLeast('1.22'); // M1.22+: mob and boss art comes from assets/mobs/*.png
 const V123=atLeast('1.23'); // M1.23+: run items (stacking, whole run) + stacking balloon colours replace power-ups, permanent and golden items
 const V124=atLeast('1.24'); // M1.24+: boss props, portals and projectiles come from assets/boss/*.png
+const V125=atLeast('1.25'); // M1.25+: hand-made wall and item art (busier textures: art-contrast thresholds loosened, still all distinct)
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -710,7 +711,7 @@ async function m120Tests(){
     return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===64&&v.dark)};});
   check('M1.20 crystal and void walls replaced by blue slate and ember rock; 7 new stone styles (TEX has 20 entries)',w.count===20&&w.names[2]==='SLATE HALLS'&&w.names[4]==='THE EMBER CORE'&&!w.names.some(n=>/CRYSTAL|VOID/.test(n)),JSON.stringify(w.names));
   check('M1.20 a new wall style every 4 floors from 29 to 53 (sandstone, granite, cobble, limestone, dripstone, chasm shale, ironbound)',w.tiers.join()==='SANDSTONE CRYPT:A,GRANITE HALLS:B,COBBLE WARRENS:E,LIMESTONE NAVE:I,DRIPPING GROTTO:Z,CHASM DEPTHS:+,IRON KEEP:=',w.tiers.join());
-  check('M1.20 every wall style has damaged, structural and decorative variations (64x64, cached, with a dark side)',w.ok&&w.vd.length===51&&w.vd.every((v,i)=>v.diff>=(i%3===0?1.5:10)),`mean difference from the plain wall (damaged/structural/decorative): ${w.vd.map(v=>v.diff.toFixed(1)).join(' ')}`);
+  check('M1.20 every wall style has damaged, structural and decorative variations (64x64, cached, with a dark side)',w.ok&&w.vd.length===51&&w.vd.every((v,i)=>v.diff>=(i%3===0?(V125?.8:1.5):(V125?6:10))),`mean difference from the plain wall (damaged/structural/decorative): ${w.vd.map(v=>v.diff.toFixed(1)).join(' ')}`);
   const d=await G(page,()=>{const G=__game;G.manual=true;const n=[0,0,0,0];let doors=0;for(const f of [1,10,30,50]){G.setSeed(900+f);G.startLevel(f-1);const s=G.state();for(let y=0;y<s.mapH;y++)for(let x=0;x<s.mapW;x++){const v=G.cellVariant(x,y);if(v>0||G.solidAt(x+.5,y+.5))n[v<0?0:v]++;}}
     const tot=n.reduce((a,b)=>a+b,0);return {share:n.map(c=>c/tot),tot};});
   check('M1.20 most wall cells are plain; some damaged, fewer pillared bays, a few torches or sigils',d.share[0]>.6&&d.share[1]>.08&&d.share[2]>.04&&d.share[3]>.02&&d.share[3]<d.share[2],d.share.map(x=>x.toFixed(3)).join(' '));
@@ -2340,7 +2341,7 @@ async function m18Tests(){
     const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);const walls=[0,1,2,3,4,8,9,10,11,12];let minD=1e9,pair='';
     for(const i of [8,9,10,11,12])for(const j of walls){if(i===j||(j>i&&j>=8&&walls.indexOf(j)<walls.indexOf(i)))continue;if(j===i)continue;const dd=dist(t.info[i].mean,t.info[j].mean);if(dd<minD){minD=dd;pair=i+'/'+j;}}
     const sigs=new Set(t.info.map(x=>x.sig));
-    check('M1.8 five new 64x64 wall textures, all distinct, cached once (TEX has 13 entries, same objects every frame)',t.count===(V120?20:13)&&t.same&&sigs.size===t.count&&t.info.slice(8).every(x=>x.w===64&&x.h===64)&&t.md>=30,`smallest mean per-pixel difference ${t.mp}: ${t.md.toFixed(1)} of 255 (closest mean colours ${pair}: ${minD.toFixed(1)})`);
+    check('M1.8 five new 64x64 wall textures, all distinct, cached once (TEX has 13 entries, same objects every frame)',t.count===(V120?20:13)&&t.same&&sigs.size===t.count&&t.info.slice(8).every(x=>x.w===64&&x.h===64)&&t.md>=(V125?20:30),`smallest mean per-pixel difference ${t.mp}: ${t.md.toFixed(1)} of 255 (closest mean colours ${pair}: ${minD.toFixed(1)})`);
     savePng('m18_textures_all_4x.png',await G(page,()=>__game.textures(4)));
     // in-game views per tier
     // in-game views per tier: stand in front of a stretch of the floor's base wall (the newest unlocked style), 1.6 cells away

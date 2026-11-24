@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.25: new wall and item art
+- New hand-made art for all 20 wall textures (`assets/walls.png`) and all 34 item icons (`assets/items.png`), scaled from your sheets: walls 200 px -> 64 px tiles, icons 164 px -> 24 px with the backdrop removed. The fence's dark gaps stay see-through. The secret-wall crack is drawn a little bolder so it still reads on the busier art. Damaged / pillared / torch variations, cracks and dents are still made from the new tiles.
+- QA build `m1.25-qa` (debug hook on).
+
 ## M1.24: boss props and projectiles in PNG files
 - Portals, the King in Yellow's lectern, Yellow Signs and Hali mist, King Gloop's goo, the Treasure Knight's slam crack, the play script and all 14 projectiles now come from `assets/boss/*.png`. Pixel-identical to M1.23; their drawing code is removed.
 - QA build `m1.24-qa` (debug hook on).

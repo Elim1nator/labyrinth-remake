@@ -6,6 +6,13 @@
       "cols": 10,
       "tiles": ["brick", "stone", "wood", "tile", "moss", "door", "locked", "fence", "basalt", "rust", "slate", "glyph", "ember", "sandstone", "granite", "cobble", "limestone", "dripstone", "shale", "ironbound"]
     },
+    "items": {
+      "file": "items.png",
+      "tile": 24,
+      "cols": 10,
+      "k": 1.5,
+      "tiles": ["shoes", "dumbbell", "burger", "coffee", "glasses", "heart", "glove", "duck", "watch", "garlic", "jacket", "magnet", "compass", "map", "clover", "vitamins", "hat", "pump", "mirror", "bubble", "wings", "ice", "boots", "red", "green", "yellow", "black", "purple", "pink", "herb", "bell", "flare", "freeze", "firecracker"]
+    },
     "screamer": { "file": "mobs/screamer.png", "frames": 4, "k": 1.5 },
     "screamerO": { "file": "mobs/screamerO.png", "frames": 4, "k": 1.5 },
     "springle": { "file": "mobs/springle.png", "frames": 4, "k": 1.5 },

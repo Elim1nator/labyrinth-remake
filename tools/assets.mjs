@@ -32,6 +32,7 @@ export function assetLine() {
     if (sh.tiles) {
       const rows = Math.ceil(sh.tiles.length / sh.cols);
       if (w !== sh.cols * sh.tile || h !== rows * sh.tile) throw new Error(`assets/${sh.file} is ${w}x${h}; it must be ${sh.cols * sh.tile}x${rows * sh.tile} (${sh.cols} x ${rows} tiles of ${sh.tile}px)`);
+      if (name !== 'walls') { e.tile = sh.tile; e.cols = sh.cols; e.k = sh.k || 1; e.names = sh.tiles; } // the game finds icons by name
     } else {
       if (!(sh.frames >= 1) || w % sh.frames) throw new Error(`assets/${sh.file} is ${w}px wide, which doesn't split into ${sh.frames} equal frames`);
       e.frames = sh.frames; e.k = sh.k || 1;

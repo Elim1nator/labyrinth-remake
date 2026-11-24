@@ -31,6 +31,7 @@ const V117=atLeast('1.17'); // M1.17+: fog of war, sight items, ambience, damage
 const V120=atLeast('1.20'); // M1.20+: realistic stone walls (slate, ember rock + 7 new styles), damaged/structural/decorative wall variations
 const V121=atLeast('1.21'); // M1.21+: wall art comes from assets/walls.png, embedded in the build
 const V122=atLeast('1.22'); // M1.22+: mob and boss art comes from assets/mobs/*.png
+const V123=atLeast('1.23'); // M1.23+: run items (stacking, whole run) + stacking balloon colours replace power-ups, permanent and golden items
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -43,7 +44,14 @@ fs.mkdirSync(SHOTS,{recursive:true});
 for(const f of fs.readdirSync(SHOTS))if(f.endsWith('.png'))fs.unlinkSync(`${SHOTS}/${f}`);
 console.log(`Testing ${FILE}\nOutput: ${OUT}\n`);
 const results=[];let failed=0;
-function check(name,cond,detail=''){results.push({name,ok:!!cond,detail});if(!cond)failed++;console.log((cond?'PASS':'FAIL')+'  '+name+(detail?'  ('+detail+')':''));}
+// M1.23 replaced the power-ups, permanent items, golden items and balloon-type switching with run items and stacking
+// balloon colours. The checks of the old behaviour still run on older builds; from M1.23 on they are retired (listed, not
+// counted), and m123Tests checks the new items.
+const RETIRED_M123=[/^M1\.4 (walking over a power-up|slot full|same item already held|six power-ups|Q and right mouse|TRIPLE BALLOON|COIN MAGNET|gamepad Y uses|power-ups are placed in every level)/,/^M1\.4\/M1\.9 (SPEED SNEAKERS|GIANT BALLOON)/,
+  /^phone: ITEM button only shows/,/^M1\.9 (a used power-up lasts|power-ups stack for the floor|every effect ends on the next floor|rebalance values|shop rows: Red|keyboard: W\/S choose|mouse: click a row|single-use power-ups fill|CONTINUE restores the permanent|gamepad: X talks|balloon type switching|touch: the BALL button)/,
+  /^M1\.17 a Torch pushes/];
+const retired=[];
+function check(name,cond,detail=''){if(V123&&RETIRED_M123.some(re=>re.test(name))){retired.push(name);console.log('RETIRED  '+name);return;}results.push({name,ok:!!cond,detail});if(!cond)failed++;console.log((cond?'PASS':'FAIL')+'  '+name+(detail?'  ('+detail+')':''));}
 const browser=await chromium.launch();
 const consoleProblems=[];const badRequests=[];
 async function newPage(opts={}){
@@ -354,7 +362,7 @@ async function m110Tests(){
     // death: loot, score, portal opens, clear screen names the boss, next floor
     const win=await G(page,()=>{__game.setSeed(777);__game.startLevel(4,{hearts:5,coins:0});__game.setRun({kills:0,elites:0,coins:0,deepest:5});__game.faceBoss(2.5);__game.advance(0.1);const sc0=__game.state().score,bx=__game.boss().ent.x,by=__game.boss().ent.y,near=i=>Math.hypot(i.x-bx,i.y-by)<1.2;
       __game.hitBoss(999);let s=__game.advance(0.5);const dying=__game.boss().ent.state,sealedMid=__game.boss().sealed;s=__game.advance(1.0);const b=__game.boss();
-      const coins=s.items.filter(i=>i.kind==='coin'&&i.spray).length,hearts=s.items.filter(i=>(i.kind==='heart'||i.kind==='perm')&&!i.taken&&near(i)).length, /* M1.11: a permanent item instead of the heart */pw=s.items.filter(i=>i.kind==='power'&&near(i)).length;
+      const coins=s.items.filter(i=>i.kind==='coin'&&i.spray).length,hearts=s.items.filter(i=>(i.kind==='heart'||i.kind==='perm'||i.kind==='item')&&!i.taken&&near(i)).length, /* M1.11: a permanent item instead of the heart */pw=s.items.filter(i=>i.kind==='power'&&near(i)).length;
       __game.advance(2);__game.nextFloorViaExit();s=__game.advance(0.1);const mode=s.mode;__game.advance(0.6);__game.confirm();const s2=__game.advance(0.05);
       return {dying,sealedMid,sealed:b.sealed,gone:b.ent.gone,msg:s.msg,coins,hearts,pw,dScore:s.score-sc0-5*s.run.coins,run:s.run,kills:s.stats.bossKills,mode,next:s2.level,nextMode:s2.mode};});
     check('M1.10 a beaten boss flashes for a moment, then pops: the portal opens with a message',win.dying==='dead'&&win.sealedMid&&!win.sealed&&win.gone&&win.kills>=1,JSON.stringify(win));
@@ -450,6 +458,7 @@ async function m111Tests(){
       const p1=s.player;return {tell,ring,hearts:s.player.hearts,push:Math.hypot(p1.x-p0.x,p1.y-p0.y),cracks:G.cracks(),n:s.stats.knightSlamHits};});
     check(atLeast('1.19')?'M1.14.2/M1.19 up close the knight raises his sword overhead (flashing, 1.2 s) and slams: a ring of dust rolls out and hits for 2 + knockback':'M1.14.2 up close the knight raises his shield and slams it down: a ring of cracks, 2 damage and a knockback',sl.skip||(!atLeast('1.19')||sl.ring>=1)&&sl.tell&&sl.hearts===3&&sl.push>1&&sl.cracks>=1&&sl.n>=1,JSON.stringify(sl));}
   await G(page,()=>{const k=__game.knight();const s=__game.state();__game.teleport(s.player.x,s.player.y,Math.atan2(k.y-s.player.y,k.x-s.player.x));__game.advance(0.05);});await shot(page,'knight');
+  if(!V123){ // M1.23 replaced golden, permanent and these power-ups with run items (m123Tests)
   const kd=await G(page,()=>{localStorage.clear();__game.setSeed(4242);__game.startLevel(2,{hearts:5,coins:0});__game.setPerm({});const k=__game.knight();__game.knightSet({shieldT:0,shieldCD:99});__game.damageMob(k.i,99);const s=__game.advance(0.6);
     const g=s.items.find(i=>i.kind==='gold'&&!i.taken);if(!g)return {nogold:true,items:s.items.map(i=>i.kind)};__game.teleport(g.x,g.y);const s2=__game.advance(0.1);const perm=s2.perm,eff=s2.player.effects.slice(),save=s2.save.perm;
     __game.toTitle();__game.menuPick(0);__game.advance(0.05);const cont=__game.knight();
@@ -480,6 +489,7 @@ async function m111Tests(){
   check('M1.11 Lucky Clover doubles coins, Healing Herb gives 2 hearts, Mirror Charm bounces a shot back, Candle Lantern lights the whole map',it.clover===2&&it.herb===4&&it.mirror.hearts===5&&it.mirror.b===1&&it.lantern===it.total,JSON.stringify({c:it.clover,h:it.herb,m:it.mirror,l:it.lantern,t:it.total}));
   check('M1.11 Wax Wings float you over pits; Warding Bell pushes nearby monsters back and stuns them',(it.wings===undefined||it.wings==='play')&&it.bell.dist>2&&it.bell.stuns>=1&&it.bellStill<0.05,JSON.stringify({w:it.wings,b:it.bell,still:it.bellStill}));
   check('M1.11 Heart Container: +1 max heart (and a heart), saved at once',it.hp.max===6&&it.hp.hearts===6&&it.hp.saved===1,JSON.stringify(it.hp));
+  }
   await G(page,()=>{__game.setSeed(777);__game.startLevel(6,{hearts:7,coins:0,perm:{hp:3,gold:{sneakers:true,shield:true,triple:true}}});__game.give('thorns');__game.advance(0.05);});await shot(page,'hud_8_hearts_golden');
   const lay=await G(page,()=>{const H=__game.hudRects();return {hearts:6+7*9+7<=H.ball[0]};});
   check('M1.11 eight hearts (half size) still fit left of the balloon box',lay.hearts,JSON.stringify(lay));
@@ -566,10 +576,12 @@ async function m112Tests(){
     return {has,dmg:d,c1,c2:s2.player.coins,after:s2.perm.piggy,msg:s2.msg};});
   check('M1.12 Piggy Bank: each throw costs a coin and does double damage; it shatters when the coins run out',pg.has&&pg.dmg===2&&pg.c1===1&&pg.c2===0&&!pg.after&&/SHATTERS/.test(pg.msg),JSON.stringify(pg));
   // ---- rare wares
+  if(!V123){ // M1.23: the rare page sells only the Piggy Bank and the Mystery Box
   const rw=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(1,{hearts:5,coins:400,perm:{}});G.faceShop();G.openShop();const r0=G.shopRows();const mi=r0.findIndex(r=>r.id==='more');G.shopBuy(mi);const r1=G.shopRows();
     const hc=r1.findIndex(r=>r.id==='r_hp'),p0=r1[hc].price;G.shopBuy(hc);const r2=G.shopRows();const mh=G.maxHearts();const gi=r2.findIndex(r=>r.id==='r_gold');G.shopBuy(gi);const gold=Object.keys(G.state().perm.gold).length;
     const bi=r2.findIndex(r=>r.id==='r_box');G.shopBuy(bi);const back=G.shopRows().findIndex(r=>r.id==='back');G.shopBuy(back);return {page:G.shopPage(),names:r1.map(r=>r.name),p0,p1:r2[hc].price,mh,gold,coins:G.state().player.coins};});
   check('M1.12 Old Murkle has a second page of rare wares: Heart Container, Strong Arm, Quick Hands (pricier each time), Piggy Bank, a Golden Wonder and a Mystery Box',rw.names.length===(atLeast('1.17')?9:8)&&rw.p0===60&&rw.p1===90&&rw.mh===6&&rw.gold===1&&rw.page===0,JSON.stringify(rw));
+  }
   await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(1,{hearts:5,coins:400,perm:{}});G.faceShop();G.openShop();G.shopBuy(G.shopRows().findIndex(r=>r.id==='more'));G.render();});await shot(page,'rare_wares');
   await G(page,()=>{const G=__game;G.closeShop&&G.closeShop();G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:0}});G.faceBoss(3);G.advance(0.3);});await shot(page,'grand_masque');
   await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});G.faceBoss(3);G.advance(0.3);});await shot(page,'broodmother');
@@ -651,7 +663,7 @@ async function m116Tests(){
   const j=await G(page,()=>{const s=__game.advance(0.05);return {mode:s.mode,level:s.level,cheated:__game.cheated(),save:s.save&&s.save.run&&s.save.run.cheated,open:__game.cheatOpen()};});
   check('M1.16 typing "cheat" while playing opens the cheat console (game paused); "jump 12" takes you to floor 12',!half&&open.open&&open.mode==='cheat'&&open.focus==='cheatIn'&&j.mode==='play'&&j.level===11&&!j.open,JSON.stringify({half,open,j}));
   const c=await G(page,()=>{const G=__game,r={};r.heal=(G.setHearts(1),G.cheat('heal'),G.state().player.hearts);r.coins=(G.cheat('coins 250'),G.state().player.coins);r.god=G.cheat('god');const p=G.state().player;const i=G.spawn('clunk',p.x+.3,p.y,true,[]);let s;for(let k=0;k<20;k++)s=G.advance(0.1);r.godHearts=s.player.hearts;G.cheat('god');
-    r.give=(G.cheat('give rocks'),G.state().player.item);r.gold=(G.cheat('gold magnet'),G.state().perm.gold.magnet);r.kill=G.cheat('kill');r.unknown=G.cheat('fly');return r;});
+    if(G.itemN){r.give=(G.cheat('give black'),G.itemN('black')===1?'rocks':'no');r.gold=true;}else{r.give=(G.cheat('give rocks'),G.state().player.item);r.gold=(G.cheat('gold magnet'),G.state().perm.gold.magnet);}r.kill=G.cheat('kill');r.unknown=G.cheat('fly');return r;});
   check('M1.16 cheats: heal, coins, god (no damage), give, gold, kill; unknown commands are rejected',c.heal===5&&c.coins===250&&c.godHearts===5&&c.give==='rocks'&&c.gold===true&&/POPPED/.test(c.kill)&&c.unknown==='UNKNOWN',JSON.stringify(c));
   const hs=await G(page,()=>{const G=__game;G.setHearts(1);G.setEffect(null);const p=G.state().player;G.spawn('clunk',p.x+.3,p.y,true,[]);let s;for(let k=0;k<20;k++){s=G.advance(0.1);if(s.mode==='dead')break;}G.advance(0.6);G.confirm();s=G.advance(0.1);const n0=s.stats.hsPosts;
     G.state();return {mode:s.mode,final:G.final(),n0};});
@@ -671,9 +683,10 @@ async function m117Tests(){
   check('M1.17 fog of war: you see about 5 cells; a monster 3 cells away shows, one 7 cells away is lost in the haze',fog.v===5&&fog.near>200&&fog.far<20,JSON.stringify(fog));
   check('M1.17 a Torch pushes the haze back (+3 cells), so the far monster shows',fog.vt===8&&fog.farT>50,JSON.stringify(fog));
   await shot(page,'fog');
-  const sg=await G(page,()=>{const G=__game,r={};G.setSeed(777);G.startLevel(6,{hearts:5,coins:0,perm:{owl:2}});r.owl=G.viewDist();G.setEffect(null);G.give('lantern');G.useItem();r.lantern=G.viewDist();G.setEffect(null);G.give('flare');G.useItem();r.flare=G.viewDist();G.advance(8.2);r.after=G.viewDist();
-    G.startLevel(6,{hearts:5,coins:0,perm:{}});G.advance(0.05);const fi=G.fogInfo(),tot=G.state().mapW*G.state().mapH;r.seen=fi.seen;r.tot=tot;r.names=['torch','flare'].map(k=>G.pu[k].name).concat([G.permItems.owl.name]);return r;});
-  check('M1.17 sight items: Owl Eyes +1 each (permanent), Candle Lantern +2, Flare lights up everything for 8 s',sg.owl===7&&sg.lantern===9&&sg.flare>=16&&sg.after===7&&sg.names.join()==='TORCH,FLARE,OWL EYES',JSON.stringify(sg));
+  const sg=await G(page,()=>{const G=__game,r={};G.setSeed(777);G.startLevel(6,{hearts:5,coins:0,perm:G.items?{items:{glasses:2}}:{owl:2}});r.owl=G.viewDist();G.setEffect(null);G.give('lantern');G.useItem();r.lantern=G.viewDist();G.setEffect(null);G.give('flare');G.useItem();r.flare=G.viewDist();G.advance(8.2);r.after=G.viewDist();
+    G.startLevel(6,{hearts:5,coins:0,perm:{}});G.advance(0.05);const fi=G.fogInfo(),tot=G.state().mapW*G.state().mapH;r.seen=fi.seen;r.tot=tot;r.names=G.permItems?['torch','flare'].map(k=>G.pu[k].name).concat([G.permItems.owl.name]):[G.pu.flare.name,G.items.glasses.name];return r;});
+  if(V123)check('M1.23 sight: Reading Glasses +1 each (run item), Flare lights up everything for 8 s',sg.owl===7&&sg.flare>=16&&sg.after===7&&sg.names.join()==='FLARE,READING GLASSES',JSON.stringify(sg));
+  else check('M1.17 sight items: Owl Eyes +1 each (permanent), Candle Lantern +2, Flare lights up everything for 8 s',sg.owl===7&&sg.lantern===9&&sg.flare>=16&&sg.after===7&&sg.names.join()==='TORCH,FLARE,OWL EYES',JSON.stringify(sg));
   check('M1.17 the map only learns cells you could actually see (a small patch at the floor start)',sg.seen>0&&sg.seen<sg.tot*.25,JSON.stringify(sg));
   const amb=await G(page,()=>{const r=new Set();for(let f=2;f<12;f++)r.add(__game.ambDescribe(777,f,false));return {kinds:r.size,boss:__game.ambDescribe(777,5,true)<__game.ambDescribe(777,5,false)};});
   check('M1.17 every floor gets its own ambience (drone pitch and sounds from the floor seed); boss floors sit lower',amb.kinds>=4&&amb.boss,JSON.stringify(amb));
@@ -747,6 +760,48 @@ async function m122Tests(){
   check('M1.22 a missing mob sheet shows that mob as a magenta check without breaking the game',m.st==='missing'&&m.king==='png'&&m.mode==='play'&&!errs.length,JSON.stringify(m)+errs.join(';'));
 }
 
+async function m123Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m123'});
+  const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
+  const d=await G(page,()=>{const G=__game;return {n:G.itemIds.length,balls:G.itemIds.filter(k=>G.items[k].ball),use:G.puIds,icons:G.assetState().items,
+    caps:G.itemIds.every(k=>G.items[k].max>=1&&G.items[k].price>0&&G.items[k].name&&G.items[k].desc)};});
+  check('M1.23 at least 30 items: run items + 6 stacking balloon colours + use-items, icons from assets/items.png',d.n+d.use.length>=30&&d.balls.join()==='red,green,yellow,black,purple,pink'&&d.use.includes('firecracker')&&!d.use.includes('sneakers')&&d.caps&&d.icons==='png',`${d.n} run items, ${d.use.length} use-items: ${d.use.join(',')}`);
+  // stats stack and carry to the next floor
+  const st=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:0,perm:{items:{}}});const r={};const cd=()=>{G.throwOnce();return G.state().player.throwT;};
+    r.cd0=cd();r.view0=G.viewDist();r.eye0=G.eyeLift();r.max0=G.maxHearts();
+    ['coffee','coffee','glasses','burger','heart','heart'].forEach(k=>G.addRunItem(k));r.cd2=cd();r.view=G.viewDist();r.eye=G.eyeLift();r.max=G.maxHearts();r.hearts=G.state().player.hearts;
+    let n=0;while(G.addRunItem('dumbbell'))n++;r.dumbCap=n;
+    G.nextFloorViaExit?G.nextFloorViaExit():null;G.startLevel(7,{hearts:G.state().player.hearts,coins:0,perm:G.perm()});r.carried=G.itemN('coffee')+G.itemN('dumbbell');return r;});
+  check('M1.23 run items stack: 2 Coffee = 0.82^2 throw cooldown, Glasses +1 sight, Cheeseburger lifts your eye, Heart in a Jar +1 max heart each, Dumbbell stops at 3, all carried to the next floor',
+    Math.abs(st.cd2-st.cd0*.82*.82)<1e-6&&st.view===st.view0+1&&st.eye>st.eye0&&st.max===st.max0+2&&st.dumbCap===3&&st.carried===5,JSON.stringify(st));
+  // balloon colours stack on every balloon
+  const b=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);
+    const setup=items=>{G.startLevel(6,{hearts:5,coins:0,perm:{items}});G.clearMobs();const s=G.state();let best=null;for(let y=1;y<s.mapH-1;y++)for(let x=1;x<s.mapW-1;x++){let n=0;while(n<9&&!G.solidAt(x+n+.5,y+.5)&&!G.pitUnder(x+n+.5,y+.5,0))n++;if(n>=7&&(!best||n>best.n))best={x,y,n};}G.teleport(best.x+.5,best.y+.5,0);G.setPitch(0);return best;};
+    const hp=i=>G.state().enemies[i].hp,run=n=>{for(let k=0;k<n;k++)G.advance(1/30);},r={};
+    let q=setup({black:1});let i=G.spawn('clunk',q.x+1.3,q.y+.5,true,[]);let h0=G.state().player.hearts,m0=hp(i);G.throwOnce();run(20);r.nearSelf=h0-G.state().player.hearts;r.nearMob=m0-hp(i);
+    q=setup({black:1});i=G.spawn('clunk',q.x+4.5,q.y+.5,true,[]);h0=G.state().player.hearts;G.throwOnce();run(40);r.farSelf=h0-G.state().player.hearts;
+    q=setup({purple:1,green:1});let a=G.spawn('clunk',q.x+2.5,q.y+.5,false,[]),c=G.spawn('clunk',q.x+4.5,q.y+.5,false,[]);let pa=hp(a),pc=hp(c);G.throwOnce();run(45);r.pierce=[pa-hp(a),pc-hp(c)];r.poison=!!G.state().enemies[a].poison||pa-hp(a)>1;
+    q=setup({});a=G.spawn('clunk',q.x+2.5,q.y+.5,false,[]);c=G.spawn('clunk',q.x+4.5,q.y+.5,false,[]);pa=hp(a);pc=hp(c);G.throwOnce();run(45);r.plain=[pa-hp(a),pc-hp(c)];
+    q=setup({pink:1});i=G.spawn('clunk',q.x+3.5,q.y+.5,false,[]);G.teleport(q.x+.5,q.y+.5,-.5);m0=hp(i);G.throwOnce();run(45);r.home=m0-hp(i);
+    q=setup({});i=G.spawn('clunk',q.x+3.5,q.y+.5,false,[]);G.teleport(q.x+.5,q.y+.5,-.5);m0=hp(i);G.throwOnce();run(45);r.noHome=m0-hp(i);return r;});
+  check('M1.23 black balloons explode: they hurt you within ~1 cell, not from afar',b.nearSelf===1&&b.nearMob>=2&&b.farSelf===0,JSON.stringify(b));
+  check('M1.23 colours stack: purple + green pierces (both monsters hit) and still poisons; pink homes in on a monster you missed',b.pierce[0]>=1&&b.pierce[1]>=1&&b.plain[1]===0&&b.poison&&b.home>=1&&b.noHome===0,JSON.stringify(b));
+  // sources: floor 1 shoes, a run item per floor, shop rows, knight/boss/secret drops, saves
+  const src=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);const r={};G.startLevel(0,{hearts:5,coins:0,perm:{}});r.f1=G.itemList().filter(i=>i.kind==='item').map(i=>i.ptype);
+    let per=0;for(let f=1;f<12;f++){G.startLevel(f,{hearts:5,coins:0,perm:{}});if(G.itemList().some(i=>i.kind==='item'))per++;}r.per=per;
+    G.startLevel(3,{hearts:5,coins:99,perm:{}});G.openShop();r.shop=G.shopRows().map(x=>x.kind);const k=G.shopRows().findIndex(x=>x.kind==='item');const it=G.shopRows()[k].item;G.shopBuy(k);r.bought=G.itemN(it);G.closeShop();
+    r.saved=JSON.stringify(G.perm().items);return r;});
+  check('M1.23 floor 1 has Running Shoes; later floors each hide a run item; Old Murkle sells run items and use-items; what you buy is saved with the run',src.f1.join()==='shoes'&&src.per>=10&&src.shop.filter(x=>x==='item').length===3&&src.shop.filter(x=>x==='power').length===2&&src.bought===1&&src.saved.length>2,JSON.stringify(src));
+  const fc=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:0,perm:{items:{boots:1,garlic:1}}});G.clearMobs();const p=G.state().player;const i=G.spawn('clunk',p.x+.35,p.y,true,[]);const m0=G.state().enemies[i].hp,h0=p.hearts;for(let k=0;k<30;k++)G.advance(1/30);
+    const r={garlicMob:m0-G.state().enemies[i].hp,garlicMe:h0-G.state().player.hearts};G.clearMobs();const j=G.spawn('clunk',p.x+1.5,p.y,false,[]);const m1=G.state().enemies[j].hp;G.give('firecracker');G.useItem();G.advance(.1);r.fire=m1-G.state().enemies[j].hp;r.meAfter=G.state().player.hearts;
+    G.addShot('web',p.x+.6,p.y,-3,0);for(let k=0;k<20;k++)G.advance(1/30);r.slow=G.slowT?G.slowT():G.state().player.slowT;return r;});
+  check('M1.23 Garlic bites back (you still get bitten), the Firecracker hits 3 around you but not you, Rubber Boots shrug off webs',fc.garlicMob>=1&&fc.garlicMe===1&&fc.fire===3&&!(fc.slow>0),JSON.stringify(fc));
+  savePng('m123_items_3x.png',await G(page,()=>__game.spriteSheet(3,'m111')));
+  await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:50,perm:{items:{shoes:2,dumbbell:1,burger:1,coffee:1,glasses:1,heart:1,magnet:1,map:1,hat:1,red:1,black:1,pink:1}}});G.clearMobs();G.give('firecracker');G.advance(.1);});
+  await page.screenshot({path:`${SHOTS}/m123_hud_items.png`});
+  await ctx.close();
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -792,13 +847,14 @@ if(V118&&want('m118')){ await m118Tests(); }
 if(V120&&want('m120')){ await m120Tests(); }
 if(V121&&want('m121')){ await m121Tests(); }
 if(V122&&want('m122')){ await m122Tests(); }
+if(V123&&want('m123')){ await m123Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
 const size=fs.statSync(FILE).size,LIM=V121?1024:atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
 await browser.close();
 fs.writeFileSync(`${OUT}/results.json`,JSON.stringify({build:BUILD,file:FILE,date:new Date().toISOString(),passed:results.length-failed,failed,results},null,1));
-console.log(`\n${results.length-failed}/${results.length} passed`);
+console.log(`\n${results.length-failed}/${results.length} passed`+(retired.length?` (${retired.length} checks of pre-M1.23 items retired)`:``));
 process.exit(failed?1:0);
 
 // =====================================================================
@@ -1584,7 +1640,7 @@ async function m14Tests(){
     const py=await G(page,(FR)=>{eval(FR)();__game.give('giant');__pad.buttons[3]={pressed:true,value:1};__game.advance(0.05);__pad.buttons[3]={pressed:false,value:0};return __game.advance(0.05).player.effect;},FRESH.toString());
     check('M1.4 gamepad Y uses the held item',py&&py.kind==='giant',JSON.stringify(py));
     // save / continue keeps the held item
-    await G(page,()=>{__game.startLevel(2,{hearts:4,coins:7,item:'freeze'});});
+    await G(page,()=>{if(__game.itemN)__game.setPerm({items:{}});__game.startLevel(2,{hearts:4,coins:7,item:'freeze'});}); /* M1.23: no run items left over from earlier checks */
     const sv=await G(page,()=>__game.state().save);
     await page.reload();await page.waitForFunction(()=>!!window.__game);await sleep(300);
     const cont=await G(page,()=>{const st=__game.state();const i=st.menu.findIndex(m=>/CONTINUE/.test(m));__game.menuPick(i);__game.manual=true;return __game.advance(0.05);});
@@ -2210,11 +2266,11 @@ async function m18Tests(){
     check('M1.8 no final win: clearing level 8 starts floor 9 (deep theme) and saves it',r.m1==='clear'&&r.mode==='play'&&r.level===8&&/^LEVEL 9: BASALT DEPTHS/.test(r.name)&&r.save&&r.save.level===8,JSON.stringify(r));
     r=await G(page,()=>{const out=[];for(const f of [50,200,1000]){__game.startLevel(f-1);if(__game.hitBoss){__game.hitBoss(9999);__game.advance(1.5);} /* M1.10: these are boss floors; the portal opens once the boss falls */__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);__game.advance(0.3);__game.advance(0.6);__game.confirm();const s=__game.advance(0.05);out.push(s.mode+':'+s.level);}return out;});
     check('M1.8 clears on floors 50, 200 and 1000 lead on to the next floor (never a win screen)',r.join()==='play:50,play:200,play:1000',r.join());
-    await G(page,()=>{__game.setRun({kills:12,elites:3,coins:40,deepest:199});__game.startLevel(199,{hearts:4,coins:33,item:'shield'});});
+    await G(page,()=>{__game.setRun({kills:12,elites:3,coins:40,deepest:199});__game.startLevel(199,{hearts:4,coins:33,item:__game.pu.shield?'shield':'herb'});});
     const sv=await G(page,()=>__game.state().save);
     await page.reload();await page.waitForFunction(()=>!!window.__game);await sleep(300);
     r=await G(page,()=>{const st=__game.state();const i=st.menu.findIndex(m=>/CONTINUE/.test(m));const lbl=st.menu[i];__game.menuPick(i);__game.manual=true;const s=__game.advance(0.05);return {lbl,menu:st.menu,mode:s.mode,level:s.level,hearts:s.player.hearts,coins:s.player.coins,item:s.player.item,run:s.run,name:s.levelName};});
-    check('M1.8 save + CONTINUE work on floor 200 (level, hearts, coins, item and the run score counters)',sv.level===199&&sv.run&&sv.run.deepest===200&&/CONTINUE - LEVEL 200/.test(r.lbl)&&r.mode==='play'&&r.level===199&&r.hearts===4&&r.coins===33&&r.item==='shield'&&r.run.kills===12&&r.run.deepest===200,JSON.stringify(r));
+    check('M1.8 save + CONTINUE work on floor 200 (level, hearts, coins, item and the run score counters)',sv.level===199&&sv.run&&sv.run.deepest===200&&/CONTINUE - LEVEL 200/.test(r.lbl)&&r.mode==='play'&&r.level===199&&r.hearts===4&&r.coins===33&&r.item===(V123?'herb':'shield')&&r.run.kills===12&&r.run.deepest===200,JSON.stringify(r));
     check('M1.8 title menu: CONTINUE, NEW GAME, HIGH SCORES',r.menu.length===3&&r.menu[2]==='HIGH SCORES'&&r.menu[1]==='NEW GAME',r.menu.join(' | '));
     r=await G(page,()=>{localStorage.setItem('labyrinthRemake.save.v1',JSON.stringify({v:1,level:4,hearts:3,coins:9,seed:31337,item:null,t:1}));__game.toTitle();const st=__game.state();__game.menuPick(0);__game.manual=true;const s=__game.advance(0.05);return {menu:st.menu[0],level:s.level,run:s.run};});
     check('M1.8 an M1.7-style save (no score counters) still continues',r.level===4&&r.run&&r.run.deepest===5&&r.run.kills===0,JSON.stringify(r));
@@ -2667,11 +2723,11 @@ async function m19Tests(){
     check('M1.9 the HUD chip and the balloon in the hand take the balloon colour (all 4 types)',Object.values(hudc).every(v=>v.hud>=10&&v.hand>=20),JSON.stringify(hudc));
     for(const b of ['red','green','yellow']){await G(page,(b)=>{__game.setBall(b);__game.advance(0.05);},b);await shot(page,`balloon_${b}_hud_hand`);}
     // backpack: 2 slots, switch with F / pad RB, Q uses the selected one
-    const bp=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.setPerm({pack:true});__game.give('shield');__game.give2('magnet');const K=(c)=>{window.dispatchEvent(new KeyboardEvent('keydown',{code:c}));window.dispatchEvent(new KeyboardEvent('keyup',{code:c}));};
+    const bp=await G(page,()=>{__game.startLevel(0);__game.clearMobs();const A=__game.pu.shield?['shield','magnet','giant','triple']:['herb','freeze','bell','flare'];__game.setPerm({pack:true});__game.give(A[0]);__game.give2(A[1]);const K=(c)=>{window.dispatchEvent(new KeyboardEvent('keydown',{code:c}));window.dispatchEvent(new KeyboardEvent('keyup',{code:c}));};
       const o={sel0:__game.state().player.sel};K('KeyF');o.f=__game.state().player.sel;K('KeyQ');__game.advance(0.05);o.used=__game.state().player.effects.slice();o.left=[__game.state().player.item,__game.state().player.item2];
-      __pad.buttons[5]={pressed:true,value:1};__game.advance(0.05);__pad.buttons[5]={pressed:false,value:0};__game.advance(0.05);o.rb=__game.state().player.sel;o.give=__game.giveItem('giant');o.after=[__game.state().player.item,__game.state().player.item2];o.full=__game.giveItem('triple');return o;});
+      __pad.buttons[5]={pressed:true,value:1};__game.advance(0.05);__pad.buttons[5]={pressed:false,value:0};__game.advance(0.05);o.rb=__game.state().player.sel;o.give=__game.giveItem(A[2]);o.after=[__game.state().player.item,__game.state().player.item2];o.full=__game.giveItem(A[3]);o.A=A;return o;});
     await G(page,()=>__game.advance(0.05));await shot(page,'backpack_two_slots');
-    check('M1.9 Backpack: +1 power-up slot; F / pad RB pick the slot; Q uses the selected one; slots fill in order',bp.sel0===0&&bp.f===1&&bp.used.join()==='magnet'&&bp.left.join()==='shield,'&&bp.rb===0&&bp.give===true&&bp.after.join()==='shield,giant'&&bp.full===false,JSON.stringify(bp));
+    check('M1.9 Backpack: +1 power-up slot; F / pad RB pick the slot; Q uses the selected one; slots fill in order',bp.sel0===0&&bp.f===1&&bp.used.join()===bp.A[1]&&bp.left.join()===bp.A[0]+','&&bp.rb===0&&bp.give===true&&bp.after.join()===bp.A[0]+','+bp.A[2]&&bp.full===false,JSON.stringify(bp));
     const econ=await G(page,()=>{let c=0;const per=[];for(let f=2;f<=8;f++){const d=__game.difficulty(f);c+=d.coins+d.mobs;per.push(d.coins+d.mobs);}return {perFloor:per,total2to8:c};});
     check(`M1.9 prices fit the coin economy: all 4 permanent items (160) cost about floors 2-5 worth of coins; floors 2-8 offer ~${econ.total2to8}`,160>econ.perFloor[0]*3&&160<econ.total2to8,JSON.stringify(econ));
     fs.writeFileSync(`${OUT}/m19_shop_economy.json`,JSON.stringify({prices:{red:35,green:45,yellow:50,pack:30,powerUp:10},econ},null,1));
@@ -2811,10 +2867,10 @@ async function m19Tests(){
     const bad=[];let tapBall=null,tapShop=null,tapSlot=null;
     for(const [w,h] of VIEWS){const {ctx,page}=await newPage({viewport:{width:w,height:h},hasTouch:true,isMobile:true,deviceScaleFactor:2,label:'m19-touch'});const touch=await cdpTouch(ctx,page);
       await page.touchscreen.tap(5,5).catch(()=>{});
-      await G(page,()=>{__game.manual=true;__game.setSeed(4242);__game.startLevel(1,{hearts:5,coins:200});__game.clearMobs();__game.setPerm({red:true,green:true,pack:true});__game.give('shield');__game.give2('magnet');__game.setEffect('giant');__game.setEffect('freeze');__game.faceShop();__game.advance(0.05);});
+      await G(page,()=>{__game.manual=true;__game.setSeed(4242);__game.startLevel(1,{hearts:5,coins:200});__game.clearMobs();__game.setPerm({red:true,green:true,pack:true});__game.give('shield');__game.give2('magnet');__game.setEffect('giant');__game.setEffect('freeze');if(__game.itemN){__game.give('herb');__game.give2('bell');}__game.faceShop();__game.advance(0.05);});
       const L=await G(page,()=>({lay:__game.layout(),touch:__game.state().touch}));
       const btns=['useBtn','throwBtn','itemBtn','pauseBtn','mapBtn','ballBtn'].map(k=>[k,L.lay[k]]).filter(([k,b])=>b.visible);
-      if(!L.lay.ballBtn.visible)bad.push(`${w}x${h} BALL button hidden`);
+      if(!V123&&!L.lay.ballBtn.visible)bad.push(`${w}x${h} BALL button hidden`); /* M1.23: no balloon types to switch */
       const hudZones={band:L.lay.band,hud:L.lay.hud,minimap:L.lay.minimap,itemBar:L.lay.itemBar};
       for(const [k,b] of btns){for(const [z,r] of Object.entries(hudZones))if(ov(b,r))bad.push(`${w}x${h} ${k} over ${z}`);if(b.x<0||b.y<0||b.x+b.w>w||b.y+b.h>h)bad.push(`${w}x${h} ${k} off-screen`);}
       for(let i=0;i<btns.length;i++)for(let j=i+1;j<btns.length;j++)if(ov(btns[i][1],btns[j][1]))bad.push(`${w}x${h} ${btns[i][0]} over ${btns[j][0]}`);
@@ -2824,10 +2880,10 @@ async function m19Tests(){
       const S=await G(page,()=>{__game.advance(0.3);return {mode:__game.state().mode,lay:__game.layout(),rects:__game.shopRects()};});
       if(S.mode!=='shop')bad.push(`${w}x${h} USE did not open the shop`);else{
         if(S.lay.overlayOn)bad.push(`${w}x${h} touch buttons still shown over the shop menu`);const sp=S.lay.shopPanel;if(sp.x<S.lay.canvas.x-1||sp.y<S.lay.canvas.y-1||sp.x+sp.w>S.lay.canvas.x+S.lay.canvas.w+1)bad.push(`${w}x${h} shop panel off the canvas`);
-        const r=S.rects[2];await tapAt(touch,r.x+r.w/2,r.y+r.h/2);const b=await G(page,()=>{__game.advance(0.05);return __game.state().perm.yellow;});if(w===844)tapShop=b;
+        const r=S.rects[2];await tapAt(touch,r.x+r.w/2,r.y+r.h/2);const b=await G(page,()=>{__game.advance(0.05);const s=__game.state();return s.perm.yellow!==undefined?s.perm.yellow:s.player.coins<200;});if(w===844)tapShop=b;
         if(w===844||w===568){await shot(page,`phone_${w}x${h}_shop_menu`);}
         await tapAt(touch,Math.max(2,S.lay.canvas.x/2),h-4);await tapAt(touch,4,4);const m=await G(page,()=>{__game.advance(0.05);return __game.state().mode;});if(m!=='play')bad.push(`${w}x${h} tap outside did not leave the shop (${m})`);}
-      await G(page,()=>{__game.setBall('blue');__game.advance(0.05);});const L2=await G(page,()=>__game.layout());const bb=L2.ballBtn;await tapAt(touch,bb.x+bb.w/2,bb.y+bb.h/2);const nb=await G(page,()=>{__game.advance(0.05);return __game.state().player.ball;});if(nb!=='red')bad.push(`${w}x${h} BALL tap -> ${nb}`);if(w===844)tapBall=nb;
+      if(!V123){await G(page,()=>{__game.setBall('blue');__game.advance(0.05);});const L2=await G(page,()=>__game.layout());const bb=L2.ballBtn;await tapAt(touch,bb.x+bb.w/2,bb.y+bb.h/2);const nb=await G(page,()=>{__game.advance(0.05);return __game.state().player.ball;});if(nb!=='red')bad.push(`${w}x${h} BALL tap -> ${nb}`);if(w===844)tapBall=nb;}
       const sr=await G(page,()=>{const r=__game.hudRects().active;const c=document.getElementById('screen').getBoundingClientRect();const s=c.width/480;return {x:c.left+(r[0]+r[2]/2)*s,y:c.top+(r[1]+r[3]/2)*s};});await tapAt(touch,sr.x,sr.y);const sel=await G(page,()=>{__game.advance(0.05);return __game.state().player.sel;});if(sel!==1)bad.push(`${w}x${h} slot tap -> ${sel}`);if(w===844)tapSlot=sel;
       if(w===844||w===568||w===800){await G(page,()=>__game.advance(0.05));await shot(page,`phone_${w}x${h}_hud_ball_backpack`);}
       await ctx.close();}

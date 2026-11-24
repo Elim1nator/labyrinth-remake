@@ -3,6 +3,16 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.23: item revamp
+- Power-ups, permanent items, golden items and balloon-type switching are gone. In their place:
+  - 23 **run items** that work on pickup, last the whole run and stack: Running Shoes, Dumbbell, Cheeseburger (you grow, your view is higher), Coffee, Reading Glasses, Heart in a Jar, Baseball Glove, Rubber Duck, Pocket Watch, Garlic, Leather Jacket, Fridge Magnet, Compass, Old Map, Four-Leaf Clover, Vitamins, Party Hat, Balloon Pump, Hand Mirror, Bubble Wrap, Wax Wings, Ice Cube, Rubber Boots.
+  - 6 **balloon colours** that stack on every balloon: Red (fast, far), Green (poison), Yellow (puddle), Black (explodes; hurts you up close), Purple (pierces), Pink (homes in).
+  - 5 **use-items** for the Q slot: Healing Herb, Warding Bell, Flare, Freeze Pop, Firecracker.
+- Run items come from floors (Running Shoes on floor 1), secret rooms, coin doors, the Treasure Knight, bosses and Old Murkle (3 per visit); use-items from elites, floors and the shop.
+- The HUD shows your run items in a row (with stack counts) and your balloon colours as dots.
+- Item icons are `assets/items.png`. Checks of the old item behaviour are retired from M1.23 on (they still run on older builds).
+- QA build `m1.23-qa` (debug hook on).
+
 ## M1.22: monster and boss art in PNG files
 - All monsters, bosses, the Treasure Knight, spiders, worms and the face-hug overlay come from `assets/mobs/*.png` (one strip of frames per creature). Pixel-identical to M1.21; their drawing code is removed.
 - The game reads the embedded PNGs itself at startup (a small built-in PNG reader), so there is no loading delay. `tools/assets.mjs pack` accepts any PNG an editor saves and converts it.

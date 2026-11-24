@@ -8,6 +8,7 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 | File | What |
 |---|---|
 | `walls.png` | All 20 wall textures (see below). |
+| `items.png` | All item icons (run items, balloon colours, use-items), a grid of 24 x 24 tiles. |
 | `mobs/<name>.png` | One file per monster or boss: its animation frames side by side, all the same width. |
 | `atlas.json` | Lists every file, the wall tile order, and each strip's frame count. |
 
@@ -35,6 +36,14 @@ Notes:
 - `node tools/assets.mjs export walls` (or `export all`) rewrites a PNG from the art the game has loaded (needs the
   test dependencies: `cd tests && npm install`).
 - Any PNG your editor saves is fine (palette, RGB, RGBA, greyscale; not interlaced). `pack` converts it for the game.
+
+## Editing item icons
+
+`items.png` is 240 x 96: 10 icons per row, each 24 x 24 pixels, in the order listed under `items`
+in `atlas.json` (shoes, dumbbell, burger, ... red, green, yellow, black, purple, pink, herb, bell,
+flare, freeze, firecracker). Draw on a transparent background. The round pickup tokens on the floor,
+the small HUD and shop icons, and their coloured rims are made in code from your icon. What each
+item does lives in the game (`ITEMS`, `ITEM_FX`, `PU`), not in the PNG.
 
 ## Editing monsters and bosses
 

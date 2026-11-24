@@ -1,4 +1,4 @@
-# Controls and features (M1.23)
+# Controls and features (M1.31)
 
 ## Keyboard and mouse
 
@@ -128,7 +128,7 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **Pits** from floor 3 (max 6): falling in is fatal. They show dark on the floor and on both
   maps. Ground mobs path around them; flyers cross over.
 - **Secret rooms** on every generated floor: a cracked wall opens after 3 balloon hits and
-  hides a coin bag or a power-up, usually with a mob.
+  hides a coin bag or a run item (a use-item if every run item is already maxed), usually with a mob.
 - **Rattlebone** from floor 6: at 0 HP it becomes a bone pile, rattles at 3 s and reforms at
   4.5 s unless you smash the pile with a balloon.
 - **Hazewisp** drifts through fences and closed doors, and flies over pits.
@@ -158,7 +158,7 @@ and Coghoot (15, 30, ...). The band says "BOSS FLOOR!" at the start. The portal 
 dim (also on both maps) until the boss falls; the exit door itself needs no key. The boss stays
 in its arena room and wakes when you walk in. Opening its door plays a 5-second cut scene: you are pulled
 inside, every door slams and locks until the boss falls, and "VS <BOSS>" comes up. While it fights, its name and a health bar show
-in the message band. Once the cut scene ends the barred portal vanishes (M1.26). Beat the boss for coins, a run item and a use-item,
+in the message band. Once the cut scene ends the barred portal vanishes (M1.26). Beat the boss for coins, a run item (a heart once those are maxed) and a use-item,
 and the open portal appears (a few cells away if you're standing on its spot).
 CONTINUE on a boss floor restarts the fight.
 

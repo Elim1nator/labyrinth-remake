@@ -6,8 +6,11 @@ An original first-person maze shooter for the browser, inspired by classic 90s r
 Explore rooms and maze corridors, find keys, throw water balloons at silly monsters, collect
 coins, beat a boss every 5th floor, and see how deep you can go in endless procedurally generated floors.
 
-Everything in the game (code, pixel art, textures, sounds, music, levels) is original and generated
-in code. The whole game is one self-contained HTML file with no external requests.
+Everything in the game (code, art, textures, sounds, music, levels) is original. Wall, monster,
+boss, projectile and item art lives as PNG sheets in `assets/` and is packed into the single HTML
+file by `tools/assets.mjs` (since M1.21). Sounds, music, the pixel font and some HUD or decoration
+sprites are still generated in code. The whole game is one self-contained HTML file with no
+external requests.
 
 | | | |
 |---|---|---|

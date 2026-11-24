@@ -1,4 +1,4 @@
-# Balance (M1.17)
+# Balance (M1.31)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 

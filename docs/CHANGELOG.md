@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.19: title theme
+- Hand-written 16-bar 8-bit menu theme (A minor, 108 BPM, lead, bass, arpeggio, drums).
+- QA build `m1.19-qa` (debug hook on).
+
 ## M1.18: music for every floor, revive
 - Original seed-composed 8-bit song per floor (quiet; darker on boss floors).
 - Revive after death for 10 coins x deaths this run (full hearts, 2 s safety).

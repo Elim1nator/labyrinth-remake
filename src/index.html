@@ -63,11 +63,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.18. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.19. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.18'; /* set by tools/release.mjs */
+var VERSION='M1.19'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=64;
 var SAVE_KEY='labyrinthRemake.save.v1';
 var MAX_HEARTS=5;
@@ -953,7 +953,7 @@ function startLevel(idx,carry){
 function attract(){var r=loadLevel(0);G.L=r.L;G.items=r.items;G.ents=r.ents;G.shots=[];G.parts=[];G.eshots=[];G.puddles=[];G.p=null;}
 function setMsg(m,t){G.msg=m;G.msgT=t||2.5;}
 function buildMenu(){var s=loadSave(),link=URL_SEED!==null&&s&&s.seed!==undefined&&s.seed!==URL_SEED;G.menuItems=s?[{id:'cont',label:'CONTINUE - LEVEL '+(s.level+1)+(link?' (SEED '+s.seed+')':'')},{id:'new',label:'NEW GAME'}]:[{id:'new',label:'START GAME'}];G.menuItems.push({id:'scores',label:'HIGH SCORES'});if(G.menuSel>=G.menuItems.length)G.menuSel=0;}
-function toTitle(){G.god=false;ambStop();musicStop();if(nameIn&&nameIn.className)closeName();G.mode='title';G.modeT=0;pendingFS=false;G.menuSel=0;attract();buildMenu();var sv0=loadSave();if(URL_SEED!==null&&(!sv0||sv0.seed!==URL_SEED))G.menuSel=newIdx(); /* M18: NEW GAME, not HIGH SCORES */ /* M16-A5: only a different seed preselects NEW GAME */ /* M1.5-B7: a ?seed= link defaults to NEW GAME (CONTINUE still offered) */}
+function toTitle(){G.god=false;ambStop();if(MUSIC.floor!==-99)musicStop();if(nameIn&&nameIn.className)closeName();G.mode='title';G.modeT=0;pendingFS=false;G.menuSel=0;attract();buildMenu();var sv0=loadSave();if(URL_SEED!==null&&(!sv0||sv0.seed!==URL_SEED))G.menuSel=newIdx(); /* M18: NEW GAME, not HIGH SCORES */ /* M16-A5: only a different seed preselects NEW GAME */ /* M1.5-B7: a ?seed= link defaults to NEW GAME (CONTINUE still offered) */}
 function newIdx(){for(var i=0;i<G.menuItems.length;i++)if(G.menuItems[i].id==='new')return i;return 0;}
 function menuPick(i){var it=G.menuItems[i];if(!it)return;audioInit();if(it.id==='scores'){openScores('',null);return;}if(it.id==='cont'){var s=loadSave();if(s){if(s.seed!==undefined)G.seed=s.seed;G.run=null;G.perm=permFrom(s.perm);if(!s.run)s.run={kills:0,elites:0,coins:0,deepest:s.level+1};startLevel(s.level,s);return;}}clearSave();G.seed=URL_SEED!==null?URL_SEED:randomSeed();G.run=newRun();G.perm=permFrom({}); /* M1.16: start with an empty golden list too (the Golden Wonder and cheats need it) */startLevel(0,{hearts:MAX_HEARTS,coins:0});}
 
@@ -1255,7 +1255,7 @@ function ambTick(dt){if(!AC||AC.state!=='running')return;if(!AMB.on||AMB.floor!=
 /* ---------- M1.18 music: an original, quiet 8-bit song for every floor, composed from the floor seed ----------
    minor-ish mode, slow tempo, a 4-chord loop: soft bass, a pulse arpeggio, a sparse triangle melody (ABAB' phrases), quiet noise ticks.
    Boss floors use darker modes and lower keys. Everything is synthesized; nothing is loaded. */
-var MUSIC={vol:.05,song:null,gain:null,next:0,step:0,floor:-1};
+var MUSIC={titleVol:.5,vol:.05,song:null,gain:null,next:0,step:0,floor:-1};
 var MODES={aeolian:[0,2,3,5,7,8,10],phrygian:[0,1,3,5,7,8,10],harmonic:[0,2,3,5,7,8,11],dorian:[0,2,3,5,7,9,10],locrian:[0,1,3,5,6,8,10]};
 function midiF(m){return 440*Math.pow(2,(m-69)/12);}
 function composeSong(seed,floor,boss){var R=rng(hashSeed(seed+':'+floor+':song')),pick=function(a){return a[Math.floor(R()*a.length)];};
@@ -1279,10 +1279,35 @@ function musicTick(){if(!AC||AC.state!=='running')return;if(!MUSIC.song||MUSIC.f
     if(S.hat&&pos%4===2)mnoise(t,.04,.05,6000);if(pos===0&&bar===0)mnoise(t,.12,.08,800);
     if(S.bell&&pos===0&&bar===3)mnote(midiF(S.deg(chord+4,2)),t,st*14,'sine',.06,.995);
     MUSIC.step++;MUSIC.next+=st;}}
+/* ---------- M1.19 title theme: an original, hand-written 16-bar 8-bit tune in A minor (harmonic minor turns for the spooky bits),
+   pulse lead, bouncing bass, arpeggios and a little drum kit; louder and busier than the floor songs. Loops on the title, high score and
+   name screens. */
+var _=null,TITLE_SONG=(function(){
+  var A1=[69,_,72,_,76,_,74,72,71,_,72,_,69,_,_,_],A2=[65,_,69,_,72,_,71,69,67,_,69,_,65,_,_,_],A3=[64,_,67,_,72,_,71,72,74,_,76,_,74,_,72,_],A4=[71,_,68,_,64,_,68,71,76,_,_,_,75,_,76,_],
+      B1=[74,_,77,_,81,_,79,77,76,_,74,_,77,_,_,_],B2=[76,_,72,_,69,_,72,76,81,_,79,_,76,_,_,_],B3=[77,_,76,_,74,_,72,_,71,_,72,_,74,_,_,_],B4=[76,_,_,_,75,_,76,_,80,_,_,_,83,_,_,_],
+      C4=[76,_,72,_,71,_,68,_,69,_,_,_,_,_,_,_];
+  var chords={Am:[45,[57,60,64]],F:[41,[53,57,60]],C:[48,[55,60,64]],E:[40,[56,59,64]],Dm:[38,[50,53,57]]};
+  var bars=[[A1,'Am'],[A2,'F'],[A3,'C'],[A4,'E'],[B1,'Dm'],[B2,'Am'],[B3,'F'],[B4,'E'],[A1,'Am'],[A2,'F'],[A3,'C'],[A4,'E'],[B1,'Dm'],[B2,'Am'],[B3,'F'],[C4,'Am']];
+  return {title:true,bpm:108,bars:bars.map(function(b){return {lead:b[0],root:chords[b[1]][0],tri:chords[b[1]][1]};}),name:'TITLE THEME'};})();
+var PULSE=null;function pulseWave(){if(PULSE||!AC)return PULSE;var n=24,re=new Float32Array(n),im=new Float32Array(n),d=.25;for(var k=1;k<n;k++)im[k]=2/(k*Math.PI)*Math.sin(k*Math.PI*d);PULSE=AC.createPeriodicWave(re,im);return PULSE;}
+function titleMusicStart(){musicStop();if(!AC||AC.state!=='running')return;var t=AC.currentTime,g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(MUSIC.titleVol,t+1);g.connect(master);
+  MUSIC.gain=g;MUSIC.song=TITLE_SONG;MUSIC.next=t+.2;MUSIC.step=0;MUSIC.floor=-99;stats.songs++;}
+function titleMusicTick(){if(!AC||AC.state!=='running')return;if(!MUSIC.song||MUSIC.floor!==-99){titleMusicStart();return;}var S=TITLE_SONG,st=60/S.bpm/4;
+  while(MUSIC.next<AC.currentTime+.25){var i=MUSIC.step,t=MUSIC.next,b=S.bars[Math.floor(i/16)%S.bars.length],pos=i%16;
+    var ln=b.lead[pos];if(ln!==null){var len=1;while(len<4&&b.lead[pos+len]===null)len++;var o=AC.createOscillator(),g=AC.createGain(),pw=pulseWave();if(pw)o.setPeriodicWave(pw);else o.type='square';o.frequency.setValueAtTime(midiF(ln),t);
+      var lfo=AC.createOscillator(),lg=AC.createGain();lfo.frequency.value=5.5;lg.gain.value=len>2?midiF(ln)*.006:0;lfo.connect(lg);lg.connect(o.frequency);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.16,t+.01);g.gain.setValueAtTime(.12,t+st*len*.6);g.gain.exponentialRampToValueAtTime(.0001,t+st*len*.98);
+      o.connect(g);g.connect(MUSIC.gain);o.start(t);lfo.start(t);o.stop(t+st*len);lfo.stop(t+st*len);}
+    if(pos%2===0)mnote(midiF(b.root+(pos%4===2?12:0)),t,st*1.8,'triangle',.5); /* bouncing octave bass */
+    mnote(midiF(b.tri[pos%3]+12),t,st*.9,'square',.035); /* 16th arpeggio */
+    if(pos===0||pos===8||pos===10){var k=AC.createOscillator(),kg=AC.createGain();k.frequency.setValueAtTime(140,t);k.frequency.exponentialRampToValueAtTime(40,t+.12);kg.gain.setValueAtTime(.5,t);kg.gain.exponentialRampToValueAtTime(.0001,t+.14);k.connect(kg);kg.connect(MUSIC.gain);k.start(t);k.stop(t+.16);} /* kick */
+    if(pos===4||pos===12)mnoise(t,.11,.22,1500); /* snare */
+    if(pos%2===1)mnoise(t,.03,.06,7000); /* hats */
+    MUSIC.step++;MUSIC.next+=st;}}
 /* ---------- update ---------- */
 var STEP=1/60;
 function update(dt){
   G.time+=dt;G.modeT+=dt;if(G.msgT>0){G.msgT-=dt;if(G.msgT<=0)G.msg='';}
+  if(G.mode==='title'||G.mode==='scores'||G.mode==='name')titleMusicTick(); /* M1.19 */
   if(G.mode==='title'){cam.ang=G.time*.18;inp.confirm=false;return;}
   if(G.mode==='name'||G.mode==='scores'){if(G.mode==='scores'&&inp.confirm&&G.modeT>.3)leaveScores();inp.confirm=false;inp.use=false;inp.pause=false;inp.item=false;inp.throwQueued=false;return;} /* M18 */
   if(G.mode==='map'||G.mode==='shop'){inp.confirm=false;inp.use=false;inp.pause=false;inp.item=false;inp.throwQueued=false;return;} /* full-screen map / M19 shop menu: the game is paused */
@@ -2639,6 +2664,7 @@ api.cheat=function(line){return runCheat(line);};api.cheatOpen=function(){return
 api.audioLevel=function(){if(!AC||!master)return null;if(!api._an){api._an=AC.createAnalyser();api._an.fftSize=2048;master.connect(api._an);}var d=new Float32Array(2048);api._an.getFloatTimeDomainData(d);var sq=0;for(var i=0;i<d.length;i++)sq+=d[i]*d[i];return {rms:Math.sqrt(sq/d.length),state:AC.state};};
 api._recStart=function(){var d=AC.createMediaStreamDestination();master.connect(d);var r=new MediaRecorder(d.stream),ch=[];r.chunks=ch;r.ondataavailable=function(e){ch.push(e.data);};r.start(500);return r;}; /* QA: record the game's audio */
 api.revive=function(){return tryRevive();};api.reviveCost=function(){return reviveCost();};api.reviveRect=function(){return REVIVE_RECT.slice();};api.deaths=function(){return (G.run&&G.run.deaths)|0;};
+api.titleSong=function(){return {bpm:TITLE_SONG.bpm,bars:TITLE_SONG.bars.length,notes:TITLE_SONG.bars.reduce(function(n,b){return n+b.lead.filter(function(x){return x!==null;}).length;},0)};};
 api.song=function(seed,floor,boss){var S=composeSong(seed,floor,!!boss);return {mode:S.mode,key:S.key,bpm:S.bpm,prog:S.prog.join(),mel:S.mel.map(function(p){return p.map(function(n){return n===null?'.':n;}).join(',');}).join('|')};};api.music=function(){return MUSIC.song?{floor:MUSIC.floor,name:MUSIC.song.name}:null;};
 api.amb=function(){return {on:!!AMB.on,floor:AMB.floor,kinds:AMB.kinds.slice(),root:AMB.root||0};};api.ambDescribe=function(seed,floor,boss){var R=rng(hashSeed(seed+':'+floor+':amb'));var roots=[41.2,43.65,46.25,49,51.9,55,58.3];return roots[(R()*roots.length)|0]*(boss?.75:1);};api.view=function(){return VIEW.cur;};api.viewDist=function(){return viewDist();};api.dmgFx=function(){return {nums:G.dmgNums.length,splats:G.splats.map(function(s){return s.a;}),hud:G.hudDmg.length};};api.flareT=function(){return G.flareT;};
 api.bossForce=function(k){G.ents.forEach(function(e){if(MOBS[e.type].boss&&!e.gone){e.atkCD=0;e.next=k;e.tele=.01;e.last=null;}});};
@@ -2647,7 +2673,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.18-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.19-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

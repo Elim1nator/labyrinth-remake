@@ -28,6 +28,7 @@ const V113=atLeast('1.13'); // M1.13+: +1 mob HP per floor, 6 more elite modifie
 const V114=atLeast('1.14'); // M1.14+: the King in Yellow on floor 20
 const V116=atLeast('1.16'); // M1.16+: cheat console (type "cheat")
 const V117=atLeast('1.17'); // M1.17+: fog of war, sight items, ambience, damage indicators
+const V120=atLeast('1.20'); // M1.20+: realistic stone walls (slate, ember rock + 7 new styles), damaged/structural/decorative wall variations
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -290,7 +291,7 @@ async function m110Tests(){
         for(let y=A.y;y<A.y+A.h;y++)for(let x=A.x;x<A.x+A.w;x++){const c=m[y][x];if(c==='P')out.bad.push(`${sd}:${f} pit in the arena`);if(/[ebtgrzs]/.test(c))out.bad.push(`${sd}:${f} mob ${c} in the arena`);}
         if(nk!==nl)out.bad.push(`${sd}:${f} keys ${nk} != locks ${nl}`);if(nl>1)out.bad.push(`${sd}:${f} ${nl} locks`);
         // reachable from the start without any key: boss and portal
-        const seen=new Set([start.join()]),q=[start];const walk=c=>!(/[#SWTMKRCVOFLPYN]/.test(c));while(q.length){const [x,y]=q.shift();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(seen.has(k)||!walk(m[ny][nx]))continue;seen.add(k);q.push([nx,ny]);}}
+        const seen=new Set([start.join()]),q=[start];const walk=c=>!(/[#SWTMKRCVOABEIZ+=FLPYN]/.test(c));while(q.length){const [x,y]=q.shift();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(seen.has(k)||!walk(m[ny][nx]))continue;seen.add(k);q.push([nx,ny]);}}
         if(!seen.has(b.x+','+b.y)||!seen.has(exit.join()))out.bad.push(`${sd}:${f} boss or portal not reachable without a key`);
         out.tiers[want.tier]=(out.tiers[want.tier]||0)+1;}
       return out;});
@@ -685,6 +686,27 @@ async function m117Tests(){
 }
 
 // ---------- M1.18: per-floor music, revive ----------
+async function m120Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m120'});
+  const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
+  const w=await G(page,()=>{const G=__game,W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19],vd=[];for(const ti of W)for(const k of [1,2,3])vd.push(G.variantDiff(ti,k));
+    const tiers=[29,33,37,41,45,49,53].map(f=>{const tr=G.texTier(f);return G.deepThemes[tr-1].name+':'+G.deepThemes[tr-1].base;});
+    return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===64&&v.dark)};});
+  check('M1.20 crystal and void walls replaced by blue slate and ember rock; 7 new stone styles (TEX has 20 entries)',w.count===20&&w.names[2]==='SLATE HALLS'&&w.names[4]==='THE EMBER CORE'&&!w.names.some(n=>/CRYSTAL|VOID/.test(n)),JSON.stringify(w.names));
+  check('M1.20 a new wall style every 4 floors from 29 to 53 (sandstone, granite, cobble, limestone, dripstone, chasm shale, ironbound)',w.tiers.join()==='SANDSTONE CRYPT:A,GRANITE HALLS:B,COBBLE WARRENS:E,LIMESTONE NAVE:I,DRIPPING GROTTO:Z,CHASM DEPTHS:+,IRON KEEP:=',w.tiers.join());
+  check('M1.20 every wall style has damaged, structural and decorative variations (64x64, cached, with a dark side)',w.ok&&w.vd.length===51&&w.vd.every((v,i)=>v.diff>=(i%3===0?1.5:10)),`mean difference from the plain wall (damaged/structural/decorative): ${w.vd.map(v=>v.diff.toFixed(1)).join(' ')}`);
+  const d=await G(page,()=>{const G=__game;G.manual=true;const n=[0,0,0,0];let doors=0;for(const f of [1,10,30,50]){G.setSeed(900+f);G.startLevel(f-1);const s=G.state();for(let y=0;y<s.mapH;y++)for(let x=0;x<s.mapW;x++){const v=G.cellVariant(x,y);if(v>0||G.solidAt(x+.5,y+.5))n[v<0?0:v]++;}}
+    const tot=n.reduce((a,b)=>a+b,0);return {share:n.map(c=>c/tot),tot};});
+  check('M1.20 most wall cells are plain; some damaged, fewer pillared bays, a few torches or sigils',d.share[0]>.6&&d.share[1]>.08&&d.share[2]>.04&&d.share[3]>.02&&d.share[3]<d.share[2],d.share.map(x=>x.toFixed(3)).join(' '));
+  savePng('m120_walls_4x.png',await G(page,()=>__game.wallSheet(4)));
+  const v=await G(page,()=>{const G=__game;G.manual=true;for(let sd=300;sd<400;sd++){G.setSeed(sd);G.startLevel(4);G.clearMobs();const s=G.state();
+      for(let y=2;y<s.mapH-2;y++)for(let x=2;x<s.mapW-2;x++){if(G.cellVariant(x,y)!==3)continue;for(const [dx,dy,a] of [[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]]){const px=x+dx*2,py=y+dy*2;
+        if(G.solidAt(px+.5,py+.5)||G.solidAt(x+dx+.5,y+dy+.5))continue;G.teleport(px+.5,py+.5,a);G.setPitch(0);G.advance(0.05);return {sd,x,y};}}}return null;});
+  await page.screenshot({path:`${SHOTS}/m120_torch_wall.png`});
+  check('M1.20 a decorative wall bay renders in game (screen m120_torch_wall.png)',!!v,JSON.stringify(v));
+  await ctx.close();
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -727,6 +749,7 @@ if(V114&&want('m114')){ await m114Tests(); }
 if(V116&&want('m116')){ await m116Tests(); }
 if(V117&&want('m117')){ await m117Tests(); }
 if(V118&&want('m118')){ await m118Tests(); }
+if(V120&&want('m120')){ await m120Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2160,7 +2183,7 @@ async function m18Tests(){
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m18-gen'});
     const FLOORS=[9,10,12,13,16,17,20,21,25,30,50,100,200,500,1000,2500,5000,9999],SEEDS=[1,777,4242,99991,123456,2026];
-    const g=await G(page,({FLOORS,SEEDS,V19})=>{const WALL=new Set('#SWTMKRCVO'.split(''));const MOB=new Set('ebtgrz'.split(''));
+    const g=await G(page,({FLOORS,SEEDS,V19})=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));const MOB=new Set('ebtgrz'.split(''));
       const mobCh=new Set(Object.values(__game.mobs).map(m=>m.ch));
       const res=[];let maxMs=0,bad=[];const per={};
       for(const f of FLOORS)for(const sd of SEEDS){const t=__game.genTime(sd,f);maxMs=Math.max(maxMs,t.ms);(per[f]=per[f]||[]).push(t.ms);const m=t.map,h=m.length,w=m[0].length;let p=null,x0=0,nk=0,nx=0,ny=0,nm=0,nc=0,err='';
@@ -2193,19 +2216,19 @@ async function m18Tests(){
   // ---- 4. wall textures by depth tier
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m18-tex'});
-    const t=await G(page,()=>{const tiers=[1,8,9,12,13,16,17,20,21,24,25,200,9999].map(f=>__game.texTier(f));const info=[];for(let i=0;i<13;i++)info.push(__game.texInfo(i));
+    const t=await G(page,()=>{const tiers=[1,8,9,12,13,16,17,20,21,24,25,200,9999].map(f=>__game.texTier(f));const info=[];for(let i=0;i<__game.texCount();i++)info.push(__game.texInfo(i));const tierOf={};for(const f of [2,5,8,9,11,13,15,17,19,21,23,25,40,200])tierOf[f]=__game.texTier(f);
       const base={};const newest={};for(const f of [2,5,8,9,11,13,15,17,19,21,23,25,40,200]){const b={},nb=[];for(let sd=1;sd<=60;sd++){const th=__game.themeFor(sd,f);b[th.base]=(b[th.base]||0)+1;}base[f]=b;}
       const W=[0,1,2,3,4,8,9,10,11,12];let md=1e9,mp='';for(const i of [8,9,10,11,12])for(const j of W){if(j===i||(j>=8&&j<i))continue;const d=__game.texDiff(i,j);if(d<md){md=d;mp=i+'/'+j;}}
-      return {tiers,info,base,count:__game.texCount(),same:__game.texSame(),deep:__game.deepThemes.map(d=>d.base),md,mp};});
-    check('M1.8 depth tiers: new wall style every 4 floors past 8 (L9, L13, L17, L21, L25), tier 5 from L25 on',t.tiers.join()==='0,0,1,1,2,2,3,3,4,4,5,5,5',t.tiers.join());
-    const oldSet=new Set('#SWTM'.split('')),okTier=(f,b)=>{const tier=f>=25?5:f>=21?4:f>=17?3:f>=13?2:f>=9?1:0;return Object.keys(b).every(c=>tier===0?oldSet.has(c):t.deep.slice(0,tier).includes(c));};
+      return {tiers,info,base,tierOf,count:__game.texCount(),same:__game.texSame(),deep:__game.deepThemes.map(d=>d.base),md,mp};});
+    check('M1.8 depth tiers: new wall style every 4 floors past 8 (L9, L13, L17, L21, L25), tier 5 from L25 on',t.tiers.join()===(V120?'0,0,1,1,2,2,3,3,4,4,5,12,12':'0,0,1,1,2,2,3,3,4,4,5,5,5'),t.tiers.join());
+    const oldSet=new Set('#SWTM'.split('')),okTier=(f,b)=>{const tier=t.tierOf[f];return Object.keys(b).every(c=>tier===0?oldSet.has(c):t.deep.slice(0,tier).includes(c));};
     const tierOk=Object.entries(t.base).every(([f,b])=>okTier(+f,b));
     const newestShare=[9,13,17,21,25].map(f=>{const tier=f>=25?5:f>=21?4:f>=17?3:f>=13?2:1;return (t.base[f][t.deep[tier-1]]||0)/60;});
     check('M1.8 floors 1-8 use the M1.7 walls; deeper floors always use an unlocked deep wall as the base, the newest about half the time',tierOk&&newestShare.every(x=>x>=.4),`newest share at L9/13/17/21/25: ${newestShare.map(x=>x.toFixed(2)).join(' ')}; L13 bases ${JSON.stringify(t.base[13])}`);
     const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);const walls=[0,1,2,3,4,8,9,10,11,12];let minD=1e9,pair='';
     for(const i of [8,9,10,11,12])for(const j of walls){if(i===j||(j>i&&j>=8&&walls.indexOf(j)<walls.indexOf(i)))continue;if(j===i)continue;const dd=dist(t.info[i].mean,t.info[j].mean);if(dd<minD){minD=dd;pair=i+'/'+j;}}
     const sigs=new Set(t.info.map(x=>x.sig));
-    check('M1.8 five new 64x64 wall textures, all distinct, cached once (TEX has 13 entries, same objects every frame)',t.count===13&&t.same&&sigs.size===13&&t.info.slice(8).every(x=>x.w===64&&x.h===64)&&t.md>=30,`smallest mean per-pixel difference ${t.mp}: ${t.md.toFixed(1)} of 255 (closest mean colours ${pair}: ${minD.toFixed(1)})`);
+    check('M1.8 five new 64x64 wall textures, all distinct, cached once (TEX has 13 entries, same objects every frame)',t.count===(V120?20:13)&&t.same&&sigs.size===t.count&&t.info.slice(8).every(x=>x.w===64&&x.h===64)&&t.md>=30,`smallest mean per-pixel difference ${t.mp}: ${t.md.toFixed(1)} of 255 (closest mean colours ${pair}: ${minD.toFixed(1)})`);
     savePng('m18_textures_all_4x.png',await G(page,()=>__game.textures(4)));
     // in-game views per tier
     // in-game views per tier: stand in front of a stretch of the floor's base wall (the newest unlocked style), 1.6 cells away
@@ -2616,7 +2639,7 @@ async function m19Tests(){
   // ---- 5. secret rooms
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-secret'});
-    const gen=await G(page,()=>{const WALL=new Set('#SWTMKRCVO'.split(''));let n=0,ok=0,mob=0,bag=0,pw=0;const bad=[];
+    const gen=await G(page,()=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));let n=0,ok=0,mob=0,bag=0,pw=0;const bad=[];
       for(let sd=1;sd<=60;sd++)for(const f of [2,3,4,5,6,7,8,9,10,12,15,20,50,200]){const d=__game.genMap(sd,f),m=d.map,S=d.secret,h=m.length,w=m[0].length;n++;if(!S){bad.push(sd+':'+f+' none');continue;}
         const inS=(x,y)=>x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;let p=null;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y][x]==='p')p=[x,y];
         const flood=(open)=>{const seen=new Set([p[1]*w+p[0]]),q=[p];while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy,k=Y*w+X;if(seen.has(k))continue;const c=(X===S.cx&&Y===S.cy&&open)?'.':m[Y][X];if(WALL.has(c)||c==='F'||c==='Y'||c==='N'||c==='P')continue;seen.add(k);q.push([X,Y]);}}return seen;};
@@ -2673,7 +2696,7 @@ async function m19Tests(){
       const avg={};for(const f in cnt)avg[f]=(cnt[f].reduce((a,b)=>a+b,0)/cnt[f].length).toFixed(1);return {maps,bad:bad.slice(0,6),nBad:bad.length,avg};});
     check(`M1.9 pits: none on floors 1-2, up to 1 + floor/2 (max 6) from floor 3; never on/next to the start, keys, doors, exit, slot, merchant or hearts (${pg.maps} maps)`,pg.nBad===0&&pg.avg[2]==='0.0'&&+pg.avg[8]>=3,JSON.stringify(pg));
     // solvability with pits: every lock order, any floor (M1.3 analysis covers 2-8; here floors 9-200 on 40 seeds, locks closed and open)
-    const sol=await G(page,()=>{const WALL=new Set('#SWTMKRCVO'.split(''));const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let maps=0,bad=[];
+    const sol=await G(page,()=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let maps=0,bad=[];
       for(let sd=1;sd<=40;sd++)for(const f of [3,5,7,9,11,14,18,25,60,200,999]){const d=__game.genMap(sd,f),m=d.map,S=d.secret,h=m.length,w=m[0].length;maps++;const inS=(x,y)=>S&&x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;let p;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y][x]==='p')p=[x,y];
         const flood=(locks)=>{const seen=new Set([p[1]*w+p[0]]),q=[p];while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy,k=Y*w+X;if(seen.has(k))continue;const c=m[Y][X];if(WALL.has(c)||c==='F'||c==='Y'||c==='N'||c==='P'||(!locks&&c==='L'))continue;seen.add(k);q.push([X,Y]);}}return seen;};
         const A=flood(true),B=flood(false);let keysB=0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if(inS(x,y))continue;if(c==='k'&&B.has(y*w+x))keysB++;if(/[Xkch.GU1-8D]/.test(c)||mob.has(c)){if(!A.has(y*w+x)){bad.push(`${sd}:${f} ${c}@${x},${y}`);y=h;break;}}}

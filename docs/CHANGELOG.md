@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.20: realistic stone walls
+- Crystal (L17) and void runes (L25) replaced by blue slate (SLATE HALLS) and ember rock with glowing joints (THE EMBER CORE).
+- 7 new stone styles, one every 4 floors: sandstone (L29), granite (L33), cobblestone (L37), limestone (L41), dripstone (L45), chasm shale (L49), ironbound stone (L53).
+- Every wall style has 4 looks per cell: plain (~72%), damaged (~14%), structural pillared bay (~9%), decorative bay with a torch or a glowing sigil (~5%).
+- QA build `m1.20-qa` (debug hook on).
+
 ## M1.19.2: knight legs fix
 - The overhead-sword frame now draws his legs.
 - QA build `m1.19.2-qa` (debug hook on).

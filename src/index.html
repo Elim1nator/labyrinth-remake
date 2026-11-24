@@ -63,11 +63,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.19.2. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.20. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.19.2'; /* set by tools/release.mjs */
+var VERSION='M1.20'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=64;
 var SAVE_KEY='labyrinthRemake.save.v1';
 var MAX_HEARTS=5;
@@ -171,25 +171,126 @@ function texRust(){var t=new Pix(TS,TS),R=rng(89),iron=HEX('#6a6e76'),r1=HEX('#a
   for(var py=0;py<2;py++)for(var px=0;px<2;px++)[[5,5],[26,5],[5,26],[26,26],[15,5],[15,26]].forEach(function(q){var X=px*32+q[0],Y=py*32+q[1];
     t.set(X,Y,HEX('#c8ccd4'));t.set(X+1,Y,HEX('#9ca0a8'));t.set(X,Y+1,HEX('#9ca0a8'));t.set(X+1,Y+1,HEX('#50545c'));t.set(X+2,Y+1,dk);t.set(X+1,Y+2,dk);
     var len=3+((X*7+Y*3)%7);for(var j=3;j<3+len;j++)t.set(X+1,Y+j,shade(r2,1.05-j*.04));});return t;}
-function texCrystal(){var t=new Pix(TS,TS),R=rng(97),rock=HEX('#262038'),lit=HEX('#3ae0d0'),mid=HEX('#1f9aa0'),dkc=HEX('#105058'),hi=HEX('#c8fff6');
-  for(var y=0;y<TS;y++)for(var x=0;x<TS;x++){var f=.8+R()*.3+(h2(x>>3,y>>3)-.5)*.5;t.set(x,y,shade(rock,f));}
-  [[10,50,5,22,.1],[24,58,4,16,-.2],[44,40,6,26,.15],[56,60,4,14,-.1],[33,24,3,12,.3],[6,18,3,10,-.25],[52,14,3,11,.2]].forEach(function(q){var bx=q[0],by=q[1],hw=q[2],hh=q[3],lean=q[4],tx=bx+lean*hh;
-    t.poly([[bx-hw,by],[bx,by+2],[bx+hw,by],[tx+hw*.5,by-hh+3],[tx,by-hh],[tx-hw*.5,by-hh+3]],function(x,y){return x<bx+(tx-bx)*((by-y)/hh)?lit:mid;});
-    t.thick(bx+hw*.2,by,tx+hw*.1,by-hh+1,.5,dkc);t.thick(bx-hw+1,by-1,tx-hw*.5+1,by-hh+4,.4,hi);});
-  for(var i=0;i<26;i++){var x=(R()*TS)|0,y=(R()*TS)|0;t.set(x,y,R()<.5?hi:lit);}return t;}
 function texGlyph(){var t=new Pix(TS,TS),R=rng(101),cols=['#b8945a','#c29e62','#ad8a52','#bd9a60'].map(HEX),mortar=HEX('#6e5432'),cut=HEX('#5a3e1e'),edge=HEX('#e0c488');
   var G5=['10101010100111010101','11111100010101010001','01110100011010101110','11011010100111001010','10001010100010101001','01110101011111001100'];
   for(var y=0;y<TS;y++)for(var x=0;x<TS;x++){var row=y>>4,off=(row&1)?16:0,bx=(x+off)&31,by=y&15,c;
     if(bx===31||by===15)c=shade(mortar,.9+R()*.15);else{var id=(row*3+((x+off)>>5))%4,f=.9+R()*.12+(h2(x>>1,y>>1)-.5)*.1;if(bx===0||by===0)f+=.18;if(bx===30||by===14)f-=.2;c=shade(cols[id],f);}t.set(x,y,c);}
   for(var row=0;row<4;row++)for(var b=0;b<3;b++){var off=(row&1)?16:0,x0=b*32-off+9,y0=row*16+3,g=G5[(row*3+b)%G5.length];
     for(var gy=0;gy<4;gy++)for(var gx=0;gx<5;gx++)if(g[gy*5+gx]==='1'){var X=((x0+gx*3)%TS+TS)%TS,Y=y0+gy*2+1;t.set(X,Y,cut);t.set(X+1,Y,cut);t.set(X,Y+1,edge);t.set(X+1,Y+1,shade(cut,1.2));}}return t;}
-function texVoid(){var t=new Pix(TS,TS),R=rng(107),base=HEX('#170c28'),rune=HEX('#e85ae0'),glow=HEX('#7a2a8a'),star=HEX('#f0e0ff');
-  for(var y=0;y<TS;y++)for(var x=0;x<TS;x++){var f=.75+R()*.35+Math.sin(x*.21+y*.13)*.12;t.set(x,y,shade(base,f));}
-  [[17,20,9],[46,45,8]].forEach(function(q){var cx=q[0],cy=q[1],r=q[2];
-    for(var a=0;a<64;a++){var an=a/64*Math.PI*2;t.set(cx+Math.cos(an)*(r+1.4),cy+Math.sin(an)*(r+1.4),glow);t.set(cx+Math.cos(an)*r,cy+Math.sin(an)*r,rune);}
-    for(var k=0;k<3;k++){var an2=k/3*Math.PI*2+.5;t.thick(cx,cy,cx+Math.cos(an2)*(r-2),cy+Math.sin(an2)*(r-2),.45,rune);}t.ell(cx,cy,1.6,1.6,star);});
-  for(var i=0;i<22;i++){var x=(R()*TS)|0,y=(R()*TS)|0;t.set(x,y,R()<.3?star:shade(rune,.7));}
-  for(var j=0;j<TS;j+=8){t.set(j,0,glow);t.set(0,j,glow);}return t;}
+/* M1.20: realistic stone walls. ashlar() lays courses of dressed blocks (row heights summing to 64, block widths per row), bevelled, in mortar */
+function mixC(a,b,t){t=t<0?0:t>1?1:t;var r=(a&255)+((b&255)-(a&255))*t,g=(a>>8&255)+((b>>8&255)-(a>>8&255))*t,bb=(a>>16&255)+((b>>16&255)-(a>>16&255))*t;return RGB(r|0,g|0,bb|0);}
+function rWidths(R,a,b){var ws=[],s=0;while(s<TS){var w=a+(R()*(b-a+1)|0);if(TS-s-w<a)w=TS-s;ws.push(w);s+=w;}return ws;}
+function ashlar(t,R,o){var y0=0,id=0,mw=o.mw||1,blocks=[];
+  o.rows.forEach(function(rh,ri){var ws=o.widths(ri),x0=o.shift?o.shift(ri):0;
+    ws.forEach(function(bw){var c=o.base(id,ri),fb=.9+R()*.16,bev=o.bevel==null?1:o.bevel;blocks.push({x:x0,y:y0,w:bw,h:rh,id:id});
+      for(var y=y0;y<y0+rh;y++)for(var xx=0;xx<bw;xx++){var x=((x0+xx)%TS+TS)%TS,ly=y-y0,lx=xx,col,iw=bw-mw,ih=rh-mw;
+        var corner=o.round&&((lx<o.round||lx>=iw-o.round)&&(ly<o.round||ly>=ih-o.round))&&Math.hypot(lx<o.round?o.round-lx-.5:lx-(iw-o.round)+.5,ly<o.round?o.round-ly-.5:ly-(ih-o.round)+.5)>o.round;
+        if(ly>=ih||lx>=iw||corner)col=o.mortarFn?o.mortarFn(x,y,R):shade(o.mortar,(ly===ih||lx===iw?.78:1)*(.85+R()*.25));
+        else{var f=fb*(o.grain?o.grain(x,y,id,lx,ly):1)+(R()-.5)*(o.noise==null?.12:o.noise);
+          if(ly===0||lx===0)f*=1+.24*bev;else if(ly===1||lx===1)f*=1+.1*bev;if(ly===ih-1||lx===iw-1)f*=1-.32*bev;else if(ly===ih-2||lx===iw-2)f*=1-.14*bev;col=shade(c,f);}
+        t.set(x,y,col);}
+      x0+=bw;id++;});
+    y0+=rh;});return blocks;}
+function pickC(R,list){return list[(R()*list.length)|0];}
+/* blue-grey slate (replaces the crystal walls): thin laminated slabs with faint blue veins */
+function texSlate(){var t=new Pix(TS,TS),R=rng(97),cols=['#4a5868','#556474','#43505f','#5c6a7a'].map(HEX),vein=HEX('#7a9ab8'),wr={};
+  ashlar(t,R,{rows:[8,6,9,7,8,6,9,11],widths:function(ri){return wr[ri]||(wr[ri]=rWidths(R,14,30));},shift:function(ri){return (ri*13)%TS;},mortar:HEX('#1c2028'),base:function(id){return cols[id%4];},
+    grain:function(x,y){var f=1+Math.sin(y*2.3+Math.sin(x*.11)*1.5)*.05;if(h2(x>>3,y)<.08)f*=.84;return f;},noise:.08});
+  for(var i=0;i<4;i++){var x=R()*TS,y=R()*TS,a=R()*Math.PI;for(var k=0;k<22;k++){var v=t.get(x,y);if(v)t.set(x,y,mixC(v,vein,.45));x+=Math.cos(a);y+=Math.sin(a)*.5;a+=(R()-.5)*.6;}}
+  for(var j=0;j<14;j++){var sx=(R()*TS)|0,sy=(R()*TS)|0,sv=t.get(sx,sy);if(sv){t.set(sx,sy,shade(sv,1.35));t.set(sx+1,sy,shade(sv,1.15));}}return t;}
+/* ember rock (replaces the void runes): black volcanic blocks, glowing magma in the joints and a few hot fissures */
+function texEmber(){var t=new Pix(TS,TS),R=rng(107),cols=['#2a2224','#241c1e','#302628','#1e1819'].map(HEX),hot=HEX('#ff8a2a'),mid=HEX('#c8401a'),cool=HEX('#5a160a'),wr={};
+  ashlar(t,R,{rows:[14,18,15,17],widths:function(ri){return wr[ri]||(wr[ri]=rWidths(R,13,26));},shift:function(ri){return (ri*19)%TS;},mw:2,round:2,
+    mortarFn:function(x,y){var n=h2(x>>1,y>>1);return n>.7?hot:n>.25?mid:cool;},base:function(id){return cols[id%4];},grain:function(x,y){return 1+(h2(x>>2,y>>2)-.5)*.35;},noise:.16});
+  for(var i=0;i<5;i++){var x=R()*TS,y=R()*TS,a=R()*Math.PI*2;for(var k=0;k<10+R()*10;k++){t.set(x,y,k%3?mid:hot);var v=t.get(x+1,y);if(v)t.set(x+1,y,mixC(v,cool,.6));x+=Math.cos(a);y+=Math.sin(a);a+=(R()-.5)*1.1;}}
+  for(var y2=0;y2<TS;y2++)for(var x2=0;x2<TS;x2++){var c=t.get(x2,y2),near=0;for(var d=1;d<=2&&!near;d++)[[d,0],[-d,0],[0,d],[0,-d]].forEach(function(q){var n=t.get((x2+q[0]+TS)%TS,(y2+q[1]+TS)%TS);if(n===hot||n===mid)near=d;});
+    if(near&&c!==hot&&c!==mid&&c!==cool)t.set(x2,y2,mixC(c,HEX('#7a2a12'),near===1?.4:.2));}return t;}
+/* sandstone: big warm blocks with wind-cut strata and pitting */
+function texSandstone(){var t=new Pix(TS,TS),R=rng(113),cols=['#c49a62','#b88e58','#caa26a','#b4895a'].map(HEX);
+  ashlar(t,R,{rows:[16,16,16,16],widths:function(){return [32,32];},shift:function(ri){return ri&1?16:0;},mw:2,mortar:HEX('#7a5c38'),base:function(id){return cols[id%4];},
+    grain:function(x,y,id){var f=1+Math.sin(y*.95+h2(id,3)*6+Math.sin(x*.09+id)*.8)*.07;if(h2(x>>1,y)<.05)f*=.78;return f;},noise:.1});
+  for(var i=0;i<26;i++){var px=(R()*TS)|0,py=(R()*TS)|0,v=t.get(px,py);if(v){t.set(px,py,shade(v,.62));t.set(px,py+1,shade(v,1.12));}}return t;}
+/* granite: grey speckled blocks (black, white and pink grains) */
+function texGranite(){var t=new Pix(TS,TS),R=rng(127),cols=['#7c7c82','#74747a','#84848a','#6e6e74'].map(HEX),dk=HEX('#2e2e34'),wt=HEX('#d4d4d8'),pk=HEX('#a07a74');
+  ashlar(t,R,{rows:[21,21,22],widths:function(){return [32,32];},shift:function(ri){return (ri*11)%TS;},mw:2,mortar:HEX('#38383c'),base:function(id){return cols[id%4];},noise:.1});
+  for(var y=0;y<TS;y++)for(var x=0;x<TS;x++){var c=t.get(x,y);if((c&255)<70)continue;var r=R();if(r<.1)t.set(x,y,mixC(c,dk,.7));else if(r<.15)t.set(x,y,mixC(c,wt,.6));else if(r<.18)t.set(x,y,mixC(c,pk,.6));}return t;}
+/* cobblestone: rounded field stones packed in dark mortar (tileable voronoi) */
+function texCobble(){var t=new Pix(TS,TS),R=rng(131),cols=['#7a7468','#6e685c','#86806e','#625c52','#7e7464'].map(HEX),pts=[],mort=HEX('#2a2620');
+  for(var gy=0;gy<4;gy++)for(var gx=0;gx<4;gx++)pts.push({x:gx*16+3+R()*10,y:gy*16+3+R()*10,c:cols[(R()*5)|0],f:.88+R()*.2});
+  for(var y=0;y<TS;y++)for(var x=0;x<TS;x++){var d1=1e9,d2=1e9,b=null;for(var i=0;i<pts.length;i++)for(var oy=-1;oy<=1;oy++)for(var ox=-1;ox<=1;ox++){var dx=x+.5-(pts[i].x+ox*TS),dy=y+.5-(pts[i].y+oy*TS),d=Math.hypot(dx,dy*1.1);
+      if(d<d1){d2=d1;d1=d;b={p:pts[i],dx:dx,dy:dy};}else if(d<d2)d2=d;}
+    var e=d2-d1,c;if(e<2.2)c=shade(mort,.8+R()*.4);else{var f=b.p.f*(1.18-d1/22)-(b.dx+b.dy)/60+(R()-.5)*.1;if(e<3.4)f*=.72;c=shade(b.p.c,f);}t.set(x,y,c);}
+  for(var j=0;j<18;j++){var sx=(R()*TS)|0,sy=(R()*TS)|0,sv=t.get(sx,sy);if(sv)t.set(sx,sy,shade(sv,1.3));}return t;}
+/* limestone: pale cream ashlar with tiny shell fossils */
+function texLimestone(){var t=new Pix(TS,TS),R=rng(137),cols=['#d0c8b0','#c8bfa4','#d8d0b8','#c4baa0'].map(HEX),fos=HEX('#9a9078');
+  ashlar(t,R,{rows:[16,16,16,16],widths:function(ri){return ri&1?[22,21,21]:[21,22,21];},shift:function(ri){return (ri*10)%TS;},mortar:HEX('#8a8270'),base:function(id){return cols[id%4];},
+    grain:function(x,y){return 1+(h2(x>>3,y>>3)-.5)*.08;},noise:.06,bevel:.8});
+  for(var i=0;i<7;i++){var cx=4+R()*56,cy=4+R()*56,r=1.5+R()*1.5;for(var a=0;a<Math.PI*3;a+=.35)t.set(cx+Math.cos(a)*r*(a/9.4),cy+Math.sin(a)*r*(a/9.4),fos);}
+  for(var j=0;j<30;j++){var sx=(R()*TS)|0,sy=(R()*TS)|0,sv=t.get(sx,sy);if(sv)t.set(sx,sy,shade(sv,.84));}return t;}
+/* dripstone: dark wet rock, mineral streaks running down, hanging calcite drips and water glints */
+function texDripstone(){var t=new Pix(TS,TS),R=rng(139),cols=['#4a524e','#434a46','#525a55','#3e4541'].map(HEX),wr={},calc=HEX('#a8b4aa'),glint=HEX('#d8f0f0');
+  ashlar(t,R,{rows:[20,23,21],widths:function(ri){return wr[ri]||(wr[ri]=rWidths(R,16,30));},shift:function(ri){return (ri*21)%TS;},mw:2,round:3,mortar:HEX('#1e2422'),base:function(id){return cols[id%4];},
+    grain:function(x,y){return (1+(h2(x>>2,y>>2)-.5)*.2)*(1.08-y/TS*.2);},noise:.1});
+  for(var x=0;x<TS;x++){var s=h2(x,5);if(s<.3){var f=s<.12?1.22:.8,y0=(h2(x,9)*20)|0;for(var y=y0;y<TS;y++){var v=t.get(x,y);if(v)t.set(x,y,shade(v,1+(f-1)*(1-(y-y0)/(TS-y0+8))));}}}
+  for(var i=0;i<6;i++){var dx=4+R()*56,len=3+R()*6;for(var k=0;k<len;k++){var w=(1-k/len)*2.2;t.rect(dx-w/2,k,Math.max(1,w),1,shade(calc,1-k*.04));}t.set(dx,len,glint);}
+  for(var j=0;j<20;j++){t.set((R()*TS)|0,(R()*TS)|0,glint);}return t;}
+/* chasm shale: violet-black stacked shale, thin uneven layers with faint purple veins */
+function texShale(){var t=new Pix(TS,TS),R=rng(149),cols=['#3a3444','#423a4e','#342e3e','#4a4258'].map(HEX),wr={},vein=HEX('#9a6ad8');
+  ashlar(t,R,{rows:[5,4,6,3,5,4,7,4,5,6,4,5,6],widths:function(ri){return wr[ri]||(wr[ri]=rWidths(R,16,40));},shift:function(ri){return (ri*23)%TS;},mortar:HEX('#120e18'),base:function(id){return cols[id%4];},
+    grain:function(x,y){return 1+Math.sin(x*.3+y)*.04;},noise:.12,bevel:1.2});
+  for(var i=0;i<3;i++){var x=R()*TS,y=R()*TS;for(var k=0;k<26;k++){var v=t.get(x,y);if(v)t.set(x,y,mixC(v,vein,.5));x+=1;y+=(R()-.5)*1.6;}}return t;}
+/* ironbound stone: dressed blocks held by riveted iron bands, rust bleeding down */
+function texIronbound(){var t=new Pix(TS,TS),R=rng(151),cols=['#5e5a54','#56524c','#66625a','#504c46'].map(HEX),ir=HEX('#4a4e56'),irL=HEX('#8a909a'),irD=HEX('#1e2026'),rust=HEX('#8a4a22');
+  ashlar(t,R,{rows:[16,16,16,16],widths:function(){return [32,32];},shift:function(ri){return ri&1?16:0;},mw:2,mortar:HEX('#2a2824'),base:function(id){return cols[id%4];},noise:.12});
+  [12,44].forEach(function(by){for(var y=by;y<by+7;y++)for(var x=0;x<TS;x++){var f=.92+R()*.1+(h2(x>>2,y)-.5)*.1;t.set(x,y,y===by?irL:y===by+6?irD:shade(ir,f));}
+    for(var rx=5;rx<TS;rx+=12){t.set(rx,by+2,irL);t.set(rx+1,by+2,shade(irL,.85));t.set(rx,by+3,shade(irL,.8));t.set(rx+1,by+3,irD);t.set(rx+2,by+3,irD);t.set(rx+1,by+4,irD);
+      var len=3+((rx*7+by)%8);for(var k=0;k<len;k++){var v=t.get(rx+1,by+7+k);if(v)t.set(rx+1,by+7+k,mixC(v,rust,.7-k*.07));}}});return t;}
+
+/* M1.20 wall variations: 1 damaged (chipped corners, spalled chunks, short cracks, rubble), 2 structural (pilasters with capitals and plinths, lintel, recessed bay),
+   3 decorative (the structural bay with a wall torch on the lighter stones, a glowing carved sigil on the deep ones). Cached per texture. */
+var VAR_CACHE={},VAR_TORCH={0:1,1:1,2:1,3:1,4:1,13:1,14:1,15:1,16:1},VAR_GLOW={8:'#9a7ae8',9:'#ff9a3a',10:'#7ad0ff',11:'#ffd060',12:'#ff6a1a',17:'#6affd0',18:'#c07aff',19:'#ff4a3a'};
+function texMean(t){var r=0,g=0,b=0,n=t.px.length;for(var i=0;i<n;i++){var c=t.px[i];r+=c&255;g+=c>>8&255;b+=c>>16&255;}return RGB(r/n|0,g/n|0,b/n|0);}
+function texVariant(ti,kind){var key=ti+':'+kind;if(VAR_CACHE[key])return VAR_CACHE[key];var t=TEX[ti],c=new Pix(TS,TS,1),R=rng(211+ti*7+kind);c.px=t.px.slice();
+  function at(x,y){x=Math.round(x);y=Math.round(y);return x<0||y<0||x>=TS||y>=TS?-1:y*TS+x;}
+  function mark(x,y,f){var i=at(x,y);if(i>=0)c.px[i]=shade(c.px[i],f);}
+  function put(x,y,col){var i=at(x,y);if(i>=0)c.px[i]=col;}
+  function tint(x,y,col,a){var i=at(x,y);if(i>=0)c.px[i]=mixC(c.px[i],col,a);}
+  var mean=texMean(t);
+  if(kind===1){ /* damaged */
+    var spots=[[3+R()*6,3+R()*6],[58-R()*6,4+R()*8],[6+R()*10,56-R()*6],[40+R()*14,48+R()*10],[18+R()*26,14+R()*30]];
+    spots.forEach(function(s,si){var r=si===4?3+R()*2:4+R()*4,pts=[];for(var k=0;k<9;k++){var a=k/9*Math.PI*2,rr=r*(.6+R()*.6);pts.push([s[0]+Math.cos(a)*rr,s[1]+Math.sin(a)*rr*.85]);}
+      for(var y=Math.floor(s[1]-r-1);y<=s[1]+r+1;y++)for(var x=Math.floor(s[0]-r-1);x<=s[0]+r+1;x++){var d=Math.hypot(x-s[0],(y-s[1])/.85);if(d>r*(.7+h2(x,y)*.4))continue;var i=at(x,y);if(i<0)continue;
+        var dd=d/r;c.px[i]=shade(mixC(t.px[i],mean,.6),dd>.72?(y<s[1]?.62:1.18):.62+dd*.22);}
+      for(var q=0;q<2;q++){var cx=s[0],cy=s[1],a=R()*Math.PI*2,len=5+R()*8;for(var m=0;m<len;m++){cx+=Math.cos(a);cy+=Math.sin(a);mark(cx,cy,.62);mark(cx+1,cy,1.1);a+=(R()-.5)*.9;}}});
+    for(var j=0;j<16;j++){var rx=R()*TS,ry=58+R()*6;put(rx,ry,shade(mean,.5+R()*.5));}
+    for(var j2=0;j2<40;j2++)mark(R()*TS,R()*TS,.8);
+  } else { /* structural (2) and decorative (3) */
+    for(var y=0;y<TS;y++)for(var x=0;x<TS;x++){var i=y*TS+x,lx=x<32?x:63-x,base=t.px[i];
+      var pill=lx<8||(lx<10&&(y<11||y>=54)),lint=y<6,f;
+      if(pill){var px=x<32?x:x-54,cap=y>=6&&y<11,pl=y>=54;f=.98+(h2(x,y>>1)-.5)*.12;
+        if(cap||pl){f*= (y===6||y===54)?1.3:(y===10||y===63)?.55:1.06;if(lx===9)f*=.6;}
+        else{if(lx===0)f*=1.3;else if(lx===7)f*=.55;else if(lx===6)f*=.8;if(lx===3)f*=.82;if(lx===4)f*=1.12;if((y&15)===0)f*=.86;}
+        c.px[i]=shade(mixC(base,mean,.65),f*1.06);}
+      else if(lint){f=1.04+(h2(x>>1,y)-.5)*.1;if(y===0)f*=1.25;if(y===5)f*=.5;if(y===4)f*=.8;if(((x-8)%16)===0&&y>0&&y<5)f*=.6;c.px[i]=shade(mixC(base,mean,.55),f);}
+      else{f=.8;if(lx<11)f*=.55+(lx-8)*.1;if(y<9)f*=.6+(y-6)*.12;c.px[i]=shade(base,f);}}
+    if(kind===3){var cx=32,cy=33;
+      if(VAR_TORCH[ti]){var ironC=HEX('#2a2a30'),ironL=HEX('#6a6a74'),wood=HEX('#5a3a1a'),fl1=HEX('#ff7a1a'),fl2=HEX('#ffc040'),fl3=HEX('#fff4c0'),warm=HEX('#ffb060');
+        for(var gy=6;gy<54;gy++)for(var gx=11;gx<53;gx++){var gd=Math.hypot(gx-cx,(gy-21)*.9);if(gd<20)tint(gx,gy,warm,(1-gd/20)*.5);}
+        c.rect(29,38,7,9,ironC);c.rect(29,38,7,1,ironL);put(31,40,ironL);put(33,44,ironL);
+        c.rect(31,28,3,12,wood);c.rect(31,28,1,12,shade(wood,1.3));c.rect(28,25,9,3,ironC);c.rect(28,25,9,1,ironL);c.rect(29,28,7,1,ironC);
+        c.ell(32.5,18,4,7.5,fl1);c.ell(32.5,20,3,5,fl2);c.ell(32.5,21.5,1.6,3,fl3);put(31,10,fl1);put(34,12,fl1);
+      } else {var gl=HEX(VAR_GLOW[ti]||'#ffffff'),gr=shade(mean,.35),hiC=mixC(gl,HEX('#ffffff'),.5),S=(ti*37)%4;
+        for(var gy2=6;gy2<54;gy2++)for(var gx2=11;gx2<53;gx2++){var d2=Math.hypot(gx2-cx,gy2-cy);if(d2<19)tint(gx2,gy2,gl,(1-d2/19)*.32);}
+        function groove(x0,y0,x1,y1){var n=Math.ceil(Math.hypot(x1-x0,y1-y0)*2);for(var k=0;k<=n;k++){var u=k/n,X=x0+(x1-x0)*u,Y=y0+(y1-y0)*u;put(X+1,Y+1,gr);put(X,Y,gl);}}
+        for(var a=0;a<Math.PI*2;a+=.04){put(cx+Math.cos(a)*12+1,cy+Math.sin(a)*12+1,gr);put(cx+Math.cos(a)*12,cy+Math.sin(a)*12,gl);}
+        if(S===0){groove(cx,cy-9,cx+8,cy+5);groove(cx+8,cy+5,cx-8,cy+5);groove(cx-8,cy+5,cx,cy-9);groove(cx,cy-12,cx,cy+12);}
+        else if(S===1){groove(cx-8,cy-8,cx+8,cy+8);groove(cx+8,cy-8,cx-8,cy+8);for(var a2=0;a2<Math.PI*2;a2+=.08)put(cx+Math.cos(a2)*5,cy+Math.sin(a2)*5,gl);}
+        else if(S===2){groove(cx,cy-12,cx,cy+12);groove(cx-9,cy-3,cx+9,cy-3);groove(cx-6,cy+5,cx+6,cy+5);groove(cx-9,cy-3,cx-6,cy+5);groove(cx+9,cy-3,cx+6,cy+5);}
+        else{for(var k3=0;k3<6;k3++){var an=k3/6*Math.PI*2;groove(cx,cy,cx+Math.cos(an)*10,cy+Math.sin(an)*10);}for(var a3=0;a3<Math.PI*2;a3+=.1)put(cx+Math.cos(a3)*4,cy+Math.sin(a3)*4,gl);}
+        c.ell(cx,cy,1.6,1.6,hiC);}}}
+  c.dark=c.darken(.74);VAR_CACHE[key]=c;return c;}
+/* which variation a wall cell shows: mostly plain, some damaged, a few pilaster bays, rarely a torch or sigil */
+function wallVariant(x,y,seed){var r=h2(x*7+seed,y*13+(seed>>3));return r<.72?0:r<.86?1:r<.95?2:3;}
 
 /* ---------- 5x7 pixel font (original, M1.3) ---------- */
 var FONT=(function(){var src={A:'.###.#...##...#######...##...##...#',B:'####.#...##...#####.#...##...#####.',C:'.###.#...##....#....#....#...#.###.',D:'####.#...##...##...##...##...#####.',E:'######....#....####.#....#....#####',F:'######....#....####.#....#....#....',G:'.###.#...##....#.####...##...#.####',H:'#...##...##...#######...##...##...#',I:'.###...#....#....#....#....#...###.',J:'..###...#....#....#....#.#..#..##..',K:'#...##..#.#.#..##...#.#..#..#.#...#',L:'#....#....#....#....#....#....#####',M:'#...###.###.#.##.#.##...##...##...#',N:'#...##...###..##.#.##..###...##...#',O:'.###.#...##...##...##...##...#.###.',P:'####.#...##...#####.#....#....#....',Q:'.###.#...##...##...##.#.##..#..##.#',R:'####.#...##...#####.#.#..#..#.#...#',S:'.#####....#.....###.....#....#####.',T:'#####..#....#....#....#....#....#..',U:'#...##...##...##...##...##...#.###.',V:'#...##...##...##...##...#.#.#...#..',W:'#...##...##...##.#.##.#.##.#.#.#.#.',X:'#...##...#.#.#...#...#.#.#...##...#',Y:'#...##...#.#.#...#....#....#....#..',Z:'#####....#...#...#...#...#....#####',
@@ -371,10 +472,10 @@ function sprMask(f,comedy,kk){var s=new Pix(40,44,kk||1.5),k=s.k,G0=HEX('#fff8c8
   return s.outline(HEX('#5a3004'));}
 
 /* ---------- assets ---------- */
-var TEX=[texBrick(),texStone(),texWood(),texTile(),texMoss(),texDoor(),texLocked(),texFence(),texBasalt(),texRust(),texCrystal(),texGlyph(),texVoid()]; /* M18: 8-12 are the deep wall styles */
+var TEX=[texBrick(),texStone(),texWood(),texTile(),texMoss(),texDoor(),texLocked(),texFence(),texBasalt(),texRust(),texSlate(),texGlyph(),texEmber(),texSandstone(),texGranite(),texCobble(),texLimestone(),texDripstone(),texShale(),texIronbound()]; /* M18: 8-12 are the deep wall styles; M1.20: 10 and 12 are slate and ember rock, 13-19 are new */
 TEX.forEach(function(t){t.dark=t.darken(.74);});
-var TEXCH={'#':0,S:1,W:2,T:3,M:4,K:8,R:9,C:10,V:11,O:12};
-var MAPCOL=['#a04a30','#6c7488','#8a5a32','#2f8f8a','#5a7a48'].map(HEX);MAPCOL[8]=HEX('#4c4c62');MAPCOL[9]=HEX('#9a5a2a');MAPCOL[10]=HEX('#2fb8b0');MAPCOL[11]=HEX('#b8945a');MAPCOL[12]=HEX('#7a3a9a');
+var TEXCH={'#':0,S:1,W:2,T:3,M:4,K:8,R:9,C:10,V:11,O:12,A:13,B:14,E:15,I:16,Z:17,'+':18,'=':19};
+var MAPCOL=['#a04a30','#6c7488','#8a5a32','#2f8f8a','#5a7a48'].map(HEX);MAPCOL[8]=HEX('#4c4c62');MAPCOL[9]=HEX('#9a5a2a');MAPCOL[10]=HEX('#566a80');MAPCOL[11]=HEX('#b8945a');MAPCOL[12]=HEX('#8a3a1e');['#c49a62','#8a8a92','#7a7468','#d0c8b0','#4e5a54','#4a4258','#6a6a74'].forEach(function(h,i){MAPCOL[13+i]=HEX(h);});
 
 /* M18 slot machine cabinet (original pixel art): frame 0/1 marquee lights alternate, frame 2 = reels spinning */
 function sprSlot(f){var s=new Pix(26,40,2),red=HEX('#b02a3a'),redD=HEX('#6e1222'),redL=HEX('#e0505e'),gold=HEX('#ffc630'),goldD=HEX('#9a6a10'),glass=HEX('#f4ecd8'),dk=HEX('#1a0a10'),grey=HEX('#8a8a9a');
@@ -676,14 +777,21 @@ var LEVELS=[
 var NUM_LEVELS=8; /* M18: the designed floors (1 tutorial + 7 generated). Play no longer ends here: floors are endless */
 var MAX_FLOOR=10000,SCORE_MAX=10000000; /* MAX_FLOOR matches the score API's floor limit */
 /* M18 depth tiers: a new wall style unlocks every 4 floors after the designed 8 */
-var TIER_FLOORS=[1,9,13,17,21,25];
+var TIER_FLOORS=[1,9,13,17,21,25,29,33,37,41,45,49,53]; /* M1.20: seven more styles, one every 4 floors after 25 */
 function texTier(lvl){var t=0;for(var i=1;i<TIER_FLOORS.length;i++)if(lvl>=TIER_FLOORS[i])t=i;return t;}
 var DEEP_THEMES=[
  {name:'BASALT DEPTHS',base:'K',rooms:['K','S','M'],floor:'#2e2e38',ceil:'#141419'},
  {name:'RUST WORKS',base:'R',rooms:['R','K','S'],floor:'#3a2e26',ceil:'#1a1410'},
- {name:'CRYSTAL CAVES',base:'C',rooms:['C','K','T'],floor:'#232838',ceil:'#0e1220'},
+ {name:'SLATE HALLS',base:'C',rooms:['C','K','T'],floor:'#2a3038',ceil:'#10141a'},
  {name:'SUNKEN TEMPLE',base:'V',rooms:['V','C','R'],floor:'#4a3e2a',ceil:'#221a10'},
- {name:'THE VOID',base:'O',rooms:['O','V','C'],floor:'#1e1428',ceil:'#0a0610'}];
+ {name:'THE EMBER CORE',base:'O',rooms:['O','V','C'],floor:'#2a1a16',ceil:'#100806'},
+ {name:'SANDSTONE CRYPT',base:'A',rooms:['A','I','V'],floor:'#4a3e2a',ceil:'#201810'},
+ {name:'GRANITE HALLS',base:'B',rooms:['B','K','S'],floor:'#34343a',ceil:'#141418'},
+ {name:'COBBLE WARRENS',base:'E',rooms:['E','S','M'],floor:'#36322a',ceil:'#16140f'},
+ {name:'LIMESTONE NAVE',base:'I',rooms:['I','A','T'],floor:'#4e4a3e',ceil:'#24221c'},
+ {name:'DRIPPING GROTTO',base:'Z',rooms:['Z','E','C'],floor:'#26302c',ceil:'#0e1412'},
+ {name:'CHASM DEPTHS',base:'+',rooms:['+','C','K'],floor:'#221e2a',ceil:'#0a080e'},
+ {name:'IRON KEEP',base:'=',rooms:['=','R','B'],floor:'#2e2c2a',ceil:'#121110'}];
 /* floors 1-8 keep the M1.7 themes; deeper floors always use a deep theme: half the time the newest unlocked one */
 function themeFor(lvl,lseed){var tier=texTier(lvl);if(tier===0)return THEMES[(lseed+lvl)%THEMES.length];var h=hashSeed(lseed+':theme:'+lvl);return (h%100)<50?DEEP_THEMES[tier-1]:DEEP_THEMES[(h>>>8)%tier];}
 /* M18 scaling caps (fair at any depth): mobs <= 22, coins <= 30, room attempts as L12, HP x1.06 per floor past 8 up to x1.6 (L18), elites <= 60% (L12) */
@@ -902,7 +1010,7 @@ function loadLevel(idx){
   var items=[],ents=[];
   function solidCh(x,y){if(x<0||y<0||x>=w||y>=h)return true;var c=rows[y][x];return TEXCH[c]!==undefined||c==='D'||c==='L'||c==='F';}
   for(var y=0;y<h;y++)for(var x=0;x<w;x++){var ch=rows[y][x],cell={t:0,tex:0,axis:0,open:0,state:'closed',timer:0,locked:false,x:x,y:y};
-    if(TEXCH[ch]!==undefined){cell.t=1;cell.tex=TEXCH[ch];}
+    if(TEXCH[ch]!==undefined){cell.t=1;cell.tex=TEXCH[ch];cell.v=wallVariant(x,y,(def.seed|0)+idx*31);} /* M1.20 wall variations */
     else if(ch==='D'||ch==='L'){cell.t=2;cell.tex=ch==='L'?6:5;cell.locked=ch==='L';cell.axis=(solidCh(x-1,y)&&solidCh(x+1,y))?1:0;L.doors.push(cell);}
     else if(ch==='F'){cell.t=3;cell.tex=7;cell.axis=(solidCh(x-1,y)&&solidCh(x+1,y))?1:0;}
     else if(ch==='X'){cell.t=4;L.exit={x:x,y:y};}
@@ -2260,7 +2368,7 @@ function renderWorld(){
     for(var n=0;n<80;n++){var tEnter,side;if(sdx<sdy){tEnter=sdx;sdx+=ddx;mx+=stx;side=0;}else{tEnter=sdy;sdy+=ddy;my+=sty;side=1;}
       if(mx<0||my<0||mx>=L.w||my>=L.h){drawSlice(x,tEnter,TEX[1],.5,side===1,false);break;}
       var ci=my*L.w+mx,cell=L.cells[ci];if(tEnter<VIEW.cur+.6)L.seen[ci]=1; /* M1.17: the map only learns what you can actually see */
-      if(cell.t===1){var wx=side===0?cam.y+tEnter*rdy:cam.x+tEnter*rdx,u=wx-Math.floor(wx);if((side===0&&rdx>0)||(side===1&&rdy<0))u=1-u;drawSlice(x,tEnter,cell.crack?crackOf(cell.tex,Math.min(2,cell.hits)):cell.dent?dentOf(cell.tex):L.goldWalls?GOLDTEX():TEX[cell.tex],u,side===1,false);stats.wallPx++;break;}
+      if(cell.t===1){var wx=side===0?cam.y+tEnter*rdy:cam.x+tEnter*rdx,u=wx-Math.floor(wx);if((side===0&&rdx>0)||(side===1&&rdy<0))u=1-u;drawSlice(x,tEnter,cell.crack?crackOf(cell.tex,Math.min(2,cell.hits)):cell.dent?dentOf(cell.tex):L.goldWalls?GOLDTEX():cell.v?texVariant(cell.tex,cell.v):TEX[cell.tex],u,side===1,false);stats.wallPx++;break;}
       if(cell.t===2||cell.t===3){var tExit=Math.min(sdx,sdy),t,uu;
         if(cell.axis===0){if(rdx===0)continue;t=(mx+.5-cam.x)/rdx;uu=cam.y+t*rdy-my;}else{if(rdy===0)continue;t=(my+.5-cam.y)/rdy;uu=cam.x+t*rdx-mx;}
         if(t<tEnter-1e-6||t>tExit+1e-6||uu<0||uu>=1)continue;
@@ -2575,7 +2683,8 @@ function sheetURL(rows,scale,bg){var pad=6,wmax=0,hsum=pad;rows.forEach(function
     var t=document.createElement('canvas');t.width=sp.w*scale;t.height=sp.h*scale;t.getContext('2d').putImageData(id,0,0);x.drawImage(t,xx,yy);xx+=sp.w*scale+pad;rh=Math.max(rh,sp.h*scale);});yy+=rh+pad;});return c.toDataURL('image/png');}
 api.spriteSheet=function(scale,which){scale=scale||4;var rows;if(which==='knight')rows=[SPR.knight];else if(which==='m114')rows=[SPR.yellow,SPR.lectern.concat(SPR.ysign,SPR.hali,[SPR.scriptTok,SPR.eshot.rag,SPR.eshot.sun]),[GOLDTEX()]];else if(which==='m113')rows=[[SPR.faceSpider[0]],WORM_COLS.slice(0,4).map(function(c,i){return wormSpr(c,i);}),MOD_IDS.map(function(k){return SPR.mod[k];})];else if(which==='m112')rows=[SPR.skitter.concat(SPR.eggsac),SPR.bigspider,SPR.brood,SPR.masque.slice(0,2).concat(SPR.masqueH.slice(0,2)),SPR.shrine.concat([SPR.piggyTok,SPR.webTok,SPR.eshot.goldball,SPR.eshot.web,SPR.eshot.egg])];else if(which==='m111')rows=[SPR.zapfly.concat(SPR.zapflyC),SPR.knight,PU_IDS.slice(6).map(function(k){return SPR.puTok[k];}),PERM_IDS.map(function(k){return SPR.permTok[k];}).concat(GOLDABLE.slice(0,4).map(function(k){return SPR.goldTok[k];}),[SPR.rock])];else if(which==='boss')rows=[SPR.king,SPR.lugg.slice(0,3),SPR.lugg.slice(3),SPR.owl,SPR.portalS.concat([SPR.portal[0],SPR.eshot.gloop,SPR.eshot.sock,SPR.eshot.gear])];else if(which==='m19')rows=[DECO_IDS.map(function(k){return SPR.deco[k];}),SPR.skeleton.concat(SPR.bonePile),SPR.merchant.concat([SPR.bag,SPR.ypud[0]]),BALL_IDS.map(function(b){return SPR.balloonT[b];}).concat(PU_IDS.map(function(k){return SPR.puS[k];}),[SPR.packIco])];else if(which==='powerups')rows=[PU_IDS.map(function(k){return SPR.pu[k];}),PU_IDS.map(function(k){return SPR.puTok[k];})];else if(which==='elite')rows=[MOD_IDS.map(function(k){return SPR.mod[k];}),['steam','zap','laser','sonic','wisp','fluff'].map(function(k){return SPR.eshot[k];}),SPR.goo];else if(which==='mobs')rows=[SPR.screamer.concat(SPR.screamerO.slice(0,2)),SPR.springle,SPR.kettle,SPR.wisp,SPR.clunk,SPR.zapfly];else if(which==='screamer')rows=[SPR.screamer,SPR.screamerO];else if(which==='hand')rows=[[SPR.hand.idle,SPR.hand.windup,SPR.hand.throw,SPR.hand.empty]];
   else rows=[SPR.screamer,[SPR.hand.idle,SPR.hand.windup,SPR.hand.throw,SPR.hand.empty]];return sheetURL(rows,scale);};
-api.textures=function(scale){return sheetURL([TEX.slice(0,4),TEX.slice(4,8),TEX.slice(8)],scale||2);};
+api.textures=function(scale){return sheetURL([TEX.slice(0,4),TEX.slice(4,8),TEX.slice(8,14),TEX.slice(14)],scale||2);};
+api.wallSheet=function(scale){var W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19];return sheetURL([0,1,2,3].map(function(k){return W.map(function(ti){return k?texVariant(ti,k):TEX[ti];});}),scale||2);};api.wallVariant=wallVariant;api.variantDiff=function(ti,k){var a=TEX[ti].px,b=texVariant(ti,k).px,d=0;for(var i=0;i<a.length;i++)d+=Math.abs((a[i]&255)-(b[i]&255))+Math.abs((a[i]>>8&255)-(b[i]>>8&255))+Math.abs((a[i]>>16&255)-(b[i]>>16&255));return {diff:d/a.length/3,cached:texVariant(ti,k)===texVariant(ti,k),w:texVariant(ti,k).w,dark:!!texVariant(ti,k).dark};};api.cellVariant=function(x,y){var c=cellAt(x,y);return c?c.v||0:-1;};
 api.genMap=function(seed,lvl){var d=genLevelFor(seed,lvl);return {name:d.name,map:d.map,map18:d.map18||d.map,attempt:d.attempt,fallback:!!d.fallback,locks:d.locks,rooms:d.rooms,enemies:d.enemies,enemies18:d.enemies18,secret:d.secret||null,shop:d.shop||null,pits:d.pits||0,decos:d.decos||0,extraMobs:d.extraMobs||0};};
 api.mapOverview=function(seed,lvl,scale){scale=scale||10;var d=lvl===1?LEVELS[0]:genLevelFor(seed,lvl),rows=d.map,h=rows.length,w=rows[0].length,c=document.createElement('canvas');c.width=w*scale;c.height=h*scale+18;var x=c.getContext('2d');x.fillStyle='#0d0a1e';x.fillRect(0,0,c.width,c.height);
   var col={'.':'#2a2640',D:'#7a9cff',L:'#ffc630',F:'#5fa64e',X:'#4ae0ff',p:'#2a2640'},wallc={'#':'#a04a30',S:'#6c7488',W:'#8a5a32',T:'#2f8f8a',M:'#5a7a48',K:'#4c4c62',R:'#9a5a2a',C:'#2fb8b0',V:'#b8945a',O:'#7a3a9a'};
@@ -2685,7 +2794,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.19.2-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.20-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

@@ -165,8 +165,10 @@ A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
 - The floor limit is 10,000. M1.8 scaling still applies on top of the M1.9 floor features above.
 - Mob HP past L8: × `(1 + 0.06·(L − 8))`, max ×1.6 (reached on L18).
 - Caps: 22 mobs, 30 coins, 60% elite chance.
-- Deep wall styles unlock every 4 floors: L9 basalt, L13 rusted iron, L17 crystal, L21 glyph
-  stone, L25 void runes. A deep floor uses one unlocked style, the newest about half the time.
+- Deep wall styles unlock every 4 floors: L9 basalt, L13 rusted iron, L17 slate, L21 glyph
+  stone, L25 ember rock, L29 sandstone, L33 granite, L37 cobblestone, L41 limestone, L45 dripstone,
+  L49 chasm shale, L53 ironbound (M1.20). A deep floor uses one unlocked style, the newest about half the time.
+- Wall cells vary (M1.20): ~72% plain, ~14% damaged, ~9% pillared bay, ~5% torch/sigil bay (cosmetic only).
 
 ## Score
 

@@ -63,11 +63,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.19.1. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.19.2. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.19.1'; /* set by tools/release.mjs */
+var VERSION='M1.19.2'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=64;
 var SAVE_KEY='labyrinthRemake.save.v1';
 var MAX_HEARTS=5;
@@ -494,7 +494,7 @@ function sprKnight(f){var b=sprKnightBody(f),s=new Pix(32,60,1.5),off=Math.round
     s.rect(14.6,0,2.8,Y-5,K);s.rect(15,.4,2,Y-5.6,BL);s.rect(15,.4,.7,Y-5.6,HEX('#ffffff'));}
   return s;}
 function sprKnightBody(f){var s=new Pix(32,46,1.5),S1=HEX('#e0b848'),S2=HEX('#b08a28'),S3=HEX('#74581a'),SH=HEX('#fff0b0'),Gd=HEX('#fff6d0'),GD=HEX('#8a6414'),R=HEX('#c8304a'),K=HEX('#100c14'),BL=HEX('#dfe6f0');
-  var lg=[1,-1,0,0][f];s.rect(11+lg,33,4,10,S2);s.rect(17-lg,33,4,10,S2);s.rect(10+lg,42,5,3,S3);s.rect(17-lg,42,5,3,S3);
+  var lg=[1,-1,0,0,0][f];s.rect(11+lg,33,4,10,S2);s.rect(17-lg,33,4,10,S2);s.rect(10+lg,42,5,3,S3);s.rect(17-lg,42,5,3,S3);
   s.rect(9,20,14,14,S1);s.rect(9,28,14,6,S2);s.rect(15.2,20,1.6,14,Gd);s.rect(9,27,14,1.4,GD);s.ell(16,20,8,3,S1);s.ell(9,21,3,2.6,SH);s.ell(23,21,3,2.6,S2);
   s.ell(16,12,6,6.6,function(x,y,dx,dy){return dx+dy<-.5?SH:dy>.4?S2:S1;});s.rect(11,11,10,1.8,K);s.rect(15.3,8,1.4,8,Gd);s.thick(16,5,22,1,1.2,R);s.thick(17,6,24,3,1,R);
   if(f===4){s.poly([[2,24],[8,24],[8,32],[5,36],[2,32]],function(x){return x<4?BL:S1;});}
@@ -2685,7 +2685,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.19.1-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.19.2-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.19.2: knight legs fix
+- The overhead-sword frame now draws his legs.
+- QA build `m1.19.2-qa` (debug hook on).
+
 ## M1.19.1: knight sword slam, shooting Screamers
 - Knight: 1.2 s two-handed overhead wind-up (flashing), then a rolling dust ring that hits for 2 + knockback.
 - All Screamers fire their sonic ring (no elite aura).

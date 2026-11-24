@@ -13,6 +13,13 @@
       "k": 1.5,
       "tiles": ["shoes", "dumbbell", "burger", "coffee", "glasses", "heart", "glove", "duck", "watch", "garlic", "jacket", "magnet", "compass", "map", "clover", "vitamins", "hat", "pump", "mirror", "bubble", "wings", "ice", "boots", "red", "green", "yellow", "black", "purple", "pink", "herb", "bell", "flare", "freeze", "firecracker"]
     },
+    "mods": {
+      "file": "mods.png",
+      "tile": 16,
+      "cols": 10,
+      "k": 1.5,
+      "tiles": ["ranged", "slime", "beefy", "fast", "regen", "shielded", "splitter", "vampire", "explosive", "blink", "frost", "poison", "armour", "blind", "wither", "tosser", "thief", "bulwark", "rust", "sapper", "oneup", "cloak", "ghastly", "storm", "webber", "vengeance", "weakness", "berserk", "potions", "mama", "molten", "archer", "necro", "firework", "gravity", "flying", "mounted", "morph", "ghost", "confusing"]
+    },
     "screamer": { "file": "mobs/screamer.png", "frames": 4, "k": 1.5 },
     "screamerO": { "file": "mobs/screamerO.png", "frames": 4, "k": 1.5 },
     "springle": { "file": "mobs/springle.png", "frames": 4, "k": 1.5 },
@@ -59,6 +66,10 @@
     "shot_rag": { "file": "boss/shot_rag.png", "frames": 1, "k": 1 },
     "shot_sun": { "file": "boss/shot_sun.png", "frames": 1, "k": 1 },
     "shot_porb": { "file": "boss/shot_porb.png", "frames": 1, "k": 1 },
-    "shot_bigorb": { "file": "boss/shot_bigorb.png", "frames": 1, "k": 1 }
+    "shot_bigorb": { "file": "boss/shot_bigorb.png", "frames": 1, "k": 1 },
+    "shot_arrow": { "file": "boss/shot_arrow.png", "frames": 1, "k": 1 },
+    "shot_fireball": { "file": "boss/shot_fireball.png", "frames": 1, "k": 1 },
+    "shot_skull": { "file": "boss/shot_skull.png", "frames": 1, "k": 1 },
+    "shot_potion": { "file": "boss/shot_potion.png", "frames": 1, "k": 1 }
   }
 }

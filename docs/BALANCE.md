@@ -53,6 +53,51 @@ Hazewisp) cross over. They never block the only route and never sit on the spawn
 (10 coins, 60%) or a run item (40%; M1.23), and 90% also have a mob. The opened state is saved for
 that floor.
 
+## Infernal mobs (M1.28)
+
+Powered mobs (elites) are called **INFERNAL <NAME>** (the band shows the name and powers when you spot or hit one) and wear a
+1-pixel glow in their power's colour (2 px from 3 cells, 3 px from 5). Tuning lives in `INF` and `MODS` in the game.
+
+| Power | From floor | Effect |
+|---|---|---|
+| Poisonous | 3 | bite poisons you: 1 damage every 2 s for 6 s, never your last heart |
+| Armoured | 4 | half your hits clank off |
+| Blinding | 5 | bite blinds you for 5 s (you see ~2 cells) |
+| Withering | 6 | bite withers you: 1 damage every 2 s for 6 s (can kill) |
+| Tosser | 3 | bite throws you ~1.8 cells |
+| Thief | 3 | bite steals your held use-item (killing it drops the item) |
+| Quicksand (was Frost) | 4 | bite slows you for 2.5 s |
+| Bulwark | 5 | takes at most 1 damage per hit |
+| Rust | 4 | bite stiffens your arm: throws 50% slower for 6 s |
+| Sapper | 3 | bite drains 3 coins |
+| 1UP | 6 | gets back up once at full health |
+| Cloaked | 5 | almost invisible (and no glow) until hit or within 1.6 cells |
+| Ender (was Blink) | 5 | teleports next to you every 5-8 s |
+| Ghastly | 4 | fireballs every 3.5-5 s (hit: 1 damage + burning) |
+| Lifesteal (was Vampire) | 4 | heals 1 per bite |
+| Sprint (was Fast) | 1 | +40% speed |
+| Storm | 6 | every 6-9 s marks your spot; 0.9 s later lightning strikes it (1 damage within 0.75) |
+| Webber | 4 | every 5-7 s a web at your feet (slows while you stand in it, 4 s) |
+| Vengeance | 5 | 35% of your hits zap you back for 1 (within 6 cells) |
+| Weakness | 4 | bite weakens you: half your hits do nothing for 6 s |
+| Berserk | 5 | bites for double, loses 1 HP per bite |
+| Explode (was Explosive) | 4 | blows up when it dies |
+| Potions | 5 | lobs potions every 4-6 s: a 3.5 s splash of poison, slowness or blindness |
+| Mama | 4 | first hit: 15% chance of 3 babies (1/4 HP, no loot) |
+| Molten | 6 | bite sets you on fire (1 per 1.5 s for 4.5 s); ignores blasts; leaves a 5 s fire patch when it dies |
+| Archer | 3 | a volley of 3 arrows every 3.5-5 s |
+| Necromancer | 7 | homing wither skulls every 4-6 s (hit: 1 damage + wither) |
+| Firework | 4 | sparks burst when hit (1 damage if you're within 1.5) |
+| Gravity | 5 | bite levitates you for 3 s (higher view, 60% speed, you float over pits) |
+| Flying | 3 | flies over pits |
+| Mounted | 6 | rides a Clunkbot, Rattlebone, Kettlegrump or Springle; drops off when its mount dies |
+| Morph | 7 | every 10-16 s, 40% chance to turn into another monster (keeps its powers) |
+| Ghost | 4 | a Hazewisp ghost rises when it dies |
+| Confusing | 5 | bite reverses your controls for 3 s |
+
+Still in the pool from before: Ranged, Slime Trail, Beefy, Regen, Shielded, Splitter. Power icons: `assets/mods.png`.
+Rubber Boots also stop webs and potion slowness.
+
 ## Elites
 
 - Chance per mob: 5% × L, capped at 60% (reached on L12). 0% on the tutorial.

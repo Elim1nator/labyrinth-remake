@@ -36,6 +36,7 @@ const V124=atLeast('1.24'); // M1.24+: boss props, portals and projectiles come 
 const V125=atLeast('1.25'); // M1.25+: hand-made wall and item art (busier textures: art-contrast thresholds loosened, still all distinct)
 const V126=atLeast('1.26'); // M1.26+: the Screamer King replaces King Gloop
 const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy masks
+const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status effects, 1 px glow)
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -605,7 +606,7 @@ async function m113Tests(){
     G.setSeed(777);G.startLevel(0);const t=G.state().enemies.map(e=>e.maxHp);G.startLevel(9);const k=G.knight();return {n,bad:bad.slice(0,5),nb:bad.length,tut:t,knight:k&&k.maxHp};});
   check('M1.13 mobs get +1 base HP per floor below the first (BEEFY x2.5 of that); the tutorial keeps base HP',hp.nb===0&&hp.n>50&&hp.tut.every(v=>v===3),JSON.stringify(hp));
   const pool=await G(page,()=>{const G=__game,ids=Object.keys(G.mods);const at=f=>{const c=G.rollStats(f,6000,'m113').counts;return Object.keys(c);};return {ids,f3:at(3),f10:at(10)};});
-  check(`M1.13 ${pool.ids.length} elite modifiers: the 6 new ones (SHIELDED, SPLITTER, VAMPIRE, EXPLOSIVE, BLINK, FROST) appear from floor 4-5, never on floor 3`,pool.ids.length===11&&['shielded','splitter','vampire','explosive','blink','frost'].every(k=>pool.f10.includes(k)&&!pool.f3.includes(k)),JSON.stringify(pool));
+  check(`M1.13 ${pool.ids.length} elite modifiers: the 6 new ones (SHIELDED, SPLITTER, VAMPIRE, EXPLOSIVE, BLINK, FROST) appear from floor 4-5, never on floor 3`,pool.ids.length===(V128?40:11)&&['shielded','splitter','vampire','explosive','blink','frost'].every(k=>pool.f10.includes(k)&&!pool.f3.includes(k)),JSON.stringify(pool));
   const md=await G(page,()=>{const G=__game,r={};const fresh=()=>{G.setSeed(777);G.startLevel(6,{hearts:5,coins:0});G.clearMobs();G.setEffect(null);G.setHearts(5);return G.state().player;};
     let p=fresh();let i=G.spawn('clunk',p.x+3,p.y,false,['shielded']);G.damageMob(i,2);r.shield={hp:G.state().enemies[i].hp,max:G.state().enemies[i].maxHp};G.damageMob(i,1);r.shield.after=G.state().enemies[i].hp;
     p=fresh();i=G.spawn('clunk',p.x+.35,p.y,true,['vampire']);G.damageMob(i,3);const v0=G.state().enemies[i].hp;let s;for(let k=0;k<5;k++)s=G.advance(0.1);r.vamp={before:v0,after:s.enemies[i].hp,hearts:s.player.hearts};
@@ -857,6 +858,57 @@ async function m127Tests(){
   await ctx.close();
 }
 
+async function m128Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m128'});
+  const d=await G(page,()=>({n:__game.modIds.length,names:__game.modIds.map(k=>__game.mods[k].name),glow:__game.glowTiers?__game.glowTiers:null}));
+  const want=['POISONOUS','ARMOURED','BLINDING','WITHERING','TOSSER','THIEF','QUICKSAND','BULWARK','RUST','SAPPER','1UP','CLOAKED','ENDER','GHASTLY','LIFESTEAL','SPRINT','STORM','WEBBER','VENGEANCE','WEAKNESS','BERSERK','EXPLODE','POTIONS','MAMA','MOLTEN','ARCHER','NECROMANCER','FIREWORK','GRAVITY','FLYING','MOUNTED','MORPH','GHOST','CONFUSING'];
+  const miss=want.filter(w=>!d.names.includes(w));
+  check(`M1.28 all 34 requested Infernal powers exist (${d.n} powers in all)`,!miss.length&&d.n>=40,miss.join(',')||d.names.join(','));
+  const r=await G(page,()=>(()=>{const G=__game,r={};G.manual=true;
+ const fresh=(hearts)=>{G.setSeed(777);G.startLevel(6,{hearts:hearts||5,coins:20,perm:{items:{}}});G.clearMobs();return G.state().player;};
+ const bite=(mod,extra)=>{const p=fresh(5);if(extra)extra();const i=G.spawn('clunk',p.x+.35,p.y,true,[mod]);const h0=G.state().player.hearts,c0=G.state().player.coins,x0=G.state().player.x;let s;for(let k=0;k<8;k++){s=G.advance(1/30);if(G.state().player.hearts<h0)break;}s=G.state();return {st:G.status(),dh:h0-s.player.hearts,dc:c0-s.player.coins,dx:Math.hypot(s.player.x-x0,0)+Math.abs(s.player.y-p.y),slow:G.slowT(),msg:s.msg,e:G.entInfo(i)};};
+ for(const m of ['poison','wither','blind','weakness','rust','confusing','gravity','molten','sapper','tosser','frost','berserk'])r[m]=bite(m);
+ r.thief=bite('thief',()=>G.give('herb'));r.thief.item=G.state().player.item;
+ // poison never kills
+ let p=fresh(1);G.addStatus('poison',6);for(let k=0;k<240;k++)G.advance(1/30);r.poisonAt1=G.state().player.hearts;
+ p=fresh(1);G.addStatus('wither',6);for(let k=0;k<240;k++)G.advance(1/30);r.witherAt1=G.state().mode;
+ // armour ~50%
+ p=fresh();let i=G.spawn('clunk',p.x+3,p.y,false,['armour']);let blocked=0;for(let k=0;k<40;k++){const h=G.entInfo(i).hp;G.hitWith(i,{dmg:1,ball:'blue',hits:[]});if(G.entInfo(i).hp===h)blocked++;G.entInfo(i);if(G.entInfo(i).hp<=1){/*refill*/}if(G.entInfo(i).state==='dead')break;}r.armourBlocked=blocked;
+ // oneup
+ p=fresh();i=G.spawn('clunk',p.x+3,p.y,false,['oneup']);G.hitWith(i,{dmg:99,ball:'blue',hits:[]});r.oneup1=G.entInfo(i);G.hitWith(i,{dmg:99,ball:'blue',hits:[]});r.oneup2=G.entInfo(i).state;
+ // molten vs blast, bulwark cap
+ p=fresh();i=G.spawn('clunk',p.x+3,p.y,false,['molten']);let h=G.entInfo(i).hp;G.hitWith(i,{dmg:3,boom:true});r.moltenBlast=h-G.entInfo(i).hp;
+ i=G.spawn('clunk',p.x+3,p.y+.5,false,['bulwark']);h=G.entInfo(i).hp;G.hitWith(i,{dmg:4,ball:'blue',hits:[]});r.bulwark=h-G.entInfo(i).hp;
+ // mama (forced), ghost, mounted, flying, morph
+ p=fresh();G.inf.mama=1;i=G.spawn('clunk',p.x+3,p.y,false,['mama']);const n0=G.state().enemies.length;G.hitWith(i,{dmg:1,ball:'blue',hits:[]});r.mamaBabies=G.state().enemies.length-n0;G.inf.mama=.15;
+ p=fresh();i=G.spawn('clunk',p.x+3,p.y,false,['ghost']);const n1=G.state().enemies.length;G.hitWith(i,{dmg:99,ball:'blue',hits:[]});for(let k=0;k<10;k++)G.advance(1/30);r.ghost=G.state().enemies.slice(n1).map(e=>e.type);
+ p=fresh();i=G.spawn('springle',p.x+3,p.y,true,['mounted']);r.mount=G.mounted(i);for(let k=0;k<30;k++)G.advance(1/30);const ri=G.entInfo(i),mi=G.entInfo(r.mount);r.mountSync=Math.hypot(ri.x-mi.x,ri.y-mi.y);
+ p=fresh();i=G.spawn('clunk',p.x+3,p.y,false,['flying']);r.flying=G.entInfo(i).flying;
+ p=fresh();G.inf.morph.p=1;G.inf.morph.cd=[.2,.3];i=G.spawn('clunk',p.x+3,p.y,true,['morph']);for(let k=0;k<30;k++)G.advance(1/30);r.morph=G.entInfo(i).type;G.inf.morph.p=.4;G.inf.morph.cd=[10,16];
+ // vengeance + firework
+ p=fresh();G.inf.vengeance=1;i=G.spawn('clunk',p.x+3,p.y,false,['vengeance']);let hh=G.state().player.hearts;G.hitWith(i,{dmg:1,ball:'blue',hits:[]});r.vengeance=hh-G.state().player.hearts;G.inf.vengeance=.35;
+ p=fresh();i=G.spawn('clunk',p.x+1,p.y,false,['firework']);hh=G.state().player.hearts;G.hitWith(i,{dmg:1,ball:'blue',hits:[]});r.firework=hh-G.state().player.hearts;
+ // timed attacks
+ for(const m of ['storm','webber','archer','ghastly','necro','potions']){p=fresh();i=G.spawn('clunk',p.x+3,p.y,true,[m]);const kinds={};let w={};for(let k=0;k<360;k++){G.setHearts(5);const s=G.advance(1/30);s.eshots.forEach(q=>kinds[q.kind]=1);const W=G.infWorld();Object.keys(W).forEach(x=>{if(W[x])w[x]=1;});}r['t_'+m]=Object.keys(kinds).concat(Object.keys(w)).join(',');}
+ p=fresh();i=G.spawn('clunk',p.x+3,p.y,true,['poison','storm']);r.name=G.infernalName(i);
+ return r;})());
+  check('M1.28 Infernal names: "INFERNAL <MOB>: <POWERS>"',r.name==='INFERNAL CLUNKBOT: POISONOUS + STORM',r.name);
+  const bitten=['poison','wither','blind','weakness','rust','gravity','molten'].map(m=>[m,Object.keys(r[m].st)[0]]);
+  check('M1.28 bites from Poisonous, Withering, Blinding, Weakness, Rust, Gravity and Molten give you that status effect',bitten.every(([m,k])=>k==={poison:'poison',wither:'wither',blind:'blind',weakness:'weak',rust:'rust',gravity:'lev',molten:'burn'}[m]),JSON.stringify(bitten));
+  check('M1.28 Confusing, Quicksand, Sapper, Tosser, Thief and Berserk bites',/CONFUSED/.test(r.confusing.msg)&&r.frost.slow>0&&r.sapper.dc===3&&r.tosser.dx>1.5&&r.thief.e.stolen==='herb'&&r.thief.item===null&&r.berserk.dh===2&&r.berserk.e.hp===r.berserk.e.maxHp-1,JSON.stringify({c:r.confusing.msg,s:r.frost.slow,sap:r.sapper.dc,t:r.tosser.dx,th:r.thief.e.stolen,b:r.berserk.dh}));
+  check('M1.28 poison never takes your last heart; wither can kill',r.poisonAt1===1&&r.witherAt1==='dead',JSON.stringify({p:r.poisonAt1,w:r.witherAt1}));
+  check('M1.28 Armoured blocks some hits, 1UP gets back up once, Molten ignores blasts, Bulwark takes at most 1',r.armourBlocked>0&&r.oneup1.usedLife&&r.oneup1.hp===r.oneup1.maxHp&&r.oneup2==='dead'&&r.moltenBlast===0&&r.bulwark===1,JSON.stringify({a:r.armourBlocked,o:r.oneup1,m:r.moltenBlast,b:r.bulwark}));
+  check('M1.28 Mama has 3 babies, a Ghost rises from Ghost mobs, Mounted rides a carrier, Flying flies, Morph changes type',r.mamaBabies===3&&r.ghost.join()==='wisp'&&r.mount>=0&&r.mountSync<.01&&r.flying&&r.morph!=='clunk',JSON.stringify({m:r.mamaBabies,g:r.ghost,mt:r.mount,ms:r.mountSync,f:r.flying,mo:r.morph}));
+  check('M1.28 Vengeance zaps you back, Firework bursts on you up close',r.vengeance===1&&r.firework===1,JSON.stringify({v:r.vengeance,f:r.firework}));
+  check('M1.28 timed powers: Storm lightning, Webber webs, Archer arrows, Ghastly fireballs, Necromancer skulls, Potions splashes',/bolts/.test(r.t_storm)&&/webs/.test(r.t_webber)&&/arrow/.test(r.t_archer)&&/fireball/.test(r.t_ghastly)&&/skull/.test(r.t_necro)&&/potion/.test(r.t_potions),JSON.stringify([r.t_storm,r.t_webber,r.t_archer,r.t_ghastly,r.t_necro,r.t_potions]));
+  const ic=await G(page,()=>({st:__game.assetState().mods,shots:['arrow','fireball','skull','potion'].map(k=>__game.assetState()['shot_'+k])}));
+  check('M1.28 power icons (assets/mods.png) and the new projectiles load from PNG',ic.st==='png'&&ic.shots.every(x=>x==='png'),JSON.stringify(ic));
+  await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:20});G.clearMobs();const p=G.state().player;const ca=Math.cos(p.ang),sa=Math.sin(p.ang);
+    G.spawn('clunk',p.x+ca*2.2-sa*.6,p.y+sa*2.2+ca*.6,false,['poison','storm']);G.spawn('kettle',p.x+ca*2.6+sa*.7,p.y+sa*2.6-ca*.7,false,['molten']);G.spawn('skeleton',p.x+ca*3.4,p.y+sa*3.4,false,['flying','archer']);G.addStatus('poison',6);G.addStatus('burn',4);G.advance(0.05);});
+  await page.screenshot({path:`${SHOTS}/m128_infernal.png`});
+  await ctx.close();
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -868,10 +920,10 @@ async function m118Tests(){
     check('M1.19 every Screamer shoots its sonic ring (with the usual tell) without being an elite (no aura)',sc.mods===0&&sc.shots>=1&&sc.tele,JSON.stringify(sc));}
   if(atLeast('1.19')){const ts=await G(page,()=>__game.titleSong());check('M1.19 a hand-written 16-bar title theme (108 BPM, pulse lead, bass, arpeggio, drums) plays on the menus',ts.bars===16&&ts.bpm===108&&ts.notes>100,JSON.stringify(ts));}
   const rv=await G(page,()=>{const G=__game;G.manual=true;localStorage.clear();G.setSeed(777);G.menuPick(0);G.startLevel(3,{hearts:5,coins:35,perm:{}});G.clearMobs();const die=()=>{G.setHearts(1);G.setEffect(null);const p=G.state().player;G.spawn('clunk',p.x+.3,p.y,true,[]);let s;for(let i=0;i<60;i++){s=G.advance(0.1);if(s.mode==='dead')break;}G.clearMobs();return s.mode;}; /* revive gives 2 s of safety */
-    const r={};r.d1=die();r.cost1=G.reviveCost();G.advance(0.6);r.ok1=G.revive();let s=G.state();r.after1={mode:s.mode,hearts:s.player.hearts,coins:s.player.coins,save:!!s.save,inv:s.player.inv>1};
-    r.d2=die();r.cost2=G.reviveCost();G.advance(0.6);r.ok2=G.revive();s=G.state();r.after2={coins:s.player.coins};r.d3=die();r.cost3=G.reviveCost();G.advance(0.6);r.ok3=G.revive();s=G.advance(0.05);r.after3={mode:s.mode,coins:s.player.coins};
+    const r={};r.d1=die();r.cost1=G.reviveCost();G.advance(0.6);r.pre1=G.state().player.coins;r.ok1=G.revive();let s=G.state();r.after1={mode:s.mode,hearts:s.player.hearts,coins:s.player.coins,save:!!s.save,inv:s.player.inv>1};
+    r.d2=die();r.cost2=G.reviveCost();G.advance(0.6);r.pre2=G.state().player.coins;r.ok2=G.revive();s=G.state();r.after2={coins:s.player.coins};r.d3=die();r.cost3=G.reviveCost();G.advance(0.6);r.ok3=G.revive();s=G.advance(0.05);r.after3={mode:s.mode,coins:s.player.coins};
     G.confirm();s=G.advance(0.1);r.next=s.mode;return r;});
-  check('M1.18 after a death you can revive for 10 coins x deaths this run (10, 20, 30...): full hearts, a moment of safety, the floor saved again',rv.d1==='dead'&&rv.cost1===10&&rv.ok1&&rv.after1.mode==='play'&&rv.after1.hearts===5&&rv.after1.coins===25&&rv.after1.save&&rv.after1.inv&&rv.cost2===20&&rv.ok2&&rv.after2.coins===5,JSON.stringify(rv));
+  check('M1.18 after a death you can revive for 10 coins x deaths this run (10, 20, 30...): full hearts, a moment of safety, the floor saved again',rv.d1==='dead'&&rv.cost1===10&&rv.ok1&&rv.after1.mode==='play'&&rv.after1.hearts===5&&rv.after1.coins===rv.pre1-10&&rv.after1.save&&rv.after1.inv&&rv.cost2===20&&rv.ok2&&rv.after2.coins===rv.pre2-20, /* M1.28: compared with the coins just before (a knocked-back player can land on a floor coin) */JSON.stringify(rv));
   check('M1.18 without enough coins revive is refused; continuing goes to name entry as before',rv.cost3===30&&!rv.ok3&&rv.after3.mode==='dead'&&rv.next==='name',JSON.stringify(rv));
   const pit=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(7,{hearts:5,coins:50,perm:{}});G.clearMobs();const pp=G.pits()[0];G.teleport(pp.x+.5,pp.y+.5);let s;for(let i=0;i<20;i++){s=G.advance(0.1);if(s.mode==='dead')break;}G.advance(0.6);const ok=G.revive();s=G.advance(0.1);return {ok,mode:s.mode,inPit:G.pitUnder(s.player.x,s.player.y,0)};});
   check('M1.18 reviving after a pit fall puts you back on solid ground',pit.ok&&pit.mode==='play'&&!pit.inPit,JSON.stringify(pit));
@@ -906,6 +958,7 @@ if(V123&&want('m123')){ await m123Tests(); }
 if(V124&&want('m124')){ await m124Tests(); }
 if(V126&&want('m126')){ await m126Tests(); }
 if(V127&&want('m127')){ await m127Tests(); }
+if(V128&&want('m128')){ await m128Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -1632,7 +1685,7 @@ async function m14Tests(){
         for(const m of Object.keys(col)){const hc=hsv(col[m]);FRESH();__game.freeze=true;__game.spawn('kettle',9.3,3.5,false,[]);__game.advance(0.02);const A=grab();FRESH();__game.freeze=true;__game.spawn('kettle',9.3,3.5,false,[m]);__game.advance(0.02);const B=grab();let n=0;
           for(let i=0;i<A.length;i++){const a=A[i],b=B[i];if(Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2])<=30)continue;const h=hsv(b);if(h[1]>(hc[1]>.35?.3:.12)&&h[2]>.35&&hd(h[0],hc[0])<20)n++;}out[m]={plain:0,elite:n};}return out;},{FR:FRESH.toString(),col});
       for(const k of Object.keys(gl))gl[k]=g2[k];}
-    check('M1.4 each modifier draws its own coloured outline glow and icon',Object.values(gl).every(r=>r.elite>r.plain+50),Object.entries(gl).map(([m,r])=>`${m}:${r.plain}->${r.elite}px`).join(' '));
+    check('M1.4 each modifier draws its own coloured outline glow and icon'+(V128?' (M1.28: not CLOAKED, which hides)':''),Object.entries(gl).every(([m,r])=>(V128&&m==='cloak')||r.elite>r.plain+50),Object.entries(gl).map(([m,r])=>`${m}:${r.plain}->${r.elite}px`).join(' '));
     // screenshots: one per modifier, projectiles in flight, slime trails
     for(const [m,t] of [['ranged','kettle'],['slime','springle'],['beefy','clunk'],['fast','zapfly'],['regen','screamer']]){
       await G(page,({FR,m,t})=>{eval(FR)();__game.freeze=true;__game.spawn(t,9.6,3.5,false,[m]);__game.spawn(t,10.4,2.4,false,[]);__game.advance(0.02);},{FR:FRESH.toString(),m,t});
@@ -2185,7 +2238,7 @@ c.save('${SHOTS}/m17_beefy_wisp_icons_d1.8_d3_d6_d6up_d6down.png')`]);}catch(e){
     const brickGame=await G(page,()=>{const D=__game.dims;__game.manual=true;__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.teleport(7.5,1.5,0);__game.freeze=true;__game.advance(0.02);const v=[];for(let y=60;y<140;y++)for(let x=0;x<150;x++)v.push(__game.pixelAt(x,y));const med=i=>v.map(p=>p[i]).sort((a,b)=>a-b)[v.length>>1];return [med(0),med(1),med(2)];});
     const info={col:cols.ranged,crQA:cr(R,brickQA),crGame:cr(R,brickGame),crOld:cr(hx('#ff2f5a'),brickQA),wispHue:Math.min(...wisps.map(w=>hd(R,w))),wispDist:Math.min(...wisps.map(w=>Math.hypot(...R.map((v,i)=>v-w[i])))),others:others.map(([k,v])=>`${k} ${hd(R,hx(v)).toFixed(0)}°`).join(', '),minOther:Math.min(...others.map(([,v])=>hd(R,hx(v))))};
     check('RANGED is a lighter red-pink with about 2.9:1 contrast on red brick (was 2.23:1)',info.col==='#ff6a7a'&&info.crQA>=2.85&&info.crGame>=2.6&&info.crQA>info.crOld,`${info.col}: ${info.crQA.toFixed(2)}:1 vs QA brick median ${brickQA}, ${info.crGame.toFixed(2)}:1 vs in-game brick median ${brickGame}; old #ff2f5a ${info.crOld.toFixed(2)}:1`);
-    check('RANGED stays distinct from the other elite colours (35°+ hue) and from every Hazewisp pink (15°+ hue, 50+ RGB)',info.minOther>=35&&info.wispHue>=15&&info.wispDist>=50,`others: ${info.others}; wisp hue ${info.wispHue.toFixed(0)}°, RGB distance ${info.wispDist.toFixed(0)}`);
+    check(V128?'RANGED stays distinct from every Hazewisp pink (15°+ hue, 50+ RGB; M1.28: with 40 powers the 35° gap to every other colour no longer applies)':'RANGED stays distinct from the other elite colours (35°+ hue) and from every Hazewisp pink (15°+ hue, 50+ RGB)',(V128||info.minOther>=35)&&info.wispHue>=15&&info.wispDist>=50,`others: ${info.others}; wisp hue ${info.wispHue.toFixed(0)}°, RGB distance ${info.wispDist.toFixed(0)}`);
     fs.writeFileSync(`${OUT}/m17_ranged_colour.json`,JSON.stringify(info,null,1));
     const parts=[];for(const [t,d] of [['kettle',3],['kettle',6],['wisp',6],['screamer',6]]){await G(page,({t,d})=>{__game.manual=true;__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.teleport(13.5-d,1.5,0);__game.freeze=true;__game.setPitch(0);__game.spawn(t,13.5,1.5,false,['ranged']);__game.advance(0.02);},{t,d});
       const f=`${SHOTS}/_tmp_r_${t}${d}.png`;await page.screenshot({path:f,clip:{x:340,y:100,width:600,height:600}});parts.push(f);}

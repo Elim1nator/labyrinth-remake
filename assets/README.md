@@ -11,6 +11,7 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 | `items.png` | All item icons (run items, balloon colours, use-items), a grid of 24 x 24 tiles. |
 | `mobs/<name>.png` | One file per monster or boss: its animation frames side by side, all the same width. |
 | `boss/<name>.png` | Boss props and effects: portals, the lectern, signs, Hali, goo, the play script, and every projectile (`shot_*.png`). |
+| `mods.png` | The power icons shown over Infernal mobs (16 x 16 tiles, order in `atlas.json` under `mods`). |
 | `atlas.json` | Lists every file, the wall tile order, and each strip's frame count. |
 
 ## Editing the walls
@@ -52,7 +53,7 @@ Each `boss/*.png` is a strip of frames like the monsters:
 | `goo.png` | goo puddles (slime-trail elites) | 2 |
 | `groundCrack.png` | the Treasure Knight's slam crack | 1 |
 | `script.png` | the torn play script (the pickup token is made from it) | 1 |
-| `shot_*.png` | projectiles: boss shots (porb and bigorb = the Screamer King's purple orbs, gloop, sock, gear, goldball, web, egg, rag, sun) and elite shots (steam, zap, laser, sonic, wisp, fluff) | 1 |
+| `shot_*.png` | projectiles: Infernal shots (arrow, fireball, skull, potion), boss shots (porb and bigorb = the Screamer King's purple orbs, gloop, sock, gear, goldball, web, egg, rag, sun) and elite shots (steam, zap, laser, sonic, wisp, fluff) | 1 |
 
 ## Editing item icons
 

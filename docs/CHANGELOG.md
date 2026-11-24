@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.28: Infernal mobs
+- Elites are now **Infernal** mobs ("INFERNAL CLUNKBOT: POISONOUS + STORM") with 40 powers: 29 new (Poisonous, Armoured, Blinding, Withering, Tosser, Thief, Bulwark, Rust, Sapper, 1UP, Cloaked, Ghastly, Storm, Webber, Vengeance, Weakness, Berserk, Potions, Mama, Molten, Archer, Necromancer, Firework, Gravity, Flying, Mounted, Morph, Ghost, Confusing), 5 renamed (Sprint, Lifesteal, Explode, Ender, Quicksand) and the 6 earlier ones. Full table in `docs/BALANCE.md`.
+- Player status effects: poison, wither, burning, blindness, weakness, rust, levitation, confusion, slowness (screen tint + timer pills under the item row).
+- Elite glow is 1 pixel up close (was 3). Power icons now come from `assets/mods.png`; new projectiles `shot_arrow`, `shot_fireball`, `shot_skull`, `shot_potion`.
+- QA build `m1.28-qa` (debug hook on).
+
 ## M1.27: balloons pass through Comedy masks
 - Smiling Comedy masks no longer stop your balloons: they fly straight through (pink balloons don't home in on them either). They still can't be hurt.
 - QA build `m1.27-qa` (debug hook on).

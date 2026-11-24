@@ -137,7 +137,7 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 
 A Treasure Knight guards every floor from 2: hit him when his shield is down or while he is
 dazed after charging into a wall; he drops a run item (M1.23; it was a golden power-up). Smiling
-Comedy masks just follow you and can't be hurt; frowning Tragedy masks attack. On both maps every
+Comedy masks just follow you and can't be hurt (balloons pass straight through them, M1.27); frowning Tragedy masks attack. On both maps every
 monster is the same red mark.
 
 ## Coins: pits, doors, shrines, trapdoors (M1.12)

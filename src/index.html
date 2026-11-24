@@ -63,11 +63,11 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.26. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.27. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, pixel art, sounds, levels) is original and
    generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.26'; /* set by tools/release.mjs */
+var VERSION='M1.27'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=64;
 var SAVE_KEY='labyrinthRemake.save.v1';
 var MAX_HEARTS=5;
@@ -1479,7 +1479,7 @@ function blackBoom(x,y){SFX.giantSplash();G.shake=Math.max(G.shake||0,.2);stats.
   G.ents.forEach(function(e){if(e.gone||e.state==='dead'||e.dormant)return;if(Math.hypot(e.x-x,e.y-y)<R&&clearPath(x,y,e.x,e.y))hitEnemy(e,{dmg:ITEM_FX.blackDmg,boom:true});});
   if(p&&Math.hypot(p.x-x,p.y-y)<R&&clearPath(x,y,p.x,p.y)){if(hurtPlayerBy(1,x,y,'boom'))stats.blackSelfHits++;}}
 /* M1.23 pink balloons steer toward the nearest monster ahead */
-function homeShot(s,dt){var best=null,bd=ITEM_FX.homeR,sp=Math.hypot(s.vx,s.vy)||1;G.ents.forEach(function(e){if(e.gone||e.state==='dead'||e.dormant||e.state==='pile'||s.hits.indexOf(e)>=0)return;var dx=e.x-s.x,dy=e.y-s.y,d=Math.hypot(dx,dy);if(d>bd||d<.05)return;if((dx*s.vx+dy*s.vy)/(d*sp)<.2)return;if(!clearPath(s.x,s.y,e.x,e.y))return;bd=d;best=e;});
+function homeShot(s,dt){var best=null,bd=ITEM_FX.homeR,sp=Math.hypot(s.vx,s.vy)||1;G.ents.forEach(function(e){if(e.gone||e.state==='dead'||e.dormant||e.state==='pile'||e.face==='comedy'||s.hits.indexOf(e)>=0)return;var dx=e.x-s.x,dy=e.y-s.y,d=Math.hypot(dx,dy);if(d>bd||d<.05)return;if((dx*s.vx+dy*s.vy)/(d*sp)<.2)return;if(!clearPath(s.x,s.y,e.x,e.y))return;bd=d;best=e;});
   if(!best)return;var want=Math.atan2(best.y-s.y,best.x-s.x),cur=Math.atan2(s.vy,s.vx),df=Math.atan2(Math.sin(want-cur),Math.cos(want-cur)),mx=ITEM_FX.homing*dt;cur+=Math.max(-mx,Math.min(mx,df));s.vx=Math.cos(cur)*sp;s.vy=Math.sin(cur)*sp;}
 function giantSplash(x,y){stats.giantSplashes++;SFX.giantSplash();for(var k=0;k<22;k++){var a=Math.random()*Math.PI*2,sp=1+Math.random()*2.5;G.parts.push({kind:'drop',x:x,y:y,z:.1,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,vz:1.5+Math.random()*2,life:.6+Math.random()*.3,g:7});}
   G.ents.forEach(function(e){if(e.gone||e.state==='dead')return;var dd=Math.hypot(e.x-x,e.y-y);if(dd<PU_FLOOR.giantR&&clearPath(x,y,e.x,e.y)){hitEnemy(e);}else if(dd<PU_FLOOR.giantR)stats.splashBlocked=(stats.splashBlocked||0)+1;});} /* M19 (floor-long): 1 splash damage within 1.2 cells (was 2 within 1.4), so a direct hit does 2 */
@@ -1497,14 +1497,14 @@ function updateFx(dt){
     else if(shotSolid(s.x,s.y)){crackHit(s.x,s.y);var bx=s.x-s.vx*dt,by=s.y-s.vy*dt;if(s.bounce>0){s.bounce--;if(shotSolid(s.x,by))s.vx=-s.vx;if(shotSolid(bx,s.y))s.vy=-s.vy;if(!shotSolid(s.x,by)&&!shotSolid(bx,s.y)){s.vx=-s.vx;s.vy=-s.vy;}s.x=bx;s.y=by;stats.duckBounces++;SFX.bonk();}else{s.x-=s.vx*dt*1.5;s.y-=s.vy*dt*1.5;hit=true;}} /* M1.23 rubber duck: bounce */
     else if(s.z<=.02){s.z=.02;hit=true;}
     else if(s.z>=.97){s.z=.97;hit=true;stats.ceilingHits++;} // M12-A1 safety net: splash on the ceiling
-    else for(var j=0;j<G.ents.length;j++){var e=G.ents[j];if(e.gone||e.state==='dead')continue;var M=MOBS[e.type],ez=mobZ(e);var sc=e.scale||1,pl=e.state==='pile',hr=pl?.36:M.hitR*sc,hh=pl?.3:(e.hh||M.h)*sc;if(s.hits&&s.hits.indexOf(e)>=0)continue;if(Math.hypot(e.x-s.x,e.y-s.y)<hr+(s.giant?.25:0)&&s.z>ez-.10&&s.z<ez+hh+.12){hitEnemy(e,s);if(s.hits)s.hits.push(e);if(s.purple&&s.hits.length<ITEM_FX.pierce){stats.pierces++;if(s.black)blackBoom(e.x,e.y);break;}hit=true;break;}} /* M1.23 purple: pierce up to 4 monsters */
+    else for(var j=0;j<G.ents.length;j++){var e=G.ents[j];if(e.gone||e.state==='dead')continue;var M=MOBS[e.type],ez=mobZ(e);var sc=e.scale||1,pl=e.state==='pile',hr=pl?.36:M.hitR*sc,hh=pl?.3:(e.hh||M.h)*sc;if(s.hits&&s.hits.indexOf(e)>=0)continue;if(e.face==='comedy'&&s.ball!=='mirror')continue; /* M1.27: balloons pass through smiling masks */if(Math.hypot(e.x-s.x,e.y-s.y)<hr+(s.giant?.25:0)&&s.z>ez-.10&&s.z<ez+hh+.12){hitEnemy(e,s);if(s.hits)s.hits.push(e);if(s.purple&&s.hits.length<ITEM_FX.pierce){stats.pierces++;if(s.black)blackBoom(e.x,e.y);break;}hit=true;break;}} /* M1.23 purple: pierce up to 4 monsters */
     if(hit||s.life<=0){if(s.ball==='mirror')sparkle(s.x,s.y,s.z,'spark',5);else splash(s.x,s.y,s.z);if(s.giant)giantSplash(s.x,s.y);if(s.yellow)addYPud(s.x,s.y);if(s.black)blackBoom(s.x,s.y);G.shots.splice(i,1);}}
   for(i=G.parts.length-1;i>=0;i--){var q=G.parts[i];if(q.pit&&q.max-q.life>=q.stopAt&&q.vx!==0){q.vx=0;q.vy=0;stats.lastPitCoin={x:q.x,y:q.y,z:q.z};} /* straight down once over the centre */q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vz-=q.g*dt;q.life-=dt;if(q.kind==='puff'||q.kind==='steam'){q.vx*=.92;q.vy*=.92;}if(q.z>.95){q.z=.95;q.vz=0;}if(q.z<0&&!q.pit){q.z=0;q.vz=0;q.vx*=.5;q.vy*=.5;}if(q.life<=0||q.z<-PIT_DEEP)G.parts.splice(i,1);}
 }
 /* M13-A3: fences stop balloons, but a ghost (Hazewisp) sitting inside a fence cell is checked first, so it can be hit there
    (it can bite from there too). The balloon hits if its path passes within the mob's hit radius; otherwise the fence stops it. */
 function fenceGhostHit(s){var cx=Math.floor(s.x),cy=Math.floor(s.y),c=cellAt(cx,cy);if(!c||!(c.t===3||(c.t===2&&c.open<.8)))return null; /* M19: same for a ghost inside a closed door */var sp=Math.hypot(s.vx,s.vy)||1,ux=s.vx/sp,uy=s.vy/sp;
-  for(var j=0;j<G.ents.length;j++){var e=G.ents[j];if(e.gone||e.state==='dead'||Math.floor(e.x)!==cx||Math.floor(e.y)!==cy)continue;var M=MOBS[e.type],sc=e.scale||1,ez=mobZ(e),rx=e.x-s.x,ry=e.y-s.y;
+  for(var j=0;j<G.ents.length;j++){var e=G.ents[j];if(e.gone||e.state==='dead'||e.face==='comedy'||Math.floor(e.x)!==cx||Math.floor(e.y)!==cy)continue;var M=MOBS[e.type],sc=e.scale||1,ez=mobZ(e),rx=e.x-s.x,ry=e.y-s.y;
     if(Math.abs(rx*uy-ry*ux)<M.hitR*sc+(s.giant?.25:0)&&rx*ux+ry*uy>-.3&&s.z>ez-.10&&s.z<ez+M.h*sc+.12)return e;}return null;}
 function hitEnemy(e,src){if(e.state==='dead'||e.dormant)return;
   if(e.type==='knight'&&e.shieldT>0&&!(src&&src.thorn)){e.hurtT=.06;stats.knightBlocks++;SFX.clank();if(G.p)sparkle(e.x+(G.p.x-e.x)*.15,e.y+(G.p.y-e.y)*.15,.45,'spark',6);if(e.state==='idle')e.state='chase';return;} /* M1.11: shield up = no damage */
@@ -2472,7 +2472,7 @@ api.bossIntro=true; /* tests may switch the cut scene off to start fights at onc
 api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.slammed,door:!!I.door}:null;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.26-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.27-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

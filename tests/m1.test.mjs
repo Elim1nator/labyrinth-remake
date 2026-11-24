@@ -35,6 +35,7 @@ const V123=atLeast('1.23'); // M1.23+: run items (stacking, whole run) + stackin
 const V124=atLeast('1.24'); // M1.24+: boss props, portals and projectiles come from assets/boss/*.png
 const V125=atLeast('1.25'); // M1.25+: hand-made wall and item art (busier textures: art-contrast thresholds loosened, still all distinct)
 const V126=atLeast('1.26'); // M1.26+: the Screamer King replaces King Gloop
+const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy masks
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -845,6 +846,17 @@ async function m126Tests(){
   await ctx.close();
 }
 
+async function m127Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m127'});
+  const r=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:0});G.clearMobs();const st=G.state();let best=null;
+    for(let y=1;y<st.mapH-1;y++)for(let x=1;x<st.mapW-1;x++){let n=0;while(n<9&&!G.solidAt(x+n+.5,y+.5)&&!G.pitUnder(x+n+.5,y+.5,0))n++;if(n>=6&&(!best||n>best.n))best={x,y,n};}
+    G.teleport(best.x+.5,best.y+.5,0);G.setPitch(0);const c=G.spawn('zapfly',best.x+2,best.y+.5,false,[]);G.setMask(c,'comedy');const cx=G.state().enemies[c].x;
+    const l0=G.state().stats.comedyHits;G.throwOnce();let s,maxX=0,passed=false;for(let k=0;k<45;k++){s=G.advance(1/30);const sh=G.shotsDetail();if(sh.length){maxX=Math.max(maxX,sh[0].x);const e=s.enemies[c];if(sh[0].x>e.x+.4&&Math.abs(sh[0].z-(e.z||0)-.3)<.6)passed=true;}}
+    return {laughs:s.stats.comedyHits-l0,maxX,cx,passed};});
+  check('M1.27 balloons pass straight through a smiling Comedy mask (it doesn\'t laugh, the balloon flies on past it)',r.laughs===0&&r.maxX>r.cx+1,JSON.stringify(r));
+  await ctx.close();
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -893,6 +905,7 @@ if(V122&&want('m122')){ await m122Tests(); }
 if(V123&&want('m123')){ await m123Tests(); }
 if(V124&&want('m124')){ await m124Tests(); }
 if(V126&&want('m126')){ await m126Tests(); }
+if(V127&&want('m127')){ await m127Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

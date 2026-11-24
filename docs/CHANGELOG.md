@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.27: balloons pass through Comedy masks
+- Smiling Comedy masks no longer stop your balloons: they fly straight through (pink balloons don't home in on them either). They still can't be hurt.
+- QA build `m1.27-qa` (debug hook on).
+
 ## M1.26: the Screamer King
 - King Gloop is replaced by **the Screamer King** (floors 5, 20, 35, ...): a crowned, purple Screamer that flies and hovers just out of reach. With his mouth open he spits either one huge purple orb (slow, 2 damage, hard to dodge) or a fan of small purple orbs (5, or 7 when furious). His minions are plain Screamers: a wave of 3 at 2/3 and 1/3 health, and he calls one more every 13 s while fewer than 3 are around.
 - On every boss floor the barred portal vanishes once the boss intro ends (or you're locked in) and the open portal appears when the boss dies; if you're standing on its spot it appears 3-5 cells away instead.

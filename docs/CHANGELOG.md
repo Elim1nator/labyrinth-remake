@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.19.1: knight sword slam, shooting Screamers
+- Knight: 1.2 s two-handed overhead wind-up (flashing), then a rolling dust ring that hits for 2 + knockback.
+- All Screamers fire their sonic ring (no elite aura).
+- QA build `m1.19.1-qa` (debug hook on).
+
 ## M1.19: title theme
 - Hand-written 16-bar 8-bit menu theme (A minor, 108 BPM, lead, bass, arpeggio, drums).
 - QA build `m1.19-qa` (debug hook on).

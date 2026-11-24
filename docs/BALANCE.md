@@ -111,6 +111,10 @@ The four permanent items cost 160 coins together. Floors 2–8 place 200 coins i
 every coin and pop every mob (before elite loot, secret-room bags and the slot), so a full
 shop spend is a long-run investment rather than a first-shop impulse buy.
 
+## Screamers (M1.19.1)
+
+- Every Screamer fires the sonic ring (as RANGED, but cooldown ×1.4, first shot 0.6–1.8 s after waking).
+
 ## Sight (M1.17)
 
 - View distance 5 cells (fog starts at 30% of it, fully hazy at 100%). Owl Eyes +1 each (max 3, rare wares 45 + 30n), Torch +3 (floor), Candle Lantern +2 (floor), Flare: 16 for 8 s.
@@ -133,7 +137,7 @@ shop spend is a long-run investment rather than a first-shop impulse buy.
 
 ## Treasure Knight and items (M1.11)
 
-- Treasure Knight: every floor from 2; HP `10 + 3·(L − 2)` (M1.17.1, no cap); shield slam within 2.2 cells (0.6 s tell, 2 damage + knockback, 5 s cooldown); walks 1.15 cells/s; shield 1.5–2.1 s (70% chance when a balloon flies within 2.8 cells, 2.2 s cooldown); charge every 4.2 s after a 0.7 s tell, 6.5 cells/s, dazed 1.3 s on a wall; drops a golden power-up + 5 coins; counts as an elite.
+- Treasure Knight: every floor from 2; HP `10 + 3·(L − 2)` (M1.17.1, no cap); overhead sword slam within 2 cells (1.2 s tell; a dust ring rolls out at 3.2 cells/s to 3 cells, 2 damage + knockback on contact; 5.5 s cooldown, M1.19.1); walks 1.15 cells/s; shield 1.5–2.1 s (70% chance when a balloon flies within 2.8 cells, 2.2 s cooldown); charge every 4.2 s after a 0.7 s tell, 6.5 cells/s, dazed 1.3 s on a wall; drops a golden power-up + 5 coins; counts as an elite.
 - Comedy masks: 35% of masks; unkillable, harmless, keep ~1.3 cells away. Tragedy masks: Zapfly stats (1 HP, 2.6 cells/s).
 - Power-ups: 14 kinds (Herb and Bell act at once; the rest last the floor). Golden versions: 12 kinds (not Herb/Bell).
 - Permanent items: Heart Container (max 3), Strong Arm (max 2, +1 damage each), Quick Hands (max 2, −20% throw cooldown each). Secret-room power-ups are a permanent item 35% of the time; bosses drop one instead of a heart (a heart once all are maxed).

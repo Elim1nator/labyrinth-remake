@@ -39,6 +39,7 @@ const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy mask
 const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status effects, 1 px glow)
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
+const V135=atLeast('1.35'); // M1.35+: the treasure knight smashes doors and fences; doors match their wall style
 const V131=atLeast('1.31'); // M1.31+: no dead-end corridors (long ones link back, short spurs pruned)
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
@@ -962,6 +963,32 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m135Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m135'});
+  const st=await G(page,()=>{const G=__game,styles={},sigs={};G.manual=true;G.freeze=false;
+    for(const f of [1,2,3,4,6,9,12,20,30,40,50,57]){G.setSeed(31);G.startLevel(f-1,{hearts:99,coins:0});const s=G.state();
+      for(let y=0;y<s.mapH;y++)for(let x=0;x<s.mapW;x++){const c=G.cellAt(x,y);if(c&&c.t===2&&!c.coin){const k=(c.doorStyle||'default')+(c.locked?'_locked':'');styles[k]=(styles[k]||0)+1;sigs[G.doorTexSig(x,y)]=1;}}}
+    return {styles,n:Object.keys(styles).filter(k=>!/_locked|default/.test(k)).length,looks:Object.keys(sigs).length,names:G.doorTexNames.length,state:G.assetState()};});
+  check(`M1.35 doors match the wall they sit in: ${st.n} wall styles' doors seen across 12 floors, ${st.looks} different door looks (assets/doors.png has a door and a locked door for all 17 wall styles)`,st.names===34&&st.n>=10&&st.looks>=10&&!st.styles.default,JSON.stringify(st.styles));
+  const sm=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;
+    const test=(t)=>{for(let seed=1;seed<60;seed++){G.setSeed(seed);G.startLevel(3,{hearts:99,coins:0});G.clearMobs();const s=G.state();
+      for(let y=1;y<s.mapH-1;y++)for(let x=1;x<s.mapW-1;x++){const c=G.cellAt(x,y);if(!c||c.t!==t)continue;
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const q=[-3,-2,-1,1,2].map(k=>G.cellAt(x+dx*k,y+dy*k));
+          if(q.every(c=>c&&c.t===0)){G.teleport(x+dx*2+.5,y+dy*2+.5,0);G.spawn('knight',x-dx*3+.5,y-dy*3+.5,true);const i=G.state().enemies.length-1;
+            G.entSet(i,{woke:true,tele:0,chargeT:3,cdx:dx,cdy:dy,hitP:true,chargeCD:99,slamCD:99,shieldCD:99});const s0=G.state().stats.knightSmashes;
+            for(let k=0;k<12;k++)G.advance(0.05);const e=G.state().enemies[i],a=G.cellAt(x,y);return {t:a.t,smashed:a.smashed,past:+(dx?(e.x-x-.5)*dx:(e.y-y-.5)*dy).toFixed(2),smashes:G.state().stats.knightSmashes-s0};}}}}return null;};
+    const slam=()=>{for(let seed=1;seed<40;seed++){G.setSeed(seed);G.startLevel(3,{hearts:99,coins:0});G.clearMobs();const s=G.state();
+      for(let y=1;y<s.mapH-1;y++)for(let x=1;x<s.mapW-1;x++){const c=G.cellAt(x,y);if(!c||c.t!==2)continue;
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const a1=G.cellAt(x-dx,y-dy),a2=G.cellAt(x-dx*2,y-dy*2);if(a1&&a2&&a1.t===0&&a2.t===0){
+          G.teleport(x-dx*2+.5+(dy?.9:0),y-dy*2+.5+(dx?.9:0),0);G.spawn('knight',x-dx*2+.5,y-dy*2+.5,true);const i=G.state().enemies.length-1;G.entSet(i,{woke:true,slamT:.01,chargeCD:99});
+          for(let k=0;k<25;k++)G.advance(0.05);return {t:G.cellAt(x,y).t,smashed:G.cellAt(x,y).smashed};}}}}return null;};
+    return {door:test(2),fence:test(3),slam:slam()};});
+  check('M1.35 the treasure knight\'s charge crashes through a door and keeps going',sm.door&&sm.door.t===0&&sm.door.smashed==='door'&&sm.door.past>0&&sm.door.smashes>=1,JSON.stringify(sm.door));
+  check('M1.35 the treasure knight\'s charge crashes through a fence and keeps going',sm.fence&&sm.fence.t===0&&sm.fence.smashed==='fence'&&sm.fence.past>0,JSON.stringify(sm.fence));
+  check('M1.35 the ring from the treasure knight\'s ground slam breaks a door it reaches',sm.slam&&sm.slam.t===0&&sm.slam.smashed==='door',JSON.stringify(sm.slam));
+  await ctx.close();
+}
+
 async function m131Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m131'});
   const st=await G(page,()=>__game.layoutStats([1,2,3,4,5,6,7,8,9,10,777,4242],[2,4,6,8,10,13,20,30]));
@@ -1024,6 +1051,7 @@ if(V128&&want('m128')){ await m128Tests(); }
 if(V129&&want('m129')){ await m129Tests(); }
 if(V130&&want('m130')){ await m130Tests(); }
 if(V131&&want('m131')){ await m131Tests(); }
+if(V135&&want('m135')){ await m135Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

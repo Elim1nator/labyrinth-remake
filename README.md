@@ -30,9 +30,9 @@ URL options: `?seed=<text>` plays a reproducible run; `?debug` exposes the test 
 
 | Path | What |
 |---|---|
-| `src/index.html` | The current game (M1.34 release build). The single file *is* the source. |
-| `builds/<milestone>/index.html` | Frozen builds M1 to M1.34, checksums in `builds/SHA256SUMS`. |
-| `builds/m1.7-qa` … `builds/m1.34-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
+| `src/index.html` | The current game (M1.35 release build). The single file *is* the source. |
+| `builds/<milestone>/index.html` | Frozen builds M1 to M1.35, checksums in `builds/SHA256SUMS`. |
+| `builds/m1.7-qa` … `builds/m1.35-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
 | `assets/` | **Game art as PNG sheets** (walls, monsters, bosses, boss props and projectiles, item and power icons). Edit them, then `node tools/assets.mjs pack`. See `assets/README.md`. |
 | `tools/release.mjs` | Freezes `src/` into a release + QA build pair (see Release below). |
 | `tools/assets.mjs` | Embeds the PNGs in `assets/` into `src/index.html` (`pack`, `check`, `export`). |
@@ -48,8 +48,8 @@ Needs Node 18+.
 cd tests
 npm ci
 npx playwright install chromium
-npm test                     # full suite against builds/m1.34 (+ builds/m1.34-qa)
-node m1.test.mjs m1.8        # any older milestone: m1, m1.1 ... m1.34
+npm test                     # full suite against builds/m1.35 (+ builds/m1.35-qa)
+node m1.test.mjs m1.8        # any older milestone: m1, m1.1 ... m1.35
 ```
 
 Results and screenshots go to `test-output/<build>/` (gitignored). From M1.7 on, the
@@ -58,7 +58,7 @@ High score tests use the local stub `tests/hs_stub.mjs` (loopback only), never a
 To preview with the stub API: `cd tests && npm run stub`, then open `localhost:8787` in a browser.
 
 Expected results: m1 54, m1.1 83, m1.2 106, m1.3 158, m1.4 195, m1.5 217, m1.6 238,
-m1.7 256, m1.8 325, m1.9 388, m1.9.1 390, m1.10 412, m1.10.1 413, m1.10.2 416, m1.11 431, m1.11.1 431, m1.12 447, m1.12.1 447, m1.12.2 447, m1.13 453, m1.13.1 453, m1.14 458, m1.14.1 460, m1.14.2 461, m1.15 462, m1.16 465, m1.17 472, m1.17.1 472, m1.18 476, m1.19 477, m1.19.1 478, m1.19.2 479, m1.20 484, m1.21 487, m1.22 490, m1.23 462 (25 checks of the old items retired, replaced by M1.23 item checks), m1.24 464, m1.25 464, m1.26 470, m1.27 471, m1.28 481, m1.29 485, m1.30 489, m1.31 488, m1.32 488, m1.33 488, m1.34 488 checks, all passing.
+m1.7 256, m1.8 325, m1.9 388, m1.9.1 390, m1.10 412, m1.10.1 413, m1.10.2 416, m1.11 431, m1.11.1 431, m1.12 447, m1.12.1 447, m1.12.2 447, m1.13 453, m1.13.1 453, m1.14 458, m1.14.1 460, m1.14.2 461, m1.15 462, m1.16 465, m1.17 472, m1.17.1 472, m1.18 476, m1.19 477, m1.19.1 478, m1.19.2 479, m1.20 484, m1.21 487, m1.22 490, m1.23 462 (25 checks of the old items retired, replaced by M1.23 item checks), m1.24 464, m1.25 464, m1.26 470, m1.27 471, m1.28 481, m1.29 485, m1.30 489, m1.31 488, m1.32 488, m1.33 488, m1.34 488, m1.35 492 checks, all passing.
 
 ## Release
 

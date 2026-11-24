@@ -6,6 +6,12 @@
       "cols": 10,
       "tiles": ["brick", "stone", "wood", "tile", "moss", "door", "locked", "fence", "basalt", "rust", "slate", "glyph", "ember", "sandstone", "granite", "cobble", "limestone", "dripstone", "shale", "ironbound"]
     },
+    "doors": {
+      "file": "doors.png",
+      "tile": 64,
+      "cols": 6,
+      "tiles": ["brick", "stone", "wood", "tile", "moss", "basalt", "rust", "slate", "glyph", "ember", "sandstone", "granite", "cobble", "limestone", "dripstone", "shale", "ironbound", "lock"]
+    },
     "items": {
       "file": "items.png",
       "tile": 24,

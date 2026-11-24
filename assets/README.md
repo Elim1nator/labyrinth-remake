@@ -8,6 +8,7 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 | File | What |
 |---|---|
 | `walls.png` | All 20 wall textures (see below). |
+| `doors.png` | A door for each wall style, plus the gold lock for locked doors (see below). |
 | `items.png` | All item icons (run items, balloon colours, use-items), a grid of 24 x 24 tiles. |
 | `mobs/<name>.png` | One file per monster or boss: its animation frames side by side, all the same width. |
 | `boss/<name>.png` | Boss props and effects: portals, the lectern, signs, Hali, goo, the play script, and every projectile (`shot_*.png`). |
@@ -38,6 +39,14 @@ Notes:
 - `node tools/assets.mjs export walls` (or `export all`) rewrites a PNG from the art the game has loaded (needs the
   test dependencies: `cd tests && npm install`).
 - Any PNG your editor saves is fine (palette, RGB, RGBA, greyscale; not interlaced). `pack` converts it for the game.
+
+## Editing the doors
+
+`doors.png` is 384 x 192: a grid of 6 x 3 tiles, 64 x 64 each, in this order: brick, stone, wood, tile, moss, basalt, rust, slate, glyph, ember, sandstone, granite, cobble, limestone, dripstone, shale, ironbound, lock (the same names as the wall tiles; the list is in `atlas.json`).
+
+- Each door tile is the door leaf. Leave the frame around it **see-through**: the game fills it with the wall the door sits in, so the door always matches its wall. A door takes the style of the wall cell next to it.
+- `lock` is laid over a door to make the locked version (the gold plate, keyhole and bands). Paint only the lock; everything else stays see-through.
+- Then run `node tools/assets.mjs pack`.
 
 ## Editing boss props, portals and projectiles
 

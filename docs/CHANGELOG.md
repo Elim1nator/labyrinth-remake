@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.35: knight smashes doors and fences; doors match their walls
+- The Treasure Knight's charge now crashes through doors and fences and keeps going (it used to stop dead and get dazed), and the dust ring from his ground slam breaks any door or fence it reaches. Smashed doors and fences become open floor for the rest of the floor. Locked and coin doors break too; boss-arena doors hold.
+- Every wall style has its own door: oak planks in brick halls, a teal panel in the baths, a barn door in the attic, riveted iron in basalt and rust, a carved slab in sandstone, glowing seams in the ember core, and so on. A door takes the style of the wall it sits in, framed by that wall. Locked doors keep the gold lock plate and gold bands, so they still read as locked.
+- The art is `assets/doors.png`: one door tile per wall style (the see-through frame shows the wall) plus a shared `lock` tile laid on top for the locked version.
+- QA build `m1.35-qa` (debug hook on).
+
 ## M1.34: wall art rolled back
 - The wall textures go back to the M1.21-M1.24 art (`assets/walls.png`); the M1.25 hand-made wall sheet is retired. Item icons and the bolder secret-wall crack from M1.25 stay.
 - QA build `m1.34-qa` (debug hook on).

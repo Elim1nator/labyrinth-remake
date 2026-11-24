@@ -162,6 +162,13 @@ in the message band. Once the cut scene ends the barred portal vanishes (M1.26).
 and the open portal appears (a few cells away if you're standing on its spot).
 CONTINUE on a boss floor restarts the fight.
 
+## Start floors (M1.30)
+
+Beat a boss and the floor after it (6, 11, 16, ...) becomes a starting floor for every later run (saved in
+`localStorage`, `labyrinthRemake.unlocks.v1`; cheated runs don't unlock). On the title, START FLOOR: < N >
+picks it (left/right, click or tap), and you start with one random run item for every 2 floors skipped. A deeper
+start scores 1000 per floor past the floor you started on, plus kills, elites and coins as usual.
+
 ## Floors, score and high scores
 
 - Floor 1 is a hand-built tutorial; floors 2+ are procedurally generated, and floors are

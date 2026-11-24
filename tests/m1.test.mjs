@@ -38,6 +38,7 @@ const V126=atLeast('1.26'); // M1.26+: the Screamer King replaces King Gloop
 const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy masks
 const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status effects, 1 px glow)
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
+const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V118=atLeast('1.18'); // M1.18+: a song for every floor, revive after death
 const V16=atLeast('1.6'); // M1.6+: QA fixes M15-A1..A6, Screamer bat-wing ears, L3 balance, two-mod phase-in, moved pause/MAP, elite readability
 const FILE=V17?`${BUILDS}/${BUILD}-qa/index.html`:`${BUILDS}/${BUILD}/index.html`; // M1.7+: hook-based tests run on the QA build; the release build is checked in m17Tests
@@ -934,6 +935,29 @@ async function m129Tests(){
   await ctx.close();
 }
 
+async function m130Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m130'});
+  const r=await G(page,()=>(()=>{const G=__game,r={};G.manual=true;localStorage.clear();G.toTitle();r.menu0=G.state().menu;
+ G.setUnlocks({floors:[6,11],last:1});G.toTitle();r.menu1=G.state().menu;
+ G.cycleStart(1);r.sf1=G.startFloor();G.cycleStart(1);r.sf2=G.startFloor();r.label=G.state().menu.find(m=>/START FLOOR/.test(m));
+ const ni=G.state().menu.findIndex(m=>/NEW GAME|START GAME/.test(m));G.menuPick(ni);G.advance(0.1);const s=G.state();
+ r.level=s.level;r.items=Object.keys(G.perm().items).length;r.itemCount=Object.values(G.perm().items).reduce((a,b)=>a+b,0);r.run=s.run;r.score=s.score;r.msg=s.msg;
+ // beat the floor-15 boss without cheats -> 16 unlocked
+ G.setUnlocks({floors:[],last:1});G.setSeed(77);G.setRun({kills:0,elites:0,coins:0,deepest:15});G.startLevel(14,{hearts:5,coins:0});G.hitBoss(99999);for(let i=0;i<60;i++)G.advance(1/30);r.after15=G.unlocks().floors;
+ // cheated run does not unlock
+ G.setUnlocks({floors:[],last:1});G.setRun({kills:0,elites:0,coins:0,deepest:5,cheated:true});G.startLevel(4,{hearts:5,coins:0});G.hitBoss(99999);for(let i=0;i<60;i++)G.advance(1/30);r.cheated=G.unlocks().floors;
+ r.scoreF={from1:G.scoreOf({deepest:12,kills:0}),from11:G.scoreOf({deepest:12,kills:0,startFloor:11})};
+ return r;})());
+  check('M1.30 no start-floor row until you have beaten a boss; then START FLOOR cycles 1 > 6 > 11 and shows the items you get',r.menu0.length===2&&r.menu1.some(m=>/START FLOOR/.test(m))&&r.sf1===6&&r.sf2===11&&r.label==='START FLOOR: < 11 > (+5 ITEMS)',JSON.stringify({m0:r.menu0,m1:r.menu1,l:r.label}));
+  check('M1.30 starting on floor 11 gives 5 random run items (one per 2 floors skipped) and scores only the floors you play',r.level===10&&r.itemCount===5&&r.score===0&&r.scoreF.from1===11000&&r.scoreF.from11===1000,JSON.stringify({lv:r.level,n:r.itemCount,sc:r.score,f:r.scoreF}));
+  check('M1.30 beating a boss unlocks the floor after it as a start floor (kept across runs); cheated runs unlock nothing',r.after15.join()==='16'&&r.cheated.length===0,JSON.stringify({a:r.after15,c:r.cheated}));
+  const rem=await G(page,()=>{const G=__game;localStorage.clear();G.setUnlocks({floors:[6,11,16],last:11});G.toTitle();return G.state().menu;});
+  check('M1.30 the title remembers the start floor you picked last',rem.includes('START FLOOR: < 11 > (+5 ITEMS)'),JSON.stringify(rem));
+  await page.screenshot({path:`${SHOTS}/m130_title_start_floor.png`});
+  await G(page,()=>localStorage.clear());
+  await ctx.close();
+}
+
 async function m118Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m118'});
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
@@ -985,6 +1009,7 @@ if(V126&&want('m126')){ await m126Tests(); }
 if(V127&&want('m127')){ await m127Tests(); }
 if(V128&&want('m128')){ await m128Tests(); }
 if(V129&&want('m129')){ await m129Tests(); }
+if(V130&&want('m130')){ await m130Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2408,7 +2433,8 @@ async function m18Tests(){
     await page.reload();await page.waitForFunction(()=>!!window.__game);await sleep(300);
     r=await G(page,()=>{const st=__game.state();const i=st.menu.findIndex(m=>/CONTINUE/.test(m));const lbl=st.menu[i];__game.menuPick(i);__game.manual=true;const s=__game.advance(0.05);return {lbl,menu:st.menu,mode:s.mode,level:s.level,hearts:s.player.hearts,coins:s.player.coins,item:s.player.item,run:s.run,name:s.levelName};});
     check('M1.8 save + CONTINUE work on floor 200 (level, hearts, coins, item and the run score counters)',sv.level===199&&sv.run&&sv.run.deepest===200&&/CONTINUE - LEVEL 200/.test(r.lbl)&&r.mode==='play'&&r.level===199&&r.hearts===4&&r.coins===33&&r.item===(V123?'herb':'shield')&&r.run.kills===12&&r.run.deepest===200,JSON.stringify(r));
-    check('M1.8 title menu: CONTINUE, NEW GAME, HIGH SCORES',r.menu.length===3&&r.menu[2]==='HIGH SCORES'&&r.menu[1]==='NEW GAME',r.menu.join(' | '));
+    const mnu=V130?r.menu.filter(m=>!/^START FLOOR/.test(m)):r.menu; /* M1.30: bosses beaten earlier in this test unlock a START FLOOR row */
+    check('M1.8 title menu: CONTINUE, NEW GAME, HIGH SCORES'+(V130?' (plus START FLOOR once a boss is beaten)':''),mnu.length===3&&mnu[2]==='HIGH SCORES'&&mnu[1]==='NEW GAME',r.menu.join(' | '));
     r=await G(page,()=>{localStorage.setItem('labyrinthRemake.save.v1',JSON.stringify({v:1,level:4,hearts:3,coins:9,seed:31337,item:null,t:1}));__game.toTitle();const st=__game.state();__game.menuPick(0);__game.manual=true;const s=__game.advance(0.05);return {menu:st.menu[0],level:s.level,run:s.run};});
     check('M1.8 an M1.7-style save (no score counters) still continues',r.level===4&&r.run&&r.run.deepest===5&&r.run.kills===0,JSON.stringify(r));
     await ctx.close();

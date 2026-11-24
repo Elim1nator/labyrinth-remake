@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.30: start floors (progress between runs)
+- Beating a boss (in a run without cheats) unlocks the floor after it (6, 11, 16, ...) as a starting floor, kept across runs.
+- The title gets a START FLOOR: < N > row (left/right, a click or a tap cycles it; it remembers your last pick). Starting deeper gives one random run item for every 2 floors skipped (floor 6: 2, floor 11: 5, floor 16: 7).
+- A deeper start scores only the floors you play (1000 per floor past your start floor), so high scores stay fair.
+- The title's controls line no longer mentions the old R balloon key.
+- QA build `m1.30-qa` (debug hook on).
+
 ## M1.29: playtest fixes (stuck input, knight corners, map markers)
 - Stuck walking fixed: a walk key whose release got lost (focus or mouse lock went away mid-stride) is let go after 0.4 s once it stops auto-repeating; coming back to the window starts with no keys held; a mouse button let go outside the window is let go; losing focus without a blur event (some embeds) now pauses too.
 - Treasure Knight: he only charges when his whole body has a clear run at you, so baiting him into corners no longer works; after a wall slam his next charge waits longer, he hurries back (70% faster for 2 s) and his ground slam is ready if you stay close.

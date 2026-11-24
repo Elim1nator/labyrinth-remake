@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.32: new monster art
+- New art (same sizes and frame counts) for the tragedy and comedy masks, the Grand Masque (both faces), the King in Yellow, the Broodmother, pit skitters, brood spiders, the face-hug overlay (now a proper top-down spider), egg sacs (grow over 4 frames), Springle, Hazewisp, the Luggernaut, Clunkbot and the King in Yellow's rag shot. Darker, grittier palettes; red eyes stay the danger accent. Hazewisp's third frame sits 1 px lower so all 4 frames differ.
+- The Screamer King and the wall textures are unchanged.
+- QA build `m1.32-qa` (debug hook on).
+
 ## M1.31: less backtracking (level layout)
 - No more corridors that lead nowhere. Long dead-end corridors (6+ cells) now break through into another corridor or room and loop back (85% of the time where one wall allows it); every other dead end, including the little spurs, is pruned away. Sealing the exit room and the vault no longer leaves the corridors that led to their other doors as dead ends.
 - Corridors run straighter (75% chance to keep going, was 60%) and a few more loops connect different areas (6% of the possible links, at least 2).

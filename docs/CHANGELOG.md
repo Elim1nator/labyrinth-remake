@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.48: Hexeye art fix
+- The Hexeye's red-stare frame is no longer cut off on the left (the frames are now cut from the supplied image by shape, not by equal strips).
+- QA build `m1.48-qa` (debug hook on).
+
 ## M1.47: the Hexeye; bigger pits and pit rooms
 - New monster, the **Hexeye** (from floor 12): a floating purple stone hexagon with one big eye (art from the supplied sprite, `assets/mobs/hexeye.png`: open, half-blink, closed, red). It floats toward you, blinks, and hangs back about 2.6 cells away. When it sees you within 4.2 cells it stares: a high whine, its eye turns red and the fog goes red; after 2 s you lose a heart if you are still in range. Step out of range to dodge it. The attack is psychic, so the leather jacket, bubble wrap, garlic and hand mirror do not stop it. Tuning: `HEXEYE` in the game.
 - Pits: more of them deeper down (6 spots by floor 10, +1 every 4 floors past 12, up to 10), 2x1 / 2x2 pits from floor 8 and up to 3x3 from floor 14, each keeping every part of the floor reachable. Tuning: `PITGEN`.

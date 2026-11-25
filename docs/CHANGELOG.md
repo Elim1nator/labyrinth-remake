@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.55: Mortared Man colours
+- The face is recoloured to match the brick walls (its shading mapped onto the brick tile's browns and reds; the glowing red eyes are kept).
+- QA build `m1.55-qa` (debug hook on).
+
 ## M1.54: Mortared Man art
 - `assets/mobs/mortar.png` is now cut from the supplied face sheet (three 96 x 96 frames: shut, opening, open; the baked-in checkerboard keyed out).
 - QA build `m1.54-qa` (debug hook on).

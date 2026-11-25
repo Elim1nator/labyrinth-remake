@@ -1,4 +1,4 @@
-# Controls and features (M1.31)
+# Controls and features (M1.52)
 
 ## Keyboard and mouse
 
@@ -89,7 +89,7 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 | Bubble Wrap | blocks the first hit each floor (two hits with two) | 2 |
 | Wax Wings | float over pits | 1 |
 | Ice Cube | balloons chill monsters (slower for 1.5 s) | 1 |
-| Rubber Boots | webs, frost and goo can't touch you | 1 |
+| Rubber Boots | webs, frost, goo and Lichen Face spores can't touch you | 1 |
 
 - **Balloon colours** are run items too, and they stack: every colour you own is on every balloon
   (the HUD balloon box shows a dot per colour).
@@ -105,7 +105,8 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 
 - **Use-items** go in the item slot and are used with Q / Y / ITEM: Healing Herb (+2 hearts),
   Warding Bell (stuns monsters around you), Flare (lights up the dark), Freeze Pop (monsters slow
-  down for the floor), Firecracker (3 damage to everything near you). Elites drop them. The
+  down for the floor), Firecracker (3 damage to everything near you), Mourner's Veil (blinds every
+  mob in view for 5 s). Elites drop them. The
   Backpack (a shop item) adds a second slot, switched with F / RB / a tap on the bar.
 - **Vaults** (from level 4): a second locked room with a spare key and a heart.
 - Item icons are in `assets/items.png` (see `assets/README.md`).
@@ -132,6 +133,9 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **Rattlebone** from floor 6: at 0 HP it becomes a bone pile, rattles at 3 s and reforms at
   4.5 s unless you smash the pile with a balloon.
 - **Hazewisp** drifts through fences and closed doors, and flies over pits.
+- **The Lichen Face** (M1.52) hovers and drifts toward you on Mossy Cellar floors (3 HP). When it pops it leaves
+  a slowing patch of spores (flyers and Rubber Boots ignore it). **Mourner's Veil** blinds every mob
+  in your view for 5 s; blinded mobs wander and show a dark mark.
 
 ## Treasure Knight, masks and items (M1.11)
 

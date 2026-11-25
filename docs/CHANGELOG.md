@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.52: Mourner's Veil and the Lichen Face (merged from Grok-Code-3)
+- New use-item, **Mourner's Veil**: a damp lace veil. Using it blinds every mob within your current view range (and in line of sight) for 5 s. Blinded mobs lose track of you and wander, with a dark-veil mark and motes over them. The Warding Bell's stun still freezes a mob if both are applied. The Veil is in the normal use-item loot and shop pools. Pickup text and the HUD tooltip use the name and "BLINDS EVERY MOB IN VIEW FOR 5 S"; Q, gamepad Y and the ITEM button all use it.
+- New monster, **the Lichen Face** (3 base HP, scales like the other regular mobs): a pale cracked stone face ringed with dark tendrils that hovers and drifts toward you like the other flyers (pits, puddles and spores do not affect it). It lives on **Mossy Cellar** floors (the existing early theme on floors 2-8, not the tutorial Gatehouse and not the deep themes). When it pops it leaves a slowing spore patch about the size of a slime puddle, lasting 5 s, on the floor below where it died. Mid-hop airborne ground mobs also ignore the patch; Rubber Boots shrug it off, same as webs, frost and goo. It has a quiet, warbling procedural moan when it spots you, and a distinct pop. Tuning: `VEIL` and `SPORE` in the game.
+- Art for the Veil icon and the Lichen Face's five-frame tendril-wave loop is packed from `assets/items.png` and `assets/mobs/lichen.png` (the face sheet is keyed to a transparent background).
+- Using the Veil plays a short (~0.85 s) translucent grey-green damp mist around the edges of the 3D view; it fades out, never fully hides the scene, and is not drawn over the HUD, minimap, message band or touch buttons. Blinded mobs still show a small dark veil mark and motes.
+- The source banner now says world art is packed from PNG sheets in `assets/`, not generated in code.
+- QA build `m1.52-qa` (debug hook on).
+
 ## M1.51: higher-resolution walls
 - Wall tiles are 128x128 instead of 64x64 (`assets/walls.png` is now 1280x256, re-cut from the supplied art; 256-colour PNG to keep the file small). The pillar, rune, crack, dent, gold-brick and coin-door effects are scaled to match; doors still use the 64px `doors.png`.
 - Game file: 1,317 KB (limit 2 MB).

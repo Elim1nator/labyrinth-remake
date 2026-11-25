@@ -4,82 +4,420 @@
       "file": "walls.png",
       "tile": 128,
       "cols": 10,
-      "tiles": ["brick", "stone", "wood", "tile", "moss", "door", "locked", "fence", "basalt", "rust", "slate", "glyph", "ember", "sandstone", "granite", "cobble", "limestone", "dripstone", "shale", "ironbound"]
+      "tiles": [
+        "brick",
+        "stone",
+        "wood",
+        "tile",
+        "moss",
+        "door",
+        "locked",
+        "fence",
+        "basalt",
+        "rust",
+        "slate",
+        "glyph",
+        "ember",
+        "sandstone",
+        "granite",
+        "cobble",
+        "limestone",
+        "dripstone",
+        "shale",
+        "ironbound"
+      ]
     },
     "doors": {
       "file": "doors.png",
       "tile": 64,
       "cols": 6,
-      "tiles": ["brick", "stone", "wood", "tile", "moss", "basalt", "rust", "slate", "glyph", "ember", "sandstone", "granite", "cobble", "limestone", "dripstone", "shale", "ironbound", "lock"]
+      "tiles": [
+        "brick",
+        "stone",
+        "wood",
+        "tile",
+        "moss",
+        "basalt",
+        "rust",
+        "slate",
+        "glyph",
+        "ember",
+        "sandstone",
+        "granite",
+        "cobble",
+        "limestone",
+        "dripstone",
+        "shale",
+        "ironbound",
+        "lock"
+      ]
     },
-    "boom": { "file": "boom.png", "frames": 4, "k": 1 },
-    "hand": { "file": "hand.png", "frames": 28, "k": 1.5 },
-    "balloon": { "file": "balloon.png", "frames": 7, "k": 1.5 },
+    "boom": {
+      "file": "boom.png",
+      "frames": 4,
+      "k": 1
+    },
+    "hand": {
+      "file": "hand.png",
+      "frames": 28,
+      "k": 1.5
+    },
+    "balloon": {
+      "file": "balloon.png",
+      "frames": 7,
+      "k": 1.5
+    },
     "items": {
       "file": "items.png",
       "tile": 24,
       "cols": 10,
       "k": 1.5,
-      "tiles": ["shoes", "dumbbell", "burger", "coffee", "glasses", "heart", "glove", "duck", "watch", "garlic", "jacket", "magnet", "compass", "map", "clover", "vitamins", "hat", "pump", "mirror", "bubble", "wings", "ice", "boots", "red", "green", "yellow", "black", "purple", "pink", "herb", "bell", "flare", "freeze", "firecracker"]
+      "tiles": [
+        "shoes",
+        "dumbbell",
+        "burger",
+        "coffee",
+        "glasses",
+        "heart",
+        "glove",
+        "duck",
+        "watch",
+        "garlic",
+        "jacket",
+        "magnet",
+        "compass",
+        "map",
+        "clover",
+        "vitamins",
+        "hat",
+        "pump",
+        "mirror",
+        "bubble",
+        "wings",
+        "ice",
+        "boots",
+        "red",
+        "green",
+        "yellow",
+        "black",
+        "purple",
+        "pink",
+        "herb",
+        "bell",
+        "flare",
+        "freeze",
+        "firecracker",
+        "veil"
+      ]
     },
     "mods": {
       "file": "mods.png",
       "tile": 16,
       "cols": 10,
       "k": 1.5,
-      "tiles": ["ranged", "slime", "beefy", "fast", "regen", "shielded", "splitter", "vampire", "explosive", "blink", "frost", "poison", "armour", "blind", "wither", "tosser", "thief", "bulwark", "rust", "sapper", "oneup", "cloak", "ghastly", "storm", "webber", "vengeance", "weakness", "berserk", "potions", "mama", "molten", "archer", "necro", "firework", "gravity", "flying", "mounted", "morph", "ghost", "confusing"]
+      "tiles": [
+        "ranged",
+        "slime",
+        "beefy",
+        "fast",
+        "regen",
+        "shielded",
+        "splitter",
+        "vampire",
+        "explosive",
+        "blink",
+        "frost",
+        "poison",
+        "armour",
+        "blind",
+        "wither",
+        "tosser",
+        "thief",
+        "bulwark",
+        "rust",
+        "sapper",
+        "oneup",
+        "cloak",
+        "ghastly",
+        "storm",
+        "webber",
+        "vengeance",
+        "weakness",
+        "berserk",
+        "potions",
+        "mama",
+        "molten",
+        "archer",
+        "necro",
+        "firework",
+        "gravity",
+        "flying",
+        "mounted",
+        "morph",
+        "ghost",
+        "confusing"
+      ]
     },
-    "screamer": { "file": "mobs/screamer.png", "frames": 4, "k": 1.5 },
-    "screamerO": { "file": "mobs/screamerO.png", "frames": 4, "k": 1.5 },
-    "springle": { "file": "mobs/springle.png", "frames": 4, "k": 1.5 },
-    "kettle": { "file": "mobs/kettle.png", "frames": 4, "k": 1.5 },
-    "wisp": { "file": "mobs/wisp.png", "frames": 4, "k": 1.5 },
-    "clunk": { "file": "mobs/clunk.png", "frames": 4, "k": 1.5 },
-    "zapfly": { "file": "mobs/zapfly.png", "frames": 4, "k": 1.5 },
-    "zapflyC": { "file": "mobs/zapflyC.png", "frames": 4, "k": 1.5 },
-    "hexeye": { "file": "mobs/hexeye.png", "frames": 4, "k": 1.5 },
-    "skeleton": { "file": "mobs/skeleton.png", "frames": 4, "k": 1.5 },
-    "bonePile": { "file": "mobs/bonePile.png", "frames": 2, "k": 1.5 },
-    "knight": { "file": "mobs/knight.png", "frames": 5, "k": 1.5 },
-    "skitter": { "file": "mobs/skitter.png", "frames": 4, "k": 1.5 },
-    "bigspider": { "file": "mobs/bigspider.png", "frames": 4, "k": 1.5 },
-    "eggsac": { "file": "mobs/eggsac.png", "frames": 4, "k": 1.5 },
-    "worm": { "file": "mobs/worm.png", "frames": 4, "k": 1.5 },
-    "faceSpider": { "file": "mobs/faceSpider.png", "frames": 2, "k": 1 },
-    "king": { "file": "mobs/king.png", "frames": 8, "k": 1.5 },
-    "lugg": { "file": "mobs/lugg.png", "frames": 6, "k": 1.5 },
-    "owl": { "file": "mobs/owl.png", "frames": 4, "k": 1.5 },
-    "masque": { "file": "mobs/masque.png", "frames": 4, "k": 2.2 },
-    "masqueH": { "file": "mobs/masqueH.png", "frames": 4, "k": 2.2 },
-    "brood": { "file": "mobs/brood.png", "frames": 4, "k": 1.5 },
-    "yellow": { "file": "mobs/yellow.png", "frames": 4, "k": 1.5 },
-    "portal": { "file": "boss/portal.png", "frames": 4, "k": 1.5 },
-    "portalS": { "file": "boss/portalS.png", "frames": 2, "k": 1.5 },
-    "lectern": { "file": "boss/lectern.png", "frames": 2, "k": 1.5 },
-    "ysign": { "file": "boss/ysign.png", "frames": 2, "k": 1 },
-    "hali": { "file": "boss/hali.png", "frames": 2, "k": 1 },
-    "groundCrack": { "file": "boss/groundCrack.png", "frames": 1, "k": 1 },
-    "goo": { "file": "boss/goo.png", "frames": 2, "k": 1.5 },
-    "script": { "file": "boss/script.png", "frames": 1, "k": 1.5 },
-    "shot_steam": { "file": "boss/shot_steam.png", "frames": 1, "k": 1 },
-    "shot_zap": { "file": "boss/shot_zap.png", "frames": 1, "k": 1 },
-    "shot_laser": { "file": "boss/shot_laser.png", "frames": 1, "k": 1 },
-    "shot_sonic": { "file": "boss/shot_sonic.png", "frames": 1, "k": 1 },
-    "shot_wisp": { "file": "boss/shot_wisp.png", "frames": 1, "k": 1 },
-    "shot_fluff": { "file": "boss/shot_fluff.png", "frames": 1, "k": 1 },
-    "shot_gloop": { "file": "boss/shot_gloop.png", "frames": 1, "k": 1 },
-    "shot_sock": { "file": "boss/shot_sock.png", "frames": 1, "k": 1 },
-    "shot_gear": { "file": "boss/shot_gear.png", "frames": 1, "k": 1 },
-    "shot_goldball": { "file": "boss/shot_goldball.png", "frames": 1, "k": 1 },
-    "shot_web": { "file": "boss/shot_web.png", "frames": 1, "k": 1 },
-    "shot_egg": { "file": "boss/shot_egg.png", "frames": 1, "k": 1 },
-    "shot_rag": { "file": "boss/shot_rag.png", "frames": 1, "k": 1 },
-    "shot_sun": { "file": "boss/shot_sun.png", "frames": 1, "k": 1 },
-    "shot_porb": { "file": "boss/shot_porb.png", "frames": 1, "k": 1 },
-    "shot_bigorb": { "file": "boss/shot_bigorb.png", "frames": 1, "k": 1 },
-    "shot_arrow": { "file": "boss/shot_arrow.png", "frames": 1, "k": 1 },
-    "shot_fireball": { "file": "boss/shot_fireball.png", "frames": 1, "k": 1 },
-    "shot_skull": { "file": "boss/shot_skull.png", "frames": 1, "k": 1 },
-    "shot_potion": { "file": "boss/shot_potion.png", "frames": 1, "k": 1 }
+    "screamer": {
+      "file": "mobs/screamer.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "screamerO": {
+      "file": "mobs/screamerO.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "springle": {
+      "file": "mobs/springle.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "lichen": { "file": "mobs/lichen.png", "frames": 5, "k": 1.5 },
+    "kettle": {
+      "file": "mobs/kettle.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "wisp": {
+      "file": "mobs/wisp.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "clunk": {
+      "file": "mobs/clunk.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "zapfly": {
+      "file": "mobs/zapfly.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "zapflyC": {
+      "file": "mobs/zapflyC.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "hexeye": {
+      "file": "mobs/hexeye.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "skeleton": {
+      "file": "mobs/skeleton.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "bonePile": {
+      "file": "mobs/bonePile.png",
+      "frames": 2,
+      "k": 1.5
+    },
+    "knight": {
+      "file": "mobs/knight.png",
+      "frames": 5,
+      "k": 1.5
+    },
+    "skitter": {
+      "file": "mobs/skitter.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "bigspider": {
+      "file": "mobs/bigspider.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "eggsac": {
+      "file": "mobs/eggsac.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "worm": {
+      "file": "mobs/worm.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "faceSpider": {
+      "file": "mobs/faceSpider.png",
+      "frames": 2,
+      "k": 1
+    },
+    "king": {
+      "file": "mobs/king.png",
+      "frames": 8,
+      "k": 1.5
+    },
+    "lugg": {
+      "file": "mobs/lugg.png",
+      "frames": 6,
+      "k": 1.5
+    },
+    "owl": {
+      "file": "mobs/owl.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "masque": {
+      "file": "mobs/masque.png",
+      "frames": 4,
+      "k": 2.2
+    },
+    "masqueH": {
+      "file": "mobs/masqueH.png",
+      "frames": 4,
+      "k": 2.2
+    },
+    "brood": {
+      "file": "mobs/brood.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "yellow": {
+      "file": "mobs/yellow.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "portal": {
+      "file": "boss/portal.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "portalS": {
+      "file": "boss/portalS.png",
+      "frames": 2,
+      "k": 1.5
+    },
+    "lectern": {
+      "file": "boss/lectern.png",
+      "frames": 2,
+      "k": 1.5
+    },
+    "ysign": {
+      "file": "boss/ysign.png",
+      "frames": 2,
+      "k": 1
+    },
+    "hali": {
+      "file": "boss/hali.png",
+      "frames": 2,
+      "k": 1
+    },
+    "groundCrack": {
+      "file": "boss/groundCrack.png",
+      "frames": 1,
+      "k": 1
+    },
+    "goo": {
+      "file": "boss/goo.png",
+      "frames": 2,
+      "k": 1.5
+    },
+    "script": {
+      "file": "boss/script.png",
+      "frames": 1,
+      "k": 1.5
+    },
+    "shot_steam": {
+      "file": "boss/shot_steam.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_zap": {
+      "file": "boss/shot_zap.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_laser": {
+      "file": "boss/shot_laser.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_sonic": {
+      "file": "boss/shot_sonic.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_wisp": {
+      "file": "boss/shot_wisp.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_fluff": {
+      "file": "boss/shot_fluff.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_gloop": {
+      "file": "boss/shot_gloop.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_sock": {
+      "file": "boss/shot_sock.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_gear": {
+      "file": "boss/shot_gear.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_goldball": {
+      "file": "boss/shot_goldball.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_web": {
+      "file": "boss/shot_web.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_egg": {
+      "file": "boss/shot_egg.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_rag": {
+      "file": "boss/shot_rag.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_sun": {
+      "file": "boss/shot_sun.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_porb": {
+      "file": "boss/shot_porb.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_bigorb": {
+      "file": "boss/shot_bigorb.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_arrow": {
+      "file": "boss/shot_arrow.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_fireball": {
+      "file": "boss/shot_fireball.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_skull": {
+      "file": "boss/shot_skull.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_potion": {
+      "file": "boss/shot_potion.png",
+      "frames": 1,
+      "k": 1
+    }
   }
 }

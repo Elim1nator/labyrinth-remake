@@ -47,7 +47,10 @@ on the inspiration are kept out of this repository.
 | M1.10 | done | Bosses every 5th floor: King Gloop, Luggernaut, Coghoot; the portal opens when the boss falls |
 | M1.11–M1.23 | done | Treasure Knight, masks, coin pits and shrines, King in Yellow, fog of war, cheat console, music, revive, item revamp (run items, balloon colours, use-items); world art moves to PNG sheets (see [CHANGELOG.md](CHANGELOG.md)) |
 | M1.24 | done | Boss props, portals and projectiles also packed from `assets/boss/*.png` |
-| M1.25–M1.31 | done | Hand-made wall and item art, the Screamer King, Infernal mobs and status effects, start floors, less backtracking (see [CHANGELOG.md](CHANGELOG.md)). Current release is M1.31. |
+| M1.25–M1.31 | done | Hand-made wall and item art, the Screamer King, Infernal mobs and status effects, start floors, less backtracking (see [CHANGELOG.md](CHANGELOG.md)) |
+| M1.32–M1.48 | done | Further items, monsters, art and fixes, including the Hexeye and pit rooms (see [CHANGELOG.md](CHANGELOG.md)) |
+| M1.49–M1.51 | done | New wall art (128x128 tiles) and the transparent fence. |
+| M1.52 | done | Mourner's Veil and the Lichen Face in the Mossy Cellar (merged from Grok-Code-3). Current release is M1.52. |
 | Next | planned | More weapon families, further polish |
 
 ## Risks we watch
@@ -55,5 +58,5 @@ on the inspiration are kept out of this repository.
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.47 release build is about 1 MB.
+- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.52 release build is about 1.4 MB.
 - Keeping the slot machine coin-only with printed odds.

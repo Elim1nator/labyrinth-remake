@@ -1,4 +1,4 @@
-# Balance (M1.31)
+# Balance (M1.52)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -13,10 +13,13 @@
 | Clunkbot | 8 | 0.7 | slow tank | L4 |
 | Zapfly | 1 | 2.6 | fast, fragile; flies over pits | L5 |
 | Rattlebone | 4 | 1.25 | collapses into a bone pile (see below) | L6 |
+| Lichen Face | 3 | 1.65 | flies (slow hover bob); leaves a slowing spore patch (radius 0.36, 5 s) on the floor below; flyers and Rubber Boots ignore it | Mossy Cellar (floors 2-8) |
 
 Pools: L2 Screamer + Kettlegrump; L3 adds Springle and Hazewisp; L4 adds Clunkbot; L5+ adds
 Zapfly; L6+ adds Rattlebone. Featured (weighted) mobs: L2 Kettlegrump; L3 Springle, Hazewisp,
-Kettlegrump; L4 Clunkbot; L5 Zapfly, Clunkbot, Kettlegrump.
+Kettlegrump; L4 Clunkbot; L5 Zapfly, Clunkbot, Kettlegrump. On a **Mossy Cellar** theme (floors 2-8
+when the seed picks that early theme), the Lichen Face is added to the pool and is featured (a second
+one from L5). It does not appear on the tutorial or on deep-theme floors.
 
 **Rattlebone:** guaranteed as one of the placed mobs on L6, then about 1 in 7 mobs. At 0 HP it
 becomes a bone pile: it rattles a warning at 3 s and reforms at 4.5 s unless a balloon smashes
@@ -44,7 +47,7 @@ skull, candles, mushrooms, crate, urn) have no hitbox.
 
 **L3 floor rule (M1.7):** for any seed, level 3's total and elite-adjusted mob HP is never
 below level 2's. Weak mobs on L3 are swapped for Kettlegrumps (keeping at least one Springle
-and one Hazewisp); if still short, extra Kettlegrumps are placed far from the start.
+and one Hazewisp, and never swapping a Lichen Face); if still short, extra Kettlegrumps are placed far from the start.
 
 **Pits:** falling in is fatal. Ground mobs path around them; flyers (Screamer, Zapfly,
 Hazewisp) cross over. They never block the only route and never sit on the spawn or on loot.
@@ -82,6 +85,16 @@ Every knob is in `GEN` in the game (`genCfg()` sizes it per floor; the layout it
 - **Boss arenas (M1.40):** a fixed 13 x 11 design from `ARENAS` (Rotunda, Pillar Hall, Pit Ring, Crossroads) placed first, against the left or right edge; it is the exit room, keeps all its doors, and the start is the roomy room farthest from it. Pits in the design are deadly like any pit.
   and 2 coins), shrine (off the path, from floor 3; the shrine prefers it), arena (boss floors: the exit room if it has 35+
   cells, else a big room in the last 40% of the route).
+
+## Lichen Face and Mourner's Veil (M1.52)
+
+The Lichen Face has 3 base HP (`3 + (L-1)` like other regular mobs), speed 1.65, and flies: it hovers at flyer height with a slow bob and drifts toward you. Pits, puddles and spores do not affect it. A quiet procedural moan plays when it spots you, and it has its own pop sound.
+On death it leaves a spore patch (radius 0.36, the size of a slime puddle, life 5 s) that slows the player
+and ground mobs. Flyers and mid-hop airborne mobs skip it; Rubber Boots skip it too. `SPORE` in the game.
+
+Mourner's Veil is a use-item: every mob in the player's current sight radius and line of sight gets `blindT = 5`
+and wanders instead of chasing. The Warding Bell's `stunT` still freezes a mob (stun is checked first).
+Bosses and the Treasure Knight wander too if they are in range. `VEIL` in the game.
 
 ## Hexeye (M1.47)
 
@@ -138,7 +151,7 @@ Powered mobs (elites) are called **INFERNAL <NAME>** (the band shows the name an
 | Confusing | 5 | bite reverses your controls for 3 s |
 
 Still in the pool from before: Ranged, Slime Trail, Beefy, Regen, Shielded, Splitter. Power icons: `assets/mods.png`.
-Rubber Boots also stop webs and potion slowness.
+Rubber Boots also stop webs, potion slowness and Lichen Face spores.
 
 ## Elites
 
@@ -177,7 +190,8 @@ Tuning lives in `ITEMS` (name, max, shop price) and `ITEM_FX` in the game.
   Ice Cube: hit monsters move at half speed for 1.5 s.
 - Use-items (one slot, two with the Backpack): Healing Herb +2 hearts; Warding Bell stuns within
   4.5 cells; Flare: 16 cells of sight for 8 s; Freeze Pop: monsters and their shots at 60% speed for
-  the floor; Firecracker: 3 damage within 2.4 cells (walls block it), never to you.
+  the floor; Firecracker: 3 damage within 2.4 cells (walls block it), never to you;
+  Mourner's Veil: blinds every mob in view for 5 s.
 
 ## Shop (Old Murkle)
 

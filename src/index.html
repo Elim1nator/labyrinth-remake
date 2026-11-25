@@ -880,7 +880,7 @@ function startLevel(idx,carry){
   var r=loadLevel(idx);G.levelIdx=idx;G.L=r.L;G.items=r.items;G.ents=r.ents;G.shots=[];G.parts=[];G.eshots=[];G.puddles=[];
   G.p={x:r.L.start.x,y:r.L.start.y,ang:r.L.def.ang,hearts:Math.max(1,Math.min(MAX_HEARTS+(carry.perm&&carry.perm.items?(carry.perm.items.heart|0):itemN('heart')),carry.hearts)),coins:carry.coins|0,keys:0,hurtT:0,inv:0,throwT:0,throwAnim:0,bob:0,moving:0,pitch:0,recenter:false,riseT:0,prevFrame:'idle',item:carry.item&&PU[carry.item]?carry.item:null,effect:null,goopT:0,slickT:0,slickVx:0,slickVy:0};G.hole=null;
   if(carry.perm)G.perm=permFrom(carry.perm);if(!G.perm)G.perm=permFrom({});if(!G.perm.items)G.perm.items={};var p9=G.p;p9.effects=[];p9.item2=carry.item2&&PU[carry.item2]&&G.perm.pack?carry.item2:null;p9.sel=carry.sel===1&&G.perm.pack?1:0;p9.ball=carry.ball&&BALLS[carry.ball]&&carry.ball!=='blue'&&itemN(carry.ball)?carry.ball:(ownedBalls().slice(-1)[0]||'blue');p9.shieldHits=0;p9.mirrorN=0;
-  G.ypuds=[];G.spores=[];G.veilMist=0;G.bolts=[];G.webs=[];G.pots=[];G.fires=[];G.flashT=0;p9.st={};G.slotForce=null;G.shopState=null;G.fellPit=false;G.boss=null;G.flareT=0;G.dmgNums=[];G.splats=[];G.hudDmg=[];G.sealMsgT=0;G.intro=null;G.shake=0;G.trapFall=false;G.bombs=[];G.booms=[];G.cracks=[];G.rings=[];G.signs=[];G.halis=[];G.carcosaT=0;if(carry.secret===idx&&G.L.crack)openSecret(G.L.crack,false); /* M19: a broken secret wall stays open on CONTINUE */
+  G.ypuds=[];G.spores=[];G.veilMist=0;G.bolts=[];G.webs=[];G.pots=[];G.fires=[];G.flashT=0;p9.st={};G.slotForce=null;G.shopState=null;G.fellPit=false;G.boss=null;G.flareT=0;G.dmgNums=[];G.splats=[];G.hudDmg=[];G.sealMsgT=0;G.intro=null;G.shake=0;G.trapFall=false;G.itemLockT=0;G.bombs=[];G.booms=[];G.cracks=[];G.rings=[];G.signs=[];G.halis=[];G.carcosaT=0;if(carry.secret===idx&&G.L.crack)openSecret(G.L.crack,false); /* M19: a broken secret wall stays open on CONTINUE */
   G.stats={coins0:G.p.coins,coinsTotal:r.items.filter(function(i){return i.kind==='coin';}).length+r.ents.length,enemiesTotal:r.ents.length,defeated:0};
   G.stats.elites=rollLevelElites(idx+1);G.stats.powerups=placePowerups(idx);G.stats.knight=carry.knight===idx?null:spawnKnight(idx);G.stats.extras=addFloorExtras(idx);G.L.worms=spawnWorms(idx);if(G.L.lectern)placeScript(idx);G.nearUse=null;G.L.spiderLvl=pitLevel(permN('pit'));p9.confuseT=0;p9.script=false;G.skitT=6+Math.random()*6;G.bigT=12+Math.random()*8;G.faceT=0;p9.slowT=0;runItemsFloorStart(!carry.cont); /* M1.11: after the elite and power-up rolls, so those stay as they were */
   G.levelTime=0;G.mode='play';G.modeT=0;G.dist=null;G.distG=null;G.distT=0;
@@ -1270,7 +1270,7 @@ function titleMusicTick(){if(!AC||AC.state!=='running')return;if(!MUSIC.song||MU
 /* ---------- update ---------- */
 var STEP=1/60;
 function update(dt){
-  G.time+=dt;G.modeT+=dt;if(G.msgT>0){G.msgT-=dt;if(G.msgT<=0)G.msg='';}
+  G.time+=dt;G.modeT+=dt;if(G.itemLockT>0)G.itemLockT=Math.max(0,G.itemLockT-dt);if(G.msgT>0){G.msgT-=dt;if(G.msgT<=0)G.msg='';}
   if(G.mode==='title'||G.mode==='scores'||G.mode==='name')titleMusicTick(); /* M1.19 */
   if(G.mode==='title'){cam.ang=G.time*.18;inp.confirm=false;return;}
   if(G.mode==='name'||G.mode==='scores'){if(G.mode==='scores'&&inp.confirm&&G.modeT>.3)leaveScores();inp.confirm=false;inp.use=false;inp.pause=false;inp.item=false;inp.throwQueued=false;return;} /* M18 */
@@ -1355,7 +1355,7 @@ function nearUseDo(n){var p=G.p;if(n.kind==='trap'){if(p.coins<TRAP.cost){setMsg
     G.parts.push({kind:'coin',pit:true,x:sx0,y:sy0,z:.45,vx:(c.x+.5-sx0)/T,vy:(c.y+.5-sy0)/T,vz:(.5*g9*T*T-.45)/T,life:T+.9,g:g9,max:T+.9,stopAt:T});SFX.coin();tone(1500,.05,'sine',.04,1200,T+.45);stats.pitTosses++;
     var n2=G.perm.pit,ms=PITS.milestones.indexOf(n2);if(ms===0)setMsg('10 COINS... SOMETHING SKITTERS IN THE DARK BELOW',3.5);else if(ms===1)setMsg('50 COINS... BIG LEGS CLIMB IN THE PITS',3.5);else if(ms===2)setMsg('100 COINS! THE BROODMOTHER AWAKENS ON FLOOR 15',3.5);else setMsg(n2+' COINS IN THE PITS',1.4);
     if(ms>=0){SFX.bossRoar();G.shake=.3;}}}
-function trapLand(){var p=G.p,viaHole=!!G.hole;G.trapFall=false;G.hole=null;startLevel(Math.min(MAX_FLOOR-1,G.levelIdx+1),{hearts:p.hearts,coins:p.coins,item:p.item,item2:p.item2,sel:p.sel,ball:p.ball});setMsg(viaHole?'YOU FALL TO THE NEXT FLOOR':'THUD! YOU DROPPED DOWN A FLOOR',2.5);SFX.thud();}
+function trapLand(){var p=G.p,viaHole=!!G.hole;G.trapFall=false;G.hole=null;startLevel(Math.min(MAX_FLOOR-1,G.levelIdx+1),{hearts:p.hearts,coins:p.coins,item:p.item,item2:p.item2,sel:p.sel,ball:p.ball});if(viaHole){var q=G.p,c=cellAt(Math.floor(q.x),Math.floor(q.y));if(pitUnder(q.x,q.y,0)||(c&&(c.t===6||(c.t===9&&c.open)))){var sp=safeSpot(q.x,q.y);q.x=sp.x;q.y=sp.y;}resetInputs();inp.item=false;G.itemLockT=.45;}setMsg(viaHole?'YOU FALL TO THE NEXT FLOOR':'THUD! YOU DROPPED DOWN A FLOOR',2.5);SFX.thud();}
 function lecternUse(c){var L=G.L;if(L.kingCalled){setMsg('THE PLAY HAS BEGUN',1.6);return;}if(!G.p.script){setMsg('THE LECTERN WAITS FOR A PLAY SCRIPT',2.2);SFX.locked();return;}
   G.p.script=false;L.kingCalled=true;c.t=0;L.lecternGone=L.lectern;L.lectern=null;G.distT=0;SFX.crumble();SFX.slam();G.shake=.35; /* M1.14.1: the lectern shatters as he appears */
   for(var q9=0;q9<14;q9++){var a9=q9/14*Math.PI*2,sp9=.6+Math.random()*1.4;G.parts.push({kind:'puff',x:c.x+.5,y:c.y+.5,z:.3+Math.random()*.3,vx:Math.cos(a9)*sp9,vy:Math.sin(a9)*sp9,vz:Math.random(),life:.6,g:2,max:.7});}sparkle(c.x+.5,c.y+.5,.5,'spark',10);var k=null;G.ents.forEach(function(e){if(e.type==='yellow')k=e;});SFX.bossRoar();sparkle(c.x+.5,c.y+.5,.7,'spark',16);stats.kingSummons++;
@@ -1873,9 +1873,10 @@ var PU={herb:{name:'HEALING HERB',dur:0,col:'#ff7aa0',snd:'heart',instant:true,d
   firecracker:{name:'FIRECRACKER',dur:0,col:'#ff5a3a',snd:'giantSplash',instant:true,desc:'3 DAMAGE TO EVERYTHING NEAR YOU'},
   veil:{name:"MOURNER'S VEIL",dur:0,col:'#c8c8bc',snd:'puVeil',instant:true,desc:'BLINDS EVERY MOB IN VIEW FOR 5 S'},
   plunger:{name:'PLUNGER',dur:0,col:'#6a3a28',snd:'puPlunger',instant:true,desc:'DROP TO THE NEXT FLOOR THROUGH A BLACK HOLE'}};
-var PU_IDS=Object.keys(PU);
+var PU_IDS=Object.keys(PU),PU_WEIGHT={plunger:1},PU_WEIGHT_DEF=3;
 function puPool(){return PU_IDS.slice();}
-function randPU(R){var pl=puPool();return pl.length?pl[Math.floor(R()*pl.length)%pl.length]:null;}
+function plungerOnFloor(){var p=G.p;if(p&&(p.item==='plunger'||p.item2==='plunger'))return true;if(G.items)for(var i=0;i<G.items.length;i++){var it=G.items[i];if(!it.taken&&it.kind==='power'&&it.ptype==='plunger')return true;}return false;}
+function randPU(R){var pl=puPool().filter(function(k){return k!=='plunger'||!plungerOnFloor();});if(!pl.length)return null;var w=0,i,r;for(i=0;i<pl.length;i++)w+=PU_WEIGHT[pl[i]]||PU_WEIGHT_DEF;r=R()*w;for(i=0;i<pl.length;i++){r-=(PU_WEIGHT[pl[i]]||PU_WEIGHT_DEF);if(r<0)return pl[i];}return pl[pl.length-1];}
 var STACK=99; /* M1.39: stat items stack without a real limit (their effects have safety ceilings, see ITEM_FX) */
 var ITEMS={
   shoes:{name:'RUNNING SHOES',desc:'RUN 12% FASTER',max:STACK,col:'#3ad8ff',price:30},
@@ -1936,8 +1937,8 @@ function pickPower(it){var p=G.p;if(it.noPick)return;if(!PU[it.ptype]){var lk=LE
   var cur=selItem();if(cur===it.ptype){it.noPick=true;setMsg('ALREADY HOLDING '+PU[it.ptype].name,1.8);return;}
   var old=cur;if(p.sel===1&&slotCount()>1)p.item2=it.ptype;else p.item=it.ptype;it.ptype=old;it.noPick=true;SFX.powerup();setMsg('GOT '+PU[selItem()].name+', LEFT '+PU[old].name,2.8);stats.powerSwaps++;} /* swap rule: the selected slot's item is dropped right here */
 /* M19: a used power-up lasts for the rest of the floor (several can run at once); they all end when the next floor starts */
-function plungerBlocked(){if(!G.p||(G.mode&&G.mode!=='play'))return 'NOT NOW';if(G.levelIdx>=MAX_FLOOR-1)return "THE HOLE WON'T OPEN ANY DEEPER";if(G.L&&G.L.sealed)return 'SEALED! DEFEAT '+bossName()+' FIRST';return null;}
-function useItem(){var p=G.p;if(!p)return false;var k=selItem();if(!k&&slotCount()>1){var other=p.sel===1?p.item:p.item2;if(other){p.sel=p.sel===1?0:1;k=other;}}
+function plungerBlocked(){if(!G.p||(G.mode&&G.mode!=='play')||G.trapFall||G.hole||(G.itemLockT||0)>0)return 'NOT NOW';if(G.levelIdx>=MAX_FLOOR-1)return "THE HOLE WON'T OPEN ANY DEEPER";if(G.L&&G.L.sealed)return 'SEALED! DEFEAT '+bossName()+' FIRST';return null;}
+function useItem(){var p=G.p;if(!p)return false;if((G.itemLockT||0)>0)return false;var k=selItem();if(!k&&slotCount()>1){var other=p.sel===1?p.item:p.item2;if(other){p.sel=p.sel===1?0:1;k=other;}}
   if(k&&!PU[k]){if(p.sel===1&&slotCount()>1)p.item2=null;else p.item=null;k=null;}
   if(!k){setMsg('NO ITEM YET. FIND ONE!',1.6);SFX.locked();return false;}
   if(effectIs(k)){setMsg(PU[k].name+' IS ALREADY ON',1.6);SFX.locked();return false;}
@@ -1955,7 +1956,7 @@ function useInstant(k){var p=G.p;if(SFX[PU[k].snd])SFX[PU[k].snd]();
     setMsg('DONG! '+n+' MONSTER'+(n===1?'':'S')+' STUNNED',2);stats.bellStuns+=n;G.shake=.25;}
   else if(k==='veil'){var n=0,v=viewDist();G.ents.forEach(function(e){if(e.gone||e.state==='dead'||e.state==='pile'||e.dormant)return;var d=Math.hypot(e.x-p.x,e.y-p.y);if(d>v||!los(e.x,e.y,p.x,p.y))return;e.blindT=VEIL.time;e.wanderT=0;n++;});
     G.veilMist=VEIL.mist;setMsg('A DAMP HAZE FALLS! '+n+' MONSTER'+(n===1?'':'S')+' BLINDED',2);stats.veilBlinds=(stats.veilBlinds|0)+n;G.shake=.08;}
-  else if(k==='plunger'){G.hole={x:p.x,y:p.y,t:0};G.trapFall=true;G.mode='fall';G.modeT=0;resetInputs();G.shake=.22;setMsg('THE FLOOR GIVES WAY!',2);}
+  else if(k==='plunger'){G.hole={x:p.x,y:p.y,t:0};G.trapFall=true;G.mode='fall';G.modeT=0;resetInputs();inp.item=false;G.shake=.22;setMsg('THE FLOOR GIVES WAY!',2);}
   else if(k==='firecracker'){var hit=0;G.shake=.35;for(var fb=0;fb<4;fb++){var fa=fb/4*Math.PI*2+p.ang+Math.PI/4;addBoom(p.x+Math.cos(fa)*1.1,p.y+Math.sin(fa)*1.1,.7);}for(var q2=0;q2<18;q2++){var a2=q2/18*Math.PI*2;G.parts.push({kind:'puff',x:p.x+Math.cos(a2)*.5,y:p.y+Math.sin(a2)*.5,z:.3,vx:Math.cos(a2)*3,vy:Math.sin(a2)*3,vz:.8,life:.45,g:0,max:.5});}sparkle(p.x,p.y,.5,'spark',16);
     G.ents.forEach(function(e){if(e.gone||e.state==='dead'||e.dormant)return;if(Math.hypot(e.x-p.x,e.y-p.y)<ITEM_FX.firecrackerR&&clearPath(p.x,p.y,e.x,e.y)){hitEnemy(e,{dmg:ITEM_FX.firecrackerDmg,boom:true});hit++;}});
     setMsg('BANG! '+hit+' MONSTER'+(hit===1?'':'S')+' HIT',2);stats.firecrackerHits+=hit;}}

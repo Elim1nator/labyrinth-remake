@@ -1456,6 +1456,20 @@ async function m156Tests(){
     for(let k=0;k<80;k++){G.advance(1/60);if(G.state().mode==='play'&&G.state().level!==lv0)break;}
     return {lv0,lv1:G.state().level,held,item:G.state().player.item,mode:G.state().mode,mid,msg:G.state().msg};});
   check('M1.56 the Plunger opens a hole, drops you to the next floor and is used up',skip.held==='plunger'&&skip.item==null&&skip.lv1===skip.lv0+1&&skip.mode==='play'&&skip.mid.mode==='fall'&&!!skip.mid.hole,JSON.stringify(skip));
+  const basalt=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(7);
+    G.startLevel(8,{hearts:9,coins:0}); // floor 9 is always Basalt Depths and is not a boss floor
+    const theme=G.themeNow();const lv0=G.state().level;G.give('plunger');const used=G.useItem();
+    const mid={mode:G.state().mode,item:G.state().player.item,hole:G.hole&&G.hole()};
+    for(let k=0;k<180;k++){G.useItem();G.advance(1/60);} // held use must not chain
+    const st=G.state(),held=(st.player.item==='plunger'?1:0)+(st.player.item2==='plunger'?1:0);
+    return {theme,lv0,lv1:st.level,delta:st.level-lv0,mode:st.mode,used,mid,item:st.player.item,held,fellPit:st.fellPit,msg:st.msg,hole:G.hole&&G.hole()};});
+  check('M1.56 one Plunger use on Basalt Depths drops exactly one floor; holding use does not chain; none left in hand',/BASALT/.test(basalt.theme)&&basalt.used===true&&basalt.delta===1&&basalt.mode==='play'&&basalt.held===0&&basalt.item==null&&!basalt.fellPit&&basalt.mid.mode==='fall'&&!!basalt.mid.hole&&!basalt.hole,JSON.stringify(basalt));
+  const loot=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;let max=0,multi=0,floors=0,withP=0;
+    for(let seed=1;seed<=40;seed++){G.setSeed(seed);for(const idx of [8,10,11]){G.startLevel(idx,{hearts:9,coins:0});
+      const n=(G.state().items||[]).filter(it=>it.kind==='power'&&it.ptype==='plunger'&&!it.taken).length;
+      floors++;if(n)withP++;if(n>max)max=n;if(n>1)multi++;}}
+    return {floors,withP,max,multi};});
+  check('M1.56 at most one Plunger appears in normal floor loot',loot.max<=1&&loot.multi===0,JSON.stringify(loot));
   const boss=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);
     // floor 5 is a boss floor (index 4)
     G.startLevel(4,{hearts:9,coins:0});G.give('plunger');

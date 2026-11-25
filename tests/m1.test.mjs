@@ -906,7 +906,7 @@ async function m128Tests(){
  p=fresh();i=G.spawn('clunk',p.x+3,p.y,false,['ghost']);const n1=G.state().enemies.length;G.hitWith(i,{dmg:99,ball:'blue',hits:[]});for(let k=0;k<10;k++)G.advance(1/30);r.ghost=G.state().enemies.slice(n1).map(e=>e.type);
  p=fresh();i=G.spawn('springle',p.x+3,p.y,true,['mounted']);r.mount=G.mounted(i);for(let k=0;k<30;k++)G.advance(1/30);const ri=G.entInfo(i),mi=G.entInfo(r.mount);r.mountSync=Math.hypot(ri.x-mi.x,ri.y-mi.y);
  p=fresh();i=G.spawn('clunk',p.x+3,p.y,false,['flying']);r.flying=G.entInfo(i).flying;
- p=fresh();G.inf.morph.p=1;G.inf.morph.cd=[.2,.3];i=G.spawn('clunk',p.x+3,p.y,true,['morph']);for(let k=0;k<30;k++)G.advance(1/30);r.morph=G.entInfo(i).type;G.inf.morph.p=.4;G.inf.morph.cd=[10,16];
+ p=fresh();G.inf.morph.p=1;G.inf.morph.cd=[.2,.3];i=G.spawn('clunk',p.x+3,p.y,true,['morph']);for(let k=0;k<30;k++){G.advance(1/30);if(G.entInfo(i).type!=='clunk')break;} /* stop at the first morph (several in a row can land back on clunk) */r.morph=G.entInfo(i).type;G.inf.morph.p=.4;G.inf.morph.cd=[10,16];
  // vengeance + firework
  p=fresh();G.inf.vengeance=1;i=G.spawn('clunk',p.x+3,p.y,false,['vengeance']);let hh=G.state().player.hearts;G.hitWith(i,{dmg:1,ball:'blue',hits:[]});r.vengeance=hh-G.state().player.hearts;G.inf.vengeance=.35;
  p=fresh();i=G.spawn('clunk',p.x+1,p.y,false,['firework']);hh=G.state().player.hearts;G.hitWith(i,{dmg:1,ball:'blue',hits:[]});r.firework=hh-G.state().player.hearts;

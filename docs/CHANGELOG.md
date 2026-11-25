@@ -9,6 +9,7 @@ Test counts are the number of passing checks in `tests/m1.test.mjs` for that bui
 - New explosion art, `assets/boom.png`, after the supplied concept: a small burst, the fireball, the peak and drifting smoke (~0.75 s). Black balloons and Explode deaths show a full blast, the firecracker four smaller ones around you, and the Firework power a small one with its sparks. The old white puff rings are gone.
 - Flying or airborne monsters (screamers, masks, Hazewisp, flying bosses, Infernal Flying mobs, a Springle mid-hop) pass over yellow puddles without taking damage.
 - Tests: the touch-layout check measures the hand itself (the sleeve runs under the touch buttons by design); the death-screen test picks a biting mob and never teleports into a wall.
+- Tests: the M1.28 Morph check stops at the first morph (with a morph forced every 0.2 s it could morph back into a Clunkbot and fail).
 - QA build `m1.45-qa` (debug hook on).
 
 ## M1.44: every balloon colour is its own art

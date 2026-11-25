@@ -289,3 +289,6 @@ Hearts and use-items are the real prize.
 ## Brick Halls: Mortared Man and Masonry Trowel (M1.53)
 - Mortared Man: 4 base HP (scales like other mobs), slides 1.2 cells/s along wall faces; sight 9 cells. Fires when the angle between your view and it is wider than acos(0.8) = 37 deg (just off screen): 0.45 s mouth opening, mortar glob at 5.2 cells/s, mouth open 1.6 s, then 2.2-3.4 s before it can fire again. Only damageable while the mouth is open; no contact bite. One featured per Brick Halls floor (two from floor 5) plus the normal pool.
 - Masonry Trowel: max 1, 30 coins in the shop; only in the item pool on Brick Halls floors.
+
+## Spirit Slate (M1.57)
+- Run item, max 1, 40 coins; in the item pool only on Slate Halls floors (deep theme, floor 17+). Shows every live monster on both maps regardless of fog of war.

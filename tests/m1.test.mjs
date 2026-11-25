@@ -43,6 +43,7 @@ const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
 const V151=atLeast('1.51'); // M1.51+: wall tiles are 128x128
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
+const V157=atLeast('1.57'); // M1.57+: the Spirit Slate (Slate Halls)
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
@@ -986,6 +987,26 @@ async function m130Tests(){
 }
 
 
+async function m157Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m157'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const r=await G(page,()=>{const G=__game;let slate=null,other=null;
+    for(let sd=1;sd<=60&&!(slate&&other);sd++)for(const f of [13,17,21,25,29]){const nm=G.themeFor(sd,f).name;if(!slate&&/SLATE HALLS/.test(nm))slate={sd,f};else if(!other&&!/SLATE HALLS/.test(nm))other={sd,f};}
+    G.manual=true;G.freeze=true;G.setSeed(other.sd);G.startLevel(other.f-1,{hearts:99,coins:0});const offPool=G.itemPool().includes('spirit');
+    G.setSeed(slate.sd);G.startLevel(slate.f-1,{hearts:99,coins:0});const onPool=G.itemPool().includes('spirit'),theme=G.themeNow();
+    const count=()=>{G.render();return G.state().stats.mapMobs;};
+    G.setMinimap&&G.setMinimap(true);
+    const before=G.mapMobCount(),hidden=G.state().enemies.filter(e=>!e.gone&&e.state!=='dead').length;
+    G.give('spirit');const after=G.mapMobCount();
+    G.setSeed(slate.sd+1);G.startLevel(slate.f,{hearts:99,coins:0});const kept=G.mapMobCount(),all=G.state().enemies.filter(e=>!e.gone&&e.state!=='dead'&&!e.dormant).length;
+    return {slate,other,offPool,onPool,theme,before,after,hidden,kept,all,max:G.items.spirit&&G.items.spirit.max};});
+  check('M1.57 the Spirit Slate only drops (or is sold) on Slate Halls floors, and has a packed icon',r.onPool&&!r.offPool&&(atlas.items.tiles||[]).includes('spirit'),JSON.stringify(r));
+  check('M1.57 with the Spirit Slate every monster shows on the map, even in unexplored rooms (and it lasts the run)',r.before<r.hidden&&r.after===r.hidden&&r.kept===r.all&&r.all>0,JSON.stringify(r));
+  await G(page,()=>{const G=__game;G.openMap&&G.openMap();});
+  await page.screenshot({path:`${SHOTS}/m157_spirit_slate_map.png`});
+  await ctx.close();
+}
+
 async function m156Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m156'});
   const r=await G(page,()=>{const G=__game;const c=G.rollModsAt(7,20,4000),c2=G.rollModsAt(8,40,4000);let riders=0,lv=0;
@@ -1419,6 +1440,7 @@ if(V147&&want('m147')){ await m147Tests(); }
 if(V152&&want('m152')){ await m152Tests(); }
 if(V153&&want('m153')){ await m153Tests(); }
 if(V156&&want('m156')){ await m156Tests(); }
+if(V157&&want('m157')){ await m157Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

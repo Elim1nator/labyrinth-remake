@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.57: the Spirit Slate
+- New run item, **Spirit Slate** (only drops or is sold on Slate Halls floors; max 1, 40 coins; lasts the whole run): every monster shows as a red X on the minimap and the full map, even in rooms you haven't explored. Icon in `assets/items.png`.
+- All test groups pass.
+- QA build `m1.57-qa` (debug hook on).
+
 ## M1.56: no more riders
 - Infernal mobs no longer get the **Mounted** modifier (a second mob riding on top). It is never rolled; every other modifier is unchanged. Switch: `MOD_OFF` in the game.
 - All test groups pass.

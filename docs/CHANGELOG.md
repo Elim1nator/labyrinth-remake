@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.57: Tiled Baths (the Bather, the Plunger) and Slate Halls (the Slick Man)
+- **The Bather** (Tiled Baths floors only): a pale marble statue (4-frame walk loop from the supplied sheet) with 4 base HP. It slowly chases you and leaves slick, damaging puddles in *pool water blue* (`#3FC8E6`, with a lighter highlight). Rubber Boots ignore them; flyers are unaffected. The old hunched 5-frame art was kept for the Slick Man.
+- **Plunger** (use-item): opens a black hole at your feet and drops you exactly one floor, then is used up. A held key cannot chain another drop. Blocked (and not consumed) on a sealed boss floor or the last floor. Only appears on floors whose theme label says Baths; a held Plunger still works anywhere. Uncommon (about a third the weight of other use-items) and at most one per Baths floor.
+- **The Slick Man** (Slate Halls floors only): a dark slimy stone figure using the old Bather walk sheet (`assets/mobs/slickman.png`, 5 frames). 10 base HP (2.5× a typical 4-HP mob; tougher than Clunkbot), speed 0.8. It reflects player projectiles 30% of the time (the balloon bounces back and can hurt you, with a spark and a clack). While one is alive and within 10 cells, view distance is forced to 5 blocks, overriding glasses, flares and other sight items, then lerps back when it dies or you leave its range. Heavy wet-stone voice and footsteps.
+- All test groups pass.
+- QA build `m1.57-qa` (debug hook on).
+
 ## M1.56: no more riders
 - Infernal mobs no longer get the **Mounted** modifier (a second mob riding on top). It is never rolled; every other modifier is unchanged. Switch: `MOD_OFF` in the game.
 - All test groups pass.

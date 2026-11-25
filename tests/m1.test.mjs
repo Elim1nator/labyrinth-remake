@@ -42,7 +42,7 @@ const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you hav
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
-const V149=atLeast('1.49'); // M1.49+: Mourner's Veil; the Lichen Face in the Mossy Cellar
+const V149=atLeast('1.49'); // M1.49+: Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
 const V145=atLeast('1.45'); // M1.45+: new arm art (bigger frames), bigger thrown balloons, flyers skip puddles
 const V143=atLeast('1.43'); // M1.43+: the arm and balloon art come from assets/hand.png and assets/balloon.png
@@ -987,10 +987,17 @@ async function m149Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m149'});
   const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
-  const art=await G(page,()=>{const G=__game,st=G.assetState(),sig=[];for(let i=0;i<4;i++)sig.push(G.frameSig('lichen',i));const info=G.spriteInfo('lichen',0);
+  const art=await G(page,()=>{const G=__game,st=G.assetState(),sig=[];for(let i=0;i<5;i++)sig.push(G.frameSig('lichen',i));const info=G.spriteInfo('lichen',0);
     return {st,sheets:G.mobSheets,pu:G.puIds,veil:G.pu.veil,hp:G.mobs.lichen.hp,speed:G.mobs.lichen.speed,name:G.mobs.lichen.name,voice:G.mobs.lichen.voice,ch:G.mobs.lichen.ch,hp1:G.floorHp('lichen',1),hp4:G.floorHp('lichen',4),sig,info,items:st.items,k:G.sheetK('lichen')};});
   check('M1.49 Mourner\'s Veil is a use-item in the normal loot and shop pools, with a packed icon',art.pu.includes('veil')&&art.veil&&art.veil.name==="MOURNER'S VEIL"&&/5/.test(art.veil.desc)&&art.items==='png'&&(atlas.items.tiles||[]).includes('veil'),JSON.stringify({pu:art.pu,veil:art.veil,items:art.items}));
-  check('M1.49 the Lichen Face art is packed (4 hop/pop frames in assets/mobs/lichen.png) and the mob has 3 base HP that scales like the others',art.st.lichen==='png'&&art.sheets.includes('lichen')&&atlas.lichen&&atlas.lichen.file==='mobs/lichen.png'&&atlas.lichen.frames===4&&new Set(art.sig).size===4&&art.info&&art.info.w>8&&art.hp===3&&art.hp1===3&&art.hp4===6&&art.name==='LICHEN FACE'&&art.ch==='f',JSON.stringify({st:art.st.lichen,frames:new Set(art.sig).size,hp:[art.hp,art.hp1,art.hp4],k:art.k,info:art.info&&{w:art.info.w,h:art.info.h}}));
+  check('M1.49 the Lichen Face art is packed (5 floating frames in assets/mobs/lichen.png) and the mob has 3 base HP that scales like the others',art.st.lichen==='png'&&art.sheets.includes('lichen')&&atlas.lichen&&atlas.lichen.file==='mobs/lichen.png'&&atlas.lichen.frames===5&&new Set(art.sig).size===5&&art.info&&art.info.w>8&&art.hp===3&&art.hp1===3&&art.hp4===6&&art.name==='LICHEN FACE'&&art.ch==='f',JSON.stringify({st:art.st.lichen,frames:new Set(art.sig).size,hp:[art.hp,art.hp1,art.hp4],k:art.k,info:art.info&&{w:art.info.w,h:art.info.h}}));
+  const sheet=await G(page,async()=>{const url=__game.embedded('lichen');const im=new Image();im.src=url;await im.decode();
+    const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);
+    const d=cx.getImageData(0,0,im.width,im.height).data,a=(x,y)=>d[(y*im.width+x)*4+3],n=5,fw=(im.width/n)|0;
+    const corners=[[0,0],[im.width-1,0],[0,im.height-1],[im.width-1,im.height-1]];
+    for(let i=0;i<n;i++)corners.push([i*fw,0],[i*fw+fw-1,0],[i*fw,im.height-1],[i*fw+fw-1,im.height-1]);
+    return {w:im.width,h:im.height,corners:corners.map(([x,y])=>({x,y,a:a(x,y)}))};});
+  check('M1.49 the Lichen Face sheet is transparent at every frame corner (no baked-in white background)',sheet.corners.every(c=>c.a===0),JSON.stringify(sheet));
   const veil=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0});G.clearMobs();
     const s=G.state();const dirs=[[1,0],[-1,0],[0,1],[0,-1]];let line=null;
     for(let y=1;y<s.mapH-1&&!line;y++)for(let x=1;x<s.mapW-1&&!line;x++){
@@ -1019,7 +1026,7 @@ async function m149Tests(){
     if(wall){const i=G.spawn('wisp',wall.x,wall.y,true,[]);G.useItem();blocked=G.state().enemies[i].blindT;}
     return {ok:true,v,dn,df,t0,t2,tEnd,farT,msg,blocked,cfg:G.veilCfg};});
   check('M1.49 Mourner\'s Veil blinds only mobs within the current view range (and in line of sight) for about 5 s',veil.ok&&veil.dn<=veil.v&&veil.df>veil.v&&veil.t0>4.5&&veil.t0<=5.05&&veil.t2>2.4&&veil.t2<3.2&&veil.tEnd<=0&&veil.farT===0&&(veil.blocked===null||veil.blocked===0)&&veil.cfg.time===5,JSON.stringify(veil));
-  const hop=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0});G.clearMobs();
+  const fly=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0});G.clearMobs();
     const s=G.state();let spot=null;
     for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
       if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+2.5,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+2.5,y+.5,0))))spot={x:x+.5,y:y+.5};}
@@ -1027,11 +1034,29 @@ async function m149Tests(){
     G.teleport(spot.x,spot.y,0);
     const i=G.spawn('lichen',spot.x+1.6,spot.y,true,[]);
     const e0=G.state().enemies[i];
-    const frames=new Set([e0.frame]),zs=new Set([+e0.z.toFixed(3)]);let air=e0.air,hopMoved=false;const x0=e0.x,y0=e0.y;
-    for(let k=0;k<20;k++){G.advance(0.05);const e=G.state().enemies[i];frames.add(e.frame);zs.add(+e.z.toFixed(3));if(e.air)air=true;if(Math.hypot(e.x-x0,e.y-y0)>0.05)hopMoved=true;}
+    const frames=new Set([e0.frame]),zs=new Set([+e0.z.toFixed(3)]);let air=!!e0.air,moved=false,minZ=e0.z,maxZ=e0.z;const x0=e0.x,y0=e0.y;
+    for(let k=0;k<40;k++){G.advance(0.05);const e=G.state().enemies[i];frames.add(e.frame);zs.add(+e.z.toFixed(3));if(e.air)air=true;if(Math.hypot(e.x-x0,e.y-y0)>0.05)moved=true;minZ=Math.min(minZ,e.z);maxZ=Math.max(maxZ,e.z);}
     const hp=G.state().enemies[i].hp;
-    return {hp,frames:[...frames],zs:[...zs].length,air,hopMoved,base:G.mobs.lichen.hp};});
-  check('M1.49 the Lichen Face hops toward you and has 3 HP',hop.hp===3&&hop.base===3&&hop.frames.length>=2&&hop.zs>=2&&hop.air&&hop.hopMoved,JSON.stringify(hop));
+    // flies over a pit if one exists
+    let pitStay=null;
+    const pits=(G.pits&&G.pits())||[];
+    if(pits[0]){G.clearMobs();const q=pits[0];const j=G.spawn('lichen',q.x+.5,q.y+.5,true,[]);
+      let inPit=0,gone=false;for(let k=0;k<30;k++){const e=G.advance(1/60).enemies[j];if(!e||e.gone){gone=true;break;}if(G.cellType(Math.floor(e.x),Math.floor(e.y))===6)inPit++;}
+      pitStay={inPit,gone,z:G.state().enemies[j]&&G.state().enemies[j].z};}
+    return {hp,frames:[...frames],zs:[...zs].length,air,moved,minZ,maxZ,base:G.mobs.lichen.hp,fly:!!G.mobs.lichen.fly,pitStay};});
+  check('M1.49 the Lichen Face is a flying mob (hovers and drifts toward you, no hop) with 3 HP',fly.hp===3&&fly.base===3&&fly.fly&&fly.frames.length>=2&&fly.zs>=2&&!fly.air&&fly.moved&&fly.minZ>0.12&&fly.maxZ>fly.minZ&&(!fly.pitStay||(!fly.pitStay.gone&&fly.pitStay.inPit>0)),JSON.stringify(fly));
+  const snd=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0});G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.6,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+1.6,y+.5,0))))spot={x:x+.5,y:y+.5};}
+    if(!spot)spot={x:s.player.x,y:s.player.y};
+    G.teleport(spot.x,spot.y,0);
+    const v0=(G.state().stats.voices&&G.state().stats.voices.lichen)||0;
+    const i=G.spawn('lichen',spot.x+1.5,spot.y,false,[]);
+    for(let k=0;k<30;k++)G.advance(0.05);
+    const st=G.state();
+    return {voice:G.mobs.lichen.voice,n:((st.stats.voices&&st.stats.voices.lichen)||0)-v0,state:st.enemies[i]&&st.enemies[i].state};});
+  check('M1.49 the Lichen Face has a procedural voice that plays when it spots you',snd.voice==='lichen'&&snd.n>=1,JSON.stringify(snd));
   const spore=await G(page,()=>{const G=__game;const run=(boots)=>{G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0,perm:{items:boots?{boots:1}:{}}});G.clearMobs();
       const s=G.state();let spot=null;
       for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
@@ -1077,8 +1102,8 @@ async function m149Tests(){
     const s=G.state();let spot=null;
     for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
       if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+2.2,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+2.2,y+.5,0))))spot={x:x+.5,y:y+.5};}
-    G.teleport(spot.x,spot.y,0);G.setPitch&&G.setPitch(0);
-    G.spawn('lichen',spot.x+1.7,spot.y,true,[]);G.advance(0.25);G.render();});
+    G.teleport(spot.x,spot.y,0);G.setPitch&&G.setPitch(14);
+    G.spawn('lichen',spot.x+1.7,spot.y,true,[]);G.advance(0.8);G.render();});
   await page.screenshot({path:`${SHOTS}/m149_lichen_face.png`});
   await G(page,()=>{const G=__game;G.give('veil');G.useItem();G.freeze=false;G.advance(0.2);G.freeze=true;G.render();return {mist:G.veilMist&&G.veilMist()};});
   await page.screenshot({path:`${SHOTS}/m149_mourners_veil.png`});

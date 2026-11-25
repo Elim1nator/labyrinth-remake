@@ -173,11 +173,7 @@
       "frames": 4,
       "k": 1.5
     },
-    "lichen": {
-      "file": "mobs/lichen.png",
-      "frames": 4,
-      "k": 1.5
-    },
+    "lichen": { "file": "mobs/lichen.png", "frames": 5, "k": 1.5 },
     "kettle": {
       "file": "mobs/kettle.png",
       "frames": 4,

@@ -107,7 +107,9 @@
         "flare",
         "freeze",
         "firecracker",
-        "veil", "trowel"
+        "veil",
+        "trowel",
+        "plunger"
       ]
     },
     "mods": {
@@ -173,8 +175,26 @@
       "frames": 4,
       "k": 1.5
     },
-    "mortar": { "file": "mobs/mortar.png", "frames": 3, "k": 1.5 },
-    "lichen": { "file": "mobs/lichen.png", "frames": 5, "k": 1.5 },
+    "mortar": {
+      "file": "mobs/mortar.png",
+      "frames": 3,
+      "k": 1.5
+    },
+    "lichen": {
+      "file": "mobs/lichen.png",
+      "frames": 5,
+      "k": 1.5
+    },
+    "bather": {
+      "file": "mobs/bather.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "slickman": {
+      "file": "mobs/slickman.png",
+      "frames": 5,
+      "k": 1.5
+    },
     "kettle": {
       "file": "mobs/kettle.png",
       "frames": 4,
@@ -335,7 +355,11 @@
       "frames": 1,
       "k": 1
     },
-    "shot_mortar": { "file": "boss/shot_mortar.png", "frames": 1, "k": 1 },
+    "shot_mortar": {
+      "file": "boss/shot_mortar.png",
+      "frames": 1,
+      "k": 1
+    },
     "shot_sonic": {
       "file": "boss/shot_sonic.png",
       "frames": 1,

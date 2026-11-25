@@ -14,12 +14,13 @@
 | Zapfly | 1 | 2.6 | fast, fragile; flies over pits | L5 |
 | Rattlebone | 4 | 1.25 | collapses into a bone pile (see below) | L6 |
 | Lichen Face | 3 | 1.65 | flies (slow hover bob); leaves a slowing spore patch (radius 0.36, 5 s) on the floor below; flyers and Rubber Boots ignore it | Mossy Cellar (floors 2-8) |
+| The Bather | 4 | 1.0 | slow hunched chase; leaves slick damaging puddles (radius 0.34, 4.5 s) that also sap traction; flyers and Rubber Boots ignore them | Tiled Baths (floors 2-8) |
 
 Pools: L2 Screamer + Kettlegrump; L3 adds Springle and Hazewisp; L4 adds Clunkbot; L5+ adds
 Zapfly; L6+ adds Rattlebone. Featured (weighted) mobs: L2 Kettlegrump; L3 Springle, Hazewisp,
 Kettlegrump; L4 Clunkbot; L5 Zapfly, Clunkbot, Kettlegrump. On a **Mossy Cellar** theme (floors 2-8
 when the seed picks that early theme), the Lichen Face is added to the pool and is featured (a second
-one from L5). It does not appear on the tutorial or on deep-theme floors.
+one from L5). It does not appear on the tutorial or on deep-theme floors. On a **Tiled Baths** theme, the Bather is added the same way.
 
 **Rattlebone:** guaranteed as one of the placed mobs on L6, then about 1 in 7 mobs. At 0 HP it
 becomes a bone pile: it rattles a warning at 3 s and reforms at 4.5 s unless a balloon smashes
@@ -289,3 +290,9 @@ Hearts and use-items are the real prize.
 ## Brick Halls: Mortared Man and Masonry Trowel (M1.53)
 - Mortared Man: 4 base HP (scales like other mobs), slides 1.2 cells/s along wall faces; sight 9 cells. Fires when the angle between your view and it is wider than acos(0.8) = 37 deg (just off screen): 0.45 s mouth opening, mortar glob at 5.2 cells/s, mouth open 1.6 s, then 2.2-3.4 s before it can fire again. Only damageable while the mouth is open; no contact bite. One featured per Brick Halls floor (two from floor 5) plus the normal pool.
 - Masonry Trowel: max 1, 30 coins in the shop; only in the item pool on Brick Halls floors.
+
+## Tiled Baths: the Bather and the Plunger (M1.56)
+
+The Bather has 4 base HP (`4 + (L-1)` like other regular mobs), speed 1.0, and slowly chases you, leaving slick puddles (`BATHER`: radius 0.34, life 4.5 s, spaced 0.55 cells). The puddles deal 1 heart (with the usual goo cooldown) and apply a short ice-like slide (`slickT` 1.4 s). Rubber Boots ignore both; flying mobs are not affected. A quiet wet voice plays when it spots you, with dripping footsteps while it walks.
+
+The Plunger is a use-item: it opens a black hole at your feet and drops you to the next floor, then is used up. It is blocked (and not consumed) on a sealed boss floor or when you are already on the last floor (`MAX_FLOOR`).

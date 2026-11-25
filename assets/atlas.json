@@ -107,7 +107,7 @@
         "flare",
         "freeze",
         "firecracker",
-        "veil"
+        "veil", "trowel"
       ]
     },
     "mods": {
@@ -173,6 +173,7 @@
       "frames": 4,
       "k": 1.5
     },
+    "mortar": { "file": "mobs/mortar.png", "frames": 3, "k": 1.5 },
     "lichen": { "file": "mobs/lichen.png", "frames": 5, "k": 1.5 },
     "kettle": {
       "file": "mobs/kettle.png",
@@ -334,6 +335,7 @@
       "frames": 1,
       "k": 1
     },
+    "shot_mortar": { "file": "boss/shot_mortar.png", "frames": 1, "k": 1 },
     "shot_sonic": {
       "file": "boss/shot_sonic.png",
       "frames": 1,

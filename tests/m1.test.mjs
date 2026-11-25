@@ -43,6 +43,7 @@ const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
 const V151=atLeast('1.51'); // M1.51+: wall tiles are 128x128
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
+const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
 const V145=atLeast('1.45'); // M1.45+: new arm art (bigger frames), bigger thrown balloons, flyers skip puddles
@@ -181,7 +182,7 @@ const G=(page,fn,arg)=>page.evaluate(fn,arg);
   check('continue restores level 2 with saved coins',st.mode==='play'&&st.level===1&&st.player.coins===coinsAtL2,`coins=${st.player.coins}`);
 
   // death + retry
-  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&!(x.type==='zapfly'&&x.face==='comedy')):s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
+  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&x.type!=='mortar'&&!(x.type==='zapfly'&&x.face==='comedy')) /* M1.53: the Mortared Man never bites */:s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
   check('touching enemies costs hearts until death screen',st.mode==='dead'&&st.player.hearts===0);
   await page.screenshot({path:`${SHOTS}/desktop_1280x720_death.png`});
   st=await G(page,()=>{__game.advance(0.6);__game.confirm();return __game.advance(0.05);});
@@ -984,6 +985,51 @@ async function m130Tests(){
 }
 
 
+async function m153Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m153'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{const G=__game,st=G.assetState(),sig=[];for(let i=0;i<3;i++)sig.push(G.frameSig('mortar',i));return {st,m:G.mobs.mortar,sig,trowel:G.items?G.items.trowel:null};});
+  check('M1.53 the Mortared Man art (3 frames: shut, opening, open) and its mortar shot are packed; it has 4 base HP',art.st.mortar==='png'&&art.st.shot_mortar==='png'&&atlas.mortar&&atlas.mortar.frames===3&&new Set(art.sig).size===3&&art.m.hp===4&&art.m.name==='MORTARED MAN',JSON.stringify({st:[art.st.mortar,art.st.shot_mortar],sig:new Set(art.sig).size,hp:art.m.hp}));
+  check('M1.53 the Masonry Trowel icon is in assets/items.png',(atlas.items.tiles||[]).includes('trowel')&&art.st.items==='png',JSON.stringify(atlas.items.tiles.slice(-3)));
+  const spawn=await G(page,()=>{const G=__game;let brick=0,onBrick=0,off=0;for(let sd=1;sd<=30;sd++)for(const f of [2,3,4,5,6,7,8]){const nm=G.themeFor(sd,f).name,n=[...G.genMap(sd,f).map.join('')].filter(c=>c==='w').length;if(/BRICK HALLS/.test(nm)){brick++;if(n)onBrick++;}else off+=n;}
+    let pick=null;for(let sd=1;sd<=40&&!pick;sd++)for(const f of [2,3,4,6,7,8])if(/BRICK HALLS/.test(G.themeFor(sd,f).name)){pick={sd,f};break;}
+    let other=null;for(let sd=1;sd<=40&&!other;sd++)for(const f of [2,3,4,6,7,8])if(!/BRICK HALLS/.test(G.themeFor(sd,f).name)){other={sd,f};break;}
+    G.manual=true;G.freeze=true;G.setSeed(other.sd);G.startLevel(other.f-1,{hearts:9,coins:0});const offPool=G.itemPool().includes('trowel');
+    G.setSeed(pick.sd);G.startLevel(pick.f-1,{hearts:9,coins:0});const onPool=G.itemPool().includes('trowel');
+    return {brick,onBrick,off,pick,offPool,onPool,theme:G.themeNow()};});
+  check('M1.53 the Mortared Man spawns only on Brick Halls floors',spawn.brick>0&&spawn.onBrick===spawn.brick&&spawn.off===0,JSON.stringify(spawn));
+  check('M1.53 the Masonry Trowel only drops (or is sold) on Brick Halls floors',spawn.onPool&&!spawn.offPool,JSON.stringify(spawn));
+  const cr=await G(page,()=>{const G=__game;return {s2:G.crackInfo(0,2),s3:G.crackInfo(0,3)};});
+  check('M1.53 with the trowel a secret wall shows a big, very visible crack (far more than a fully hit crack)',cr.s3.changedFrac>cr.s2.changedFrac*1.8&&cr.s3.mean>cr.s2.mean*1.5,JSON.stringify(cr));
+  const mv=await G(page,(pk)=>{const G=__game;G.manual=true;G.freeze=true;G.setSeed(pk.sd);G.startLevel(pk.f-1,{hearts:99,coins:0});G.clearMobs();G.viewOverride=14;const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-4&&!spot;x++){if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.5,y+.5)&&!G.solidAt(x+2.5,y+.5)&&G.solidAt(x+3.5,y+.5)&&!G.solidAt(x+2.5,y-.5)&&!G.solidAt(x+2.5,y+1.5))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);G.spawn('mortar',spot.x+2.5,spot.y,true,[]);G.freeze=false;G.advance(.05);G.freeze=true;G.render();const px=G.state().stats.mortarPx,sprite=G.state().stats.enemyRect;
+    const m0=G.mortars()[0];const onWall=(m)=>{const d=[[1,0],[-1,0],[0,1],[0,-1]][m.wn.d];return G.solidAt(m.wn.x+.5,m.wn.y+.5)&&!G.solidAt(m.wn.x+d[0]+.5,m.wn.y+d[1]+.5);};
+    let ok=onWall(m0),opened=false,nodes=new Set([m0.wn.x+','+m0.wn.y+','+m0.wn.d]),start={x:m0.x,y:m0.y};
+    G.freeze=false;G.teleport(spot.x-1,spot.y+.3,0); /* keep looking at it while you walk away along the room */
+    for(let k=0;k<60;k++){const st=G.state();const m=G.mortars()[0];G.teleport(st.player.x,st.player.y,Math.atan2(m.y-st.player.y,m.x-st.player.x));G.advance(.05);const m2=G.mortars()[0];if(m2.open)opened=true;if(!onWall(m2))ok=false;nodes.add(m2.wn.x+','+m2.wn.y+','+m2.wn.d);}
+    const m1=G.mortars()[0];G.freeze=true;return {px,sprite:!!sprite,ok,opened,nodes:nodes.size,moved:Math.hypot(m1.x-start.x,m1.y-start.y)};},spawn.pick);
+  check('M1.53 the Mortared Man is painted into the wall itself (no standing sprite)',mv.px>200&&!mv.sprite,JSON.stringify(mv));
+  check('M1.53 it slides along the walls after you (always on a wall face that looks onto open floor)',mv.ok&&mv.moved>.5,JSON.stringify(mv));
+  check('M1.53 while you keep looking at it, it keeps its mouth shut',!mv.opened,JSON.stringify(mv));
+  const fire=await G(page,()=>{const G=__game;G.freeze=false;const st=G.state(),m=G.mortars()[0];const away=Math.atan2(m.y-st.player.y,m.x-st.player.x)+Math.PI;G.teleport(st.player.x,st.player.y,away);
+    let opened=false,shot=false,blocked=null,hurt=null;for(let k=0;k<80;k++){G.advance(.05);const mm=G.mortars()[0];if(mm.open)opened=true;if(G.state().eshots.some(q=>q.kind==='mortar'))shot=true;if(shot&&opened)break;}
+    return {opened,shot};});
+  check('M1.53 when you look away it opens its mouth and spits mortar at you',fire.opened&&fire.shot,JSON.stringify(fire));
+  const dmg=await G(page,()=>{const G=__game;G.freeze=true;const i=G.state().enemies.findIndex(e=>e.type==='mortar'&&!e.gone);const m=()=>G.mortars()[0];
+    const f=G.mortarForce;const shutHp=(()=>{G.mortarSet(i,{tele:0,openT:0});const h=m().hp;G.damageMob(i,1);return {before:h,after:m().hp};})();
+    const openHp=(()=>{G.mortarSet(i,{openT:1});const h=m().hp;G.damageMob(i,1);return {before:h,after:m().hp};})();return {shutHp,openHp};});
+  check('M1.53 it can only be damaged while its mouth is open',dmg.shutHp.after===dmg.shutHp.before&&dmg.openHp.after===dmg.openHp.before-1,JSON.stringify(dmg));
+  const corner=await G(page,()=>{const G=__game;const s=G.state();let tested=0,bad=0,turns=0;const D=[[1,0],[-1,0],[0,1],[0,-1]];
+    for(let y=1;y<s.mapH-1;y++)for(let x=1;x<s.mapW-1;x++)for(let d=0;d<4;d++){if(!G.solidAt(x+.5,y+.5)||G.solidAt(x+D[d][0]+.5,y+D[d][1]+.5))continue;
+      G.mortarNbrs(x,y,d).forEach(n=>{tested++;if(n.d!==d)turns++;if(!G.solidAt(n.x+.5,n.y+.5)||G.solidAt(n.x+D[n.d][0]+.5,n.y+D[n.d][1]+.5))bad++;});}
+    return {tested,bad,turns};});
+  check('M1.53 its path follows the walls round inner and outer corners (every step is another wall face)',corner.tested>100&&corner.bad===0&&corner.turns>10,JSON.stringify(corner));
+  await G(page,()=>{const G=__game;G.freeze=true;const i=G.state().enemies.findIndex(e=>e.type==='mortar'&&!e.gone);const st=G.state(),m=G.mortars()[0];G.mortarSet(i,{openT:1});G.teleport(st.player.x,st.player.y,Math.atan2(m.y-st.player.y,m.x-st.player.x));G.render();});
+  await page.screenshot({path:`${SHOTS}/m153_mortared_man.png`});
+  await ctx.close();
+}
+
 async function m152Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m152'});
   const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
@@ -1361,6 +1407,7 @@ if(V145&&want('m145')){ await m145Tests(); }
 if(V146&&want('m146')){ await m146Tests(); }
 if(V147&&want('m147')){ await m147Tests(); }
 if(V152&&want('m152')){ await m152Tests(); }
+if(V153&&want('m153')){ await m153Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -1751,7 +1798,7 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[])].sort()),types.join(','));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[])].sort()),types.join(','));
     const hp=types.map(t=>mobs[t].hp),sp=types.map(t=>mobs[t].speed),vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name);
     check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===types.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hp)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));
@@ -2043,7 +2090,7 @@ async function m14Tests(){
     const lv=await G(page,()=>{const run=()=>{__game.setSeed(31337);__game.startLevel(7);const s=__game.state();return {sig:s.enemies.map(e=>e.type+':'+e.mods.join('+')).join(' '),n:s.enemies.filter(e=>e.mods.length).length};};const a=run(),b=run();__game.startLevel(0);const t=__game.state();return {a,b,tut:t.enemies.filter(e=>e.mods.length).length};});
     check('M1.4 elite rolls are deterministic per seed; tutorial has no elites',lv.a.sig===lv.b.sig&&lv.a.n>0&&lv.tut===0,`floor 8 seed 31337: ${lv.a.n} elites; tutorial ${lv.tut}`);
     // RANGED: each mob gets its own projectile, telegraphed first
-    const kinds={kettle:'steam',zapfly:'zap',clunk:'laser',screamer:'sonic',wisp:'wisp',springle:'fluff',bigspider:'web'} /* M1.12: brood spiders spit webs */;
+    const kinds={kettle:'steam',zapfly:'zap',clunk:'laser',screamer:'sonic',wisp:'wisp',springle:'fluff',bigspider:'web',...(V153?{mortar:'mortar'}:{})} /* M1.12: brood spiders spit webs */;
     const rr=await G(page,(FR)=>{const FRESH=eval(FR);const out={};for(const t of Object.keys(__game.ranged)){FRESH();__game.teleport(7.5,3.5,0);__game.spawn(t,13.5,3.5,true,['ranged']);let tele=-1,fire=-1,kind=null,still=true,lastX=null;const f0=__game.state().stats.eshotsFired;
         for(let i=0;i<240;i++){if(!(__game.state().enemies[0].tele>0))__game.placeEnemy(0,13.5,3.5); /* hold range so melee/charges can't pre-empt the shot */const s=__game.advance(0.05),e=s.enemies[0];if(e.tele>0&&tele<0)tele=i;if(tele>=0&&fire<0&&e.tele>0){if(lastX!==null&&t!=='zapfly'&&Math.abs(e.x-lastX)>1e-6)still=false;lastX=e.x;}
           if(s.stats.eshotsFired>f0&&fire<0){fire=i;kind=s.eshots[0]&&s.eshots[0].kind;break;}}

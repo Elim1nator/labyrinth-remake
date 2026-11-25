@@ -120,3 +120,5 @@ Notes:
   highlight are swapped for each colour. Other colours (eyes, outline) stay as drawn.
 - Elite glows, freeze tints, hit flashes and the balloon colours are made in code from your frames.
 - A missing or broken file shows that monster as a magenta check instead of crashing; `pack` tells you what's wrong.
+
+- `mobs/mortar.png` (M1.53): the Mortared Man, 3 frames of 96 x 96 (shut, opening, open). It is drawn onto the wall surface, not as a standing sprite.

@@ -285,3 +285,7 @@ Expected coin return: (0.14 × 5 + 0.02 × 25) / 3 = **0.40 × cost**. Three 100
 simulations returned 0.397 / 0.420 / 0.407 × cost. Even counting the coin each crit-fail
 monster can drop, the return stayed below 1×, so the machine can't be used to farm coins.
 Hearts and use-items are the real prize.
+
+## Brick Halls: Mortared Man and Masonry Trowel (M1.53)
+- Mortared Man: 4 base HP (scales like other mobs), slides 1.2 cells/s along wall faces; sight 9 cells. Fires when the angle between your view and it is wider than acos(0.8) = 37 deg (just off screen): 0.45 s mouth opening, mortar glob at 5.2 cells/s, mouth open 1.6 s, then 2.2-3.4 s before it can fire again. Only damageable while the mouth is open; no contact bite. One featured per Brick Halls floor (two from floor 5) plus the normal pool.
+- Masonry Trowel: max 1, 30 coins in the shop; only in the item pool on Brick Halls floors.

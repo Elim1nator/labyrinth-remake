@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.53: Brick Halls - the Masonry Trowel and the Mortared Man
+- New run item, **Masonry Trowel** (only drops or is sold on Brick Halls floors): secret cracked walls show a wide, deep, very visible crack. Icon from the supplied art, in `assets/items.png`.
+- New monster, **the Mortared Man** (4 base HP, Brick Halls floors only): a brick-red face painted into the wall itself (no standing sprite) that slides along the walls after you, round inner and outer corners. While you look at it, it keeps its mouth shut and can't be hurt (balloons clank off). When you look away (it is off screen), it opens its mouth (0.45 s), spits a mortar glob at you and stays open for 1.6 s: that's when you can hit it. It never bites. Art: `assets/mobs/mortar.png` (shut, opening, open) and `assets/boss/shot_mortar.png`. Tuning: `MORTAR` in the game.
+- All test groups pass.
+- QA build `m1.53-qa` (debug hook on).
+
 ## M1.52: Mourner's Veil and the Lichen Face (merged from Grok-Code-3)
 - New use-item, **Mourner's Veil**: a damp lace veil. Using it blinds every mob within your current view range (and in line of sight) for 5 s. Blinded mobs lose track of you and wander, with a dark-veil mark and motes over them. The Warding Bell's stun still freezes a mob if both are applied. The Veil is in the normal use-item loot and shop pools. Pickup text and the HUD tooltip use the name and "BLINDS EVERY MOB IN VIEW FOR 5 S"; Q, gamepad Y and the ITEM button all use it.
 - New monster, **the Lichen Face** (3 base HP, scales like the other regular mobs): a pale cracked stone face ringed with dark tendrils that hovers and drifts toward you like the other flyers (pits, puddles and spores do not affect it). It lives on **Mossy Cellar** floors (the existing early theme on floors 2-8, not the tutorial Gatehouse and not the deep themes). When it pops it leaves a slowing spore patch about the size of a slime puddle, lasting 5 s, on the floor below where it died. Mid-hop airborne ground mobs also ignore the patch; Rubber Boots shrug it off, same as webs, frost and goo. It has a quiet, warbling procedural moan when it spots you, and a distinct pop. Tuning: `VEIL` and `SPORE` in the game.

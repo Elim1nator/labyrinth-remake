@@ -83,7 +83,7 @@ Each `boss/*.png` is a strip of frames like the monsters:
 
 `items.png` is 240 x 96: 10 icons per row, each 24 x 24 pixels, in the order listed under `items`
 in `atlas.json` (shoes, dumbbell, burger, ... red, green, yellow, black, purple, pink, herb, bell,
-flare, freeze, firecracker). Draw on a transparent background. The round pickup tokens on the floor,
+flare, freeze, firecracker, veil). Draw on a transparent background. The round pickup tokens on the floor,
 the small HUD and shop icons, and their coloured rims are made in code from your icon. What each
 item does lives in the game (`ITEMS`, `ITEM_FX`, `PU`), not in the PNG.
 
@@ -95,6 +95,8 @@ Each `mobs/*.png` is a strip of animation frames, left to right, all the same wi
 |---|---|---|
 | `screamer.png`, `screamerO.png` | Screamer (normal / mouth open while screaming) | 4 wing flaps each |
 | `springle.png`, `kettle.png`, `wisp.png`, `clunk.png`, `skeleton.png` | Springle, Kettlegrump, Hazewisp, Clunkbot, Rattlebone | 4 |
+| `lichen.png` | the Lichen Face (rest, hop, mid-hop, pop) | 4 |
+| `hexeye.png` | the Hexeye (open, half-blink, closed, red stare) | 4 |
 | `zapfly.png`, `zapflyC.png` | Tragedy mask, Comedy mask | 4 |
 | `bonePile.png` | Rattlebone's collapsed pile (resting, rattling) | 2 |
 | `knight.png` | Treasure Knight (stand/walk, walk, shield up, charge, sword raised) | 5 |

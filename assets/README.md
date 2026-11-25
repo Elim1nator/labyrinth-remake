@@ -9,7 +9,8 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 |---|---|
 | `walls.png` | All 20 wall textures (see below). |
 | `doors.png` | A door for each wall style, plus the gold lock for locked doors (see below). |
-| `hand.png` | Your arm holding a balloon: 4 frames (idle, wind-up, throw, empty hand) for each of the 7 balloon colours, 69 x 60 each. |
+| `hand.png` | Your arm holding a balloon: 4 frames (idle, wind-up, throw, empty hand) for each of the 7 balloon colours, 100 x 80 each (the hand in the top-left 69 x 60, the sleeve running on to the bottom-right corner). |
+| `boom.png` | Explosions: 4 frames of 32 x 32 (burst, fireball, peak, smoke). |
 | `balloon.png` | The thrown balloon in each of the 7 colours, 12 x 14 each. |
 | `items.png` | All item icons (run items, balloon colours, use-items), a grid of 24 x 24 tiles. |
 | `mobs/<name>.png` | One file per monster or boss: its animation frames side by side, all the same width. |
@@ -54,7 +55,7 @@ Notes:
 
 Every balloon colour is its own art, in this order: **blue, red, green, yellow, black, purple, pink**.
 
-- `hand.png` is 1932 x 60: 28 frames of 69 x 60 side by side, 4 per colour in that order - idle (holding the balloon), wind-up,
+- `hand.png` is 2800 x 80: 28 frames of 100 x 80 side by side (the hand sits in the top-left 69 x 60; let the sleeve run off the bottom-right corner), 4 per colour in that order - idle (holding the balloon), wind-up,
   throw (open hand, balloon gone), empty hand. So frames 1-4 are the blue balloon, 5-8 red, and so on. The empty-hand and throw
   frames are the same for every colour unless you change them.
 - `balloon.png` is 84 x 14: 7 frames of 12 x 14, one balloon per colour in the same order. It is the balloon you throw and the

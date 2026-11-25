@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.45: new arm and balloon art, explosions, flyers skip puddles
+- New art for the blue water balloon and the arm, from the supplied reference images: holding, wind-up (pulled back), throw and the empty hand (the supplied open-hand art). The arm frames are now 100 x 80 and the sleeve runs on past the bottom-right corner, so it never shows a cut end while the arm moves. The other six balloon colours (red, green, yellow, black, purple, pink) are made from the new blue art, thrown and in hand.
+- Thrown balloons are drawn about 30% bigger (giant pump balloons too), and the balloon's edge pixels are darker than its centre. The blue balloon colour (HUD chip, splashes) is the new art's sky blue (#40c9fc).
+- New explosion art, `assets/boom.png`, after the supplied concept: a small burst, the fireball, the peak and drifting smoke (~0.75 s). Black balloons and Explode deaths show a full blast, the firecracker four smaller ones around you, and the Firework power a small one with its sparks. The old white puff rings are gone.
+- Flying or airborne monsters (screamers, masks, Hazewisp, flying bosses, Infernal Flying mobs, a Springle mid-hop) pass over yellow puddles without taking damage.
+- Tests: the touch-layout check measures the hand itself (the sleeve runs under the touch buttons by design); the death-screen test picks a biting mob and never teleports into a wall.
+- QA build `m1.45-qa` (debug hook on).
+
 ## M1.44: every balloon colour is its own art
 - All 7 balloon colours (blue, red, green, yellow, black, purple, pink), thrown and in your hand, are now in the PNGs: `assets/balloon.png` has one balloon per colour and `assets/hand.png` has the 4 arm frames for each colour (28 frames). The recolouring code is gone; everything looks exactly as in M1.43. See assets/README.md.
 - QA build `m1.44-qa` (debug hook on).

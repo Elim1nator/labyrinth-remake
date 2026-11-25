@@ -45,6 +45,7 @@ const V151=atLeast('1.51'); // M1.51+: wall tiles are 128x128
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
+const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
@@ -1624,7 +1625,79 @@ async function m157Tests(){
 }
 
 if(V156&&want('m156')){ await m156Tests(); }
+async function m158Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m158'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,async()=>{
+    const G=__game,st=G.assetState();
+    const url=G.embedded('bather');const im=new Image();im.src=url;await im.decode();
+    const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);
+    const d=cx.getImageData(0,0,im.width,im.height).data,a=(x,y)=>d[(y*im.width+x)*4+3],n=4,fw=(im.width/n)|0;
+    const frames=[];
+    for(let i=0;i<n;i++){
+      const xs=[],ys=[],feet=[];
+      for(let y=0;y<im.height;y++)for(let x=i*fw;x<(i+1)*fw;x++)if(a(x,y)>16){xs.push(x-i*fw);ys.push(y);}
+      const y1=Math.max(...ys),y0=Math.min(...ys),cut=y1-Math.max(2,((y1-y0)*0.12)|0);
+      for(let k=0;k<xs.length;k++)if(ys[k]>=cut)feet.push(xs[k]);
+      const fx=feet.reduce((s,v)=>s+v,0)/feet.length;
+      frames.push({i,fx,mid:fw/2,d:fx-fw/2,bottom:im.height-1-y1,y0,corners:[a(i*fw,0),a(i*fw+fw-1,0),a(i*fw,im.height-1),a(i*fw+fw-1,im.height-1)]});
+    }
+    const walk=p=>G.animFrame({type:'bather',state:'chase',ph:p});
+    return {st:st.bather,w:im.width,h:im.height,info:frames,
+      idle:G.animFrame({type:'bather',state:'idle',ph:1}),
+      ph0:walk(0),ph013:walk(0.13),ph02:walk(0.2),ph05:walk(0.5)};});
+  check('M1.58 the Bather walk frames are bottom-aligned and centred on the feet (no sideways wobble)',
+    art.st==='png'&&atlas.bather&&atlas.bather.frames===4&&art.h===120&&art.info.length===4
+    &&art.info.every(f=>f.corners.every(c=>c===0)&&f.bottom===0&&Math.abs(f.d)<=1.0),
+    JSON.stringify(art.info));
+  check('M1.58 the Bather walk cycle is about twice as fast as M1.57 (8 frames/s) and idle stays on frame 0',
+    art.idle===0&&art.ph0===0&&art.ph013===1&&art.ph02===1&&art.ph05===0,
+    JSON.stringify({idle:art.idle,ph0:art.ph0,ph013:art.ph013,ph02:art.ph02,ph05:art.ph05}));
+  const placed=await G(page,()=>{const G=__game;G.manual=true;G.freeze=true;
+    const floors=[2,3,4,5,6,7,8,9,13,17,18,21,22,25,26,29];
+    function rec(){return {n:0,zero:0,short:0,byLvl:{},knights:{floors:0,zero:0,one:0,two:0,more:0}};}
+    const out={bather:rec(),lichen:rec(),slickman:rec(),knights:rec().knights};
+    function add(b,lvl,c,min){
+      b.n++; if(c===0)b.zero++; if(c<min)b.short++;
+      const o=b.byLvl[lvl]||(b.byLvl[lvl]={n:0,sum:0,min:99,max:0,zero:0});
+      o.n++; o.sum+=c; o.min=Math.min(o.min,c); o.max=Math.max(o.max,c); if(!c)o.zero++;
+    }
+    for(let sd=1;sd<=30;sd++){
+      G.setSeed(sd);
+      for(const f of floors){
+        G.startLevel(f-1,{hearts:9,coins:20});
+        const theme=G.themeNow()||'',ents=G.state().enemies||[],types={};
+        for(const e of ents){if(!e.gone)types[e.type]=(types[e.type]||0)+1;}
+        const kn=types.knight||0; out.knights.floors++;
+        if(kn===0)out.knights.zero++; else if(kn===1)out.knights.one++; else if(kn===2)out.knights.two++; else out.knights.more++;
+        const min=f>=5?2:1;
+        if(/TILED BATHS/.test(theme))add(out.bather,f,types.bather||0,min);
+        if(/MOSSY CELLAR/.test(theme))add(out.lichen,f,types.lichen||0,min);
+        if(/Slate/i.test(theme))add(out.slickman,f,types.slickman||0,min);
+      }
+    }
+    for(const k of ['bather','lichen','slickman']){
+      const b=out[k];
+      const by={};
+      for(const [l,o] of Object.entries(b.byLvl)) by[l]={n:o.n,avg:o.sum/o.n,min:o.min,max:o.max,zero:o.zero};
+      b.byLvl=by;
+    }
+    return out;});
+  const okTheme=(b,name)=>b.n>0&&b.zero===0&&b.short===0&&Object.keys(b.byLvl).every(l=>(+l>=5?b.byLvl[l].min>=2:b.byLvl[l].min>=1));
+  check('M1.58 a real-flow Tiled Baths floor always has at least 1 Bather (2 from floor 5), counting placed mobs not the pool',
+    okTheme(placed.bather),JSON.stringify(placed.bather));
+  check('M1.58 a real-flow Mossy Cellar floor always has at least 1 Lichen Face (2 from floor 5), counting placed mobs',
+    okTheme(placed.lichen),JSON.stringify(placed.lichen));
+  check('M1.58 a real-flow Slate Halls floor always has at least 1 Slick Man (2 from floor 5), counting placed mobs',
+    okTheme(placed.slickman),JSON.stringify(placed.slickman));
+  check('M1.58 a Treasure Knight is guaranteed on floors 2+; a second one is occasional (coin door), not a double-spawn bug',
+    placed.knights.floors>0&&placed.knights.zero===0&&placed.knights.one>placed.knights.two&&placed.knights.more===0,
+    JSON.stringify(placed.knights));
+  await ctx.close();
+}
+
 if(V157&&want('m157')){ await m157Tests(); }
+if(V158&&want('m158')){ await m158Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

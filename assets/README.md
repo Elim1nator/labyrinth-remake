@@ -124,5 +124,5 @@ Notes:
 - A missing or broken file shows that monster as a magenta check instead of crashing; `pack` tells you what's wrong.
 
 - `mobs/mortar.png` (M1.53): the Mortared Man, 3 frames of 96 x 96 (shut, opening, open). It is drawn onto the wall surface, not as a standing sprite.
-- `mobs/bather.png` (M1.57): the Bather, 4 walk frames at 120 px tall, cut from the supplied statue sheet (gutters cropped, centred, fringe cleaned; corners fully transparent).
+- `mobs/bather.png` (M1.57, recut M1.58): the Bather, 4 walk frames at 120 px tall, cut from the supplied statue sheet (gutters cropped, feet-centred and bottom-aligned so the walk does not wobble, fringe cleaned; corners fully transparent).
 - `mobs/slickman.png` (M1.57): the Slick Man, the earlier 5-frame hunched walk sheet (also 120 px tall, transparent corners).

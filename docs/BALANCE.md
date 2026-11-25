@@ -79,6 +79,7 @@ Every knob is in `GEN` in the game (`genCfg()` sizes it per floor; the layout it
   Mobs are placed mostly on or near the path, weighted towards its far end, so rooms get busier as you go. Coins sit just off
   the path; hearts and the secret room prefer far pockets (7+) and dead-end nooks.
 - **Room tags:** start, exit, treasure (the room farthest off the path: the locked vault from floor 4, else a room with a heart
+- **Boss arenas (M1.40):** a fixed 13 x 11 design from `ARENAS` (Rotunda, Pillar Hall, Pit Ring, Crossroads) placed first, against the left or right edge; it is the exit room, keeps all its doors, and the start is the roomy room farthest from it. Pits in the design are deadly like any pit.
   and 2 coins), shrine (off the path, from floor 3; the shrine prefers it), arena (boss floors: the exit room if it has 35+
   cells, else a big room in the last 40% of the route).
 

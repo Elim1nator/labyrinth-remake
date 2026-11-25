@@ -40,6 +40,7 @@ const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status e
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
+const V140=atLeast('1.40'); // M1.40+: fixed boss-arena designs; the King's ears stay attached; his screamers are small
 const V139=atLeast('1.39'); // M1.39+: rooms get their monsters first; stat items stack without a limit; masks rock
 const V137=atLeast('1.37'); // M1.37+: doors are the leaf only (no wall frame); wall variations are just pillars and runes
 const V136=atLeast('1.36'); // M1.36+: new level generator (rooms and mazes, growing tree, braiding, distance-map content)
@@ -305,7 +306,7 @@ async function m110Tests(){
   // ---- 1. generation: which floors, which boss, the arena, the unlocked exit door, keys
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m110-gen'});
-    const g=await G(page,(V136)=>{const out={floors:0,bossFloors:0,wrongType:[],bad:[],noBossOk:true,arenaSizes:{},exitArena:0,tiers:{}};const B=__game.bosses,order=__game.bossOrder,ch={};order.forEach(t=>ch[B[t].ch]=t);
+    const g=await G(page,([V136,V140])=>{const out={floors:0,bossFloors:0,wrongType:[],bad:[],noBossOk:true,arenaSizes:{},exitArena:0,tiers:{}};const B=__game.bosses,order=__game.bossOrder,ch={};order.forEach(t=>ch[B[t].ch]=t);
       for(let sd=1;sd<=30;sd++)for(let f=2;f<=60;f++){const d=__game.genMap(sd,f),m=d.map,RR=__game.genRooms(sd,f),h=m.length,w=m[0].length;out.floors++;
         let bosses=[],nk=0,nl=0,start=null,exit=null;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if(ch[c])bosses.push({t:ch[c],x,y});if(c==='k')nk++;if(c==='L')nl++;if(c==='p')start=[x,y];if(c==='X')exit=[x,y];}
         const want=__game.bossFor(f);if(!want){if(bosses.length){out.noBossOk=false;out.bad.push(`${sd}:${f} boss on a non-boss floor`);}continue;}
@@ -318,13 +319,14 @@ async function m110Tests(){
           const dd=new Map([[start.join(),0]]),qq=[start];const wk=c=>!(/[#SWTMKRCVOABEIZ+=FPYN]/.test(c));while(qq.length){const [x,y]=qq.shift();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(dd.has(k)||!wk(m[ny][nx]))continue;dd.set(k,dd.get(x+','+y)+1);qq.push([nx,ny]);}}
           const ac=(A.x+(A.w>>1))+','+(A.y+(A.h>>1)),de=dd.get(exit.join());if(!inA(exit[0],exit[1])&&sz<35&&!(dd.get(ac)>=.5*de))out.bad.push(`${sd}:${f} arena ${sz} not near the exit (${dd.get(ac)} of ${de} steps)`);}
         else if(!inA(exit[0],exit[1])&&sz<35&&sz<biggest)out.bad.push(`${sd}:${f} arena ${sz} smaller than the biggest room ${biggest}`);
-        for(let y=A.y;y<A.y+A.h;y++)for(let x=A.x;x<A.x+A.w;x++){const c=m[y][x];if(c==='P')out.bad.push(`${sd}:${f} pit in the arena`);if(/[ebtgrzs]/.test(c))out.bad.push(`${sd}:${f} mob ${c} in the arena`);}
+        const D9=V140&&d.boss&&d.boss.design?__game.arenas.find(a9=>a9.name===d.boss.design):null; /* M1.40: pits only where the arena design has them */
+        for(let y=A.y;y<A.y+A.h;y++)for(let x=A.x;x<A.x+A.w;x++){const c=m[y][x];if(c==='P'&&!(D9&&D9.rows[y-A.y][x-A.x]==='o'))out.bad.push(`${sd}:${f} pit in the arena`);if(/[ebtgrzs]/.test(c))out.bad.push(`${sd}:${f} mob ${c} in the arena`);}
         if(nk!==nl)out.bad.push(`${sd}:${f} keys ${nk} != locks ${nl}`);if(nl>1)out.bad.push(`${sd}:${f} ${nl} locks`);
         // reachable from the start without any key: boss and portal
         const seen=new Set([start.join()]),q=[start];const walk=c=>!(/[#SWTMKRCVOABEIZ+=FLPYN]/.test(c));while(q.length){const [x,y]=q.shift();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(seen.has(k)||!walk(m[ny][nx]))continue;seen.add(k);q.push([nx,ny]);}}
         if(!seen.has(b.x+','+b.y)||!seen.has(exit.join()))out.bad.push(`${sd}:${f} boss or portal not reachable without a key`);
         out.tiers[want.tier]=(out.tiers[want.tier]||0)+1;}
-      return out;},V136);
+      return out;},[V136,V140]);
     check(`M1.10 a boss on every 5th floor and nowhere else (${g.bossFloors} boss floors in ${g.floors} floors, 30 seeds x floors 2-60), in the order King Gloop, Luggernaut, Coghoot`,g.bossFloors===30*12&&g.noBossOk&&g.wrongType.length===0&&g.bad.filter(b=>/bosses|non-boss/.test(b)).length===0,JSON.stringify({wrong:g.wrongType.slice(0,4),bad:g.bad.slice(0,4)}));
     check(V136?'M1.10 the arena is the exit room when it has 35+ cells, else a big room near the exit (M1.36); never the start or shop room; no pits or other mobs inside':'M1.10 the arena is the exit room when it has 35+ cells, else the biggest room; never the start or shop room; no pits or other mobs inside',g.bad.filter(b=>/arena|pit|mob /.test(b)).length===0,JSON.stringify({bad:g.bad.filter(b=>/arena|pit|mob /.test(b)).slice(0,4),exitArena:g.exitArena,sizes:g.arenaSizes}));
     check('M1.10 boss floors: the exit door is unlocked (keys match locks, at most the vault lock), and the boss and portal are reachable without a key',g.bad.filter(b=>/keys|locks|reachable/.test(b)).length===0,JSON.stringify(g.bad.filter(b=>/keys|locks|reachable/.test(b)).slice(0,4)));
@@ -413,14 +415,14 @@ async function m110Tests(){
   if(atLeast('1.10.2')){
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m1102-intro'});
     const r=await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.startLevel(9);__game.state().enemies.forEach((e,i)=>{if(!__game.bosses[e.type])__game.damageMob(i,99);});__game.advance(0.3);
-      const A=__game.boss().def.room,d=__game.arenaDoors()[0];__game.teleport(d.x+.5-(d.x<A.x?1:d.x>=A.x+A.w?-1:0),d.y+.5-(d.y<A.y?1:d.y>=A.y+A.h?-1:0),0);__game.render();__game.use();
+      const A=__game.boss().def.room,d=__game.arenaDoors()[0],ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);__game.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox)); /* face the door (M1.40: arena doors can be on any side) */if(__game.setKeys)__game.setKeys(1); /* M1.40: the arena door is a key door */__game.render();__game.use();
       const out=[];for(let i=0;i<=56;i++){__game.setHearts(5);const s=__game.advance(0.1),I=__game.intro(),p=s.player,inA=p.x>A.x&&p.x<A.x+A.w&&p.y>A.y&&p.y<A.y+A.h;
         out.push({t:+(i*0.1).toFixed(1),mode:s.mode,inA,locked:__game.arenaDoors().every(q=>q.bossLock),open:Math.max(...__game.arenaDoors().map(q=>q.open)),woke:__game.boss().ent.woke,shots:s.eshots.length,hearts:p.hearts,ang:p.ang,face:Math.abs(Math.atan2(Math.sin(Math.atan2(__game.boss().ent.y-p.y,__game.boss().ent.x-p.x)-p.ang),Math.cos(Math.atan2(__game.boss().ent.y-p.y,__game.boss().ent.x-p.x)-p.ang)))});
         if(i===30)window.__introShot=true;}return out;});
     const at=t=>r.find(x=>Math.abs(x.t-t)<0.05);
     check('M1.10.2 opening the boss room door starts a 5 s cut scene: you are pulled inside, the doors slam and lock behind you',at(0.5).mode==='intro'&&at(2).inA&&at(2).locked&&at(2.5).open<0.1&&at(4.5).mode==='intro',JSON.stringify([at(0.5),at(2),at(4.5)]));
     check('M1.10.2 during the cut scene the view turns to the boss and nothing attacks you; at 5 s the fight starts',at(3).face<0.15&&r.filter(x=>x.mode==='intro').every(x=>x.hearts===5&&x.shots===0&&!x.woke)&&at(5.5).mode==='play'&&at(5.5).woke,JSON.stringify([at(3),at(4.9),at(5.5)]));
-    await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const A=__game.boss().def.room,d=__game.arenaDoors()[0];__game.teleport(d.x+.5-(d.x<A.x?1:d.x>=A.x+A.w?-1:0),d.y+.5-(d.y<A.y?1:d.y>=A.y+A.h?-1:0),0);__game.render();__game.use();__game.advance(3);});await shot(page,'intro_vs');
+    await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const A=__game.boss().def.room,d=__game.arenaDoors()[0],ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);__game.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox)); /* face the door (M1.40: arena doors can be on any side) */if(__game.setKeys)__game.setKeys(1); /* M1.40: the arena door is a key door */__game.render();__game.use();__game.advance(3);});await shot(page,'intro_vs');
     const again=await G(page,()=>{__game.advance(3);const A=__game.boss().def.room;const s=__game.advance(0.1);return {mode:s.mode,intros:s.stats.bossIntros};});
     check('M1.10.2 the cut scene plays once per fight',again.mode==='play',JSON.stringify(again));
     await ctx.close();
@@ -972,6 +974,32 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m140Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m140'});
+  const ar=await G(page,()=>{const G=__game,o={floors:0,designs:{},bad:[],fallback:0};const W=new Set('#SWTMKRCVOABEIZ+='.split(''));
+    for(let sd=1;sd<=30;sd++)for(const f of [5,10,15,20,25,30]){const d=G.genMap(sd,f);o.floors++;if(d.fallback){o.fallback++;continue;}const B=d.boss;if(!B||!B.design){o.bad.push(sd+':'+f+' no design');continue;}
+      o.designs[B.design]=(o.designs[B.design]|0)+1;const D=G.arenas.find(a=>a.name===B.design),A=B.room,m=d.map;if(A.w!==D.rows[0].length||A.h!==D.rows.length){o.bad.push(sd+':'+f+' size');continue;}
+      for(let ty=0;ty<A.h;ty++)for(let tx=0;tx<A.w;tx++){const t=D.rows[ty][tx],c=m[A.y+ty][A.x+tx];
+        if((t==='#'&&!W.has(c))||(t==='x'&&!W.has(c)&&!/[.c]/.test(c)))o.bad.push(sd+':'+f+' '+t+'@'+tx+','+ty+'='+c);if(t==='o'&&c!=='P')o.bad.push(sd+':'+f+' pit@'+tx+','+ty+'='+c);if(t==='X'&&c!=='X')o.bad.push(sd+':'+f+' exit');}
+      const bx=D.rows.findIndex(r=>r.includes('B')),by=D.rows[bx].indexOf('B');if(B.x!==A.x+by||B.y!==A.y+bx)o.bad.push(sd+':'+f+' boss spot');}
+    return o;});
+  const lk=await G(page,()=>{const G=__game,bad=[];let n=0;const WALL=new Set('#SWTMKRCVOABEIZ+=F'.split(''));
+    for(let sd=1;sd<=30;sd++)for(const f of [2,3,4,6,7,8,9,11,13,17,24,31]){const d=G.genMap(sd,f),m=d.map;if(d.boss)continue;const A=G.genRooms(sd,f).find(r=>r.tag==='exit');if(!A){bad.push(sd+':'+f+' no exit room');continue;}n++;let doors=[],keys=0,locks=0,p=null;
+      for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++){const c=m[y][x];if(c==='k')keys++;if(c==='L')locks++;if(c==='p')p=[x,y];const ring=(y===A.y-1||y===A.y+A.h)!==(x===A.x-1||x===A.x+A.w)&&x>=A.x-1&&x<=A.x+A.w&&y>=A.y-1&&y<=A.y+A.h;if(ring&&!WALL.has(c))doors.push(c);}
+      if(doors.length!==1||doors[0]!=='L')bad.push(sd+':'+f+' doors '+doors.join(''));
+      const seen=new Set([p.join()]),q=[p];let keyFree=false;while(q.length){const [x,y]=q.pop();if(m[y][x]==='k')keyFree=true;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy,k=X+','+Y,c=m[Y][X];if(seen.has(k)||WALL.has(c)||c==='L'||c==='P'||c==='Y'||c==='N')continue;seen.add(k);q.push([X,Y]);}}
+      if(!keyFree)bad.push(sd+':'+f+' no key before the lock');if(keys<locks)bad.push(sd+':'+f+' keys '+keys+' < locks '+locks);}
+    return {n,bad};});
+  check(`M1.40 the portal is behind a key door: on ${lk.n} normal floors the exit room has exactly one way in, a locked door, and a key can be found without passing any lock (boss floors: the portal opens when the boss falls)`,lk.bad.length===0,JSON.stringify(lk.bad.slice(0,6)));
+  check(`M1.40 every boss floor uses a fixed arena design (13 x 11): ${Object.entries(ar.designs).map(([k,v])=>k+' '+v).join(', ')}; pillars, pits, the boss spot and the portal are where the design puts them`,ar.fallback===0&&ar.bad.length===0&&Object.keys(ar.designs).length===4,JSON.stringify({bad:ar.bad.slice(0,6),designs:ar.designs}));
+  const kg=await G(page,()=>{const comps=d=>{const seen=new Uint8Array(d.w*d.h);let n=0,big=0,tot=0;for(let i=0;i<d.w*d.h;i++){if(!(d.px[i]>>>24)||seen[i])continue;n++;let c=0;const q=[i];seen[i]=1;while(q.length){const j=q.pop();c++;const x=j%d.w,y=(j/d.w)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=d.w||Y>=d.h)continue;const k=Y*d.w+X;if(!seen[k]&&(d.px[k]>>>24)){seen[k]=1;q.push(k);}}}tot+=c;big=Math.max(big,c);}return {n,share:+(big/tot).toFixed(3)};};
+    return [0,1,2,3,4,5,6,7].map(i=>comps(__game.spriteData('king',i)));});
+  check('M1.40 the Screamer King is one piece in every frame: his ears stay attached to his head while they flap',kg.every(c=>c.n===1),JSON.stringify(kg));
+  const mn=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(4);__game.faceBoss(2.5);__game.advance(0.1);for(let i=0;i<70&&__game.state().mode!=='play';i++){__game.setHearts(5);__game.advance(0.1);} /* past the 5 s intro */const mx=__game.boss().ent.maxHp;__game.hitBoss(Math.ceil(mx/3));__game.setHearts(5);const s=__game.advance(0.1);return s.enemies.filter(e=>e.spawned&&!e.gone).map(e=>e.type+':'+e.scale);});
+  check(`M1.40 the Screamer King's screamers are small beside him (${mn.join(', ')})`,mn.length>=1&&mn.every(m=>m==='screamer:0.6'),JSON.stringify(mn));
+  await ctx.close();
+}
+
 async function m139Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m139'});
   const rm=await G(page,()=>{const G=__game,mobCh=new Set(Object.values(G.mobs).map(m=>m.ch)),o={floors:0,fillable:0,empty:[],big:0,big2:0,mobs:0,corridor:0,maxMobs:0};
@@ -1116,6 +1144,7 @@ if(V135&&want('m135')){ await m135Tests(); }
 if(V136&&want('m136')){ await m136Tests(); }
 if(V137&&want('m137')){ await m137Tests(); }
 if(V139&&want('m139')){ await m139Tests(); }
+if(V140&&want('m140')){ await m140Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2576,7 +2605,7 @@ async function m18Tests(){
       mono('mobs')&&mono('hpMul')&&mono('elite')&&d.every(x=>x.mobs<=22&&x.coins<=30&&x.hpMul<=1.6&&x.elite<=.6&&x.roomTries<=90)&&d[12].mobs===22&&d[11].mobs<22&&d[7].hpMul===1&&Math.abs(d[17].hpMul-1.6)<1e-9&&Math.abs(d[16].hpMul-1.54)<1e-9&&d[11].elite===.6&&d[399].twoMod===1&&d[7].mobs===15,
       `L8 mobs ${d[7].mobs}, L12 ${d[11].mobs}, L13 ${d[12].mobs}; hp L9 ${d[8].hpMul.toFixed(2)} L18 ${d[17].hpMul}; elite L12 ${d[11].elite} L400 ${d[399].elite}`);
     const hp=await G(page,()=>{__game.setSeed(4242);__game.startLevel(199);const s=__game.state();const M=__game.mobs;let bad=0;s.enemies=s.enemies.filter(e=>M[e.type]); /* M1.10: floor 200 has a boss (own HP rules, checked in m110Tests) */s.enemies=s.enemies.filter(e=>!e.spawned&&!(e.type==='zapfly'&&e.maxHp===1)); /* smiling masks can't be hurt and keep 1 HP */s.enemies.forEach(e=>{const base=M[e.type].hp,cap=__game.floorHp?(e.mods.includes('beefy')?Math.ceil(__game.floorHp(e.type,200)*2.5):__game.floorHp(e.type,200)):Math.ceil((e.mods.includes('beefy')?Math.ceil(base*2.5):base)*1.6); /* M1.13: +1 HP per floor instead of x1.6 */if(e.maxHp!==cap)bad++;});return {n:s.enemies.length,bad,elites:s.enemies.filter(e=>e.mods.length).length};});
-    check('M1.8 floor 200 mobs: count <= 22, HP exactly x1.6 of their (elite) base',hp.n>0&&hp.n<=22&&hp.bad===0,JSON.stringify(hp));
+    check('M1.8 floor 200 mobs: count <= '+(V139?30:22)+', HP exactly x1.6 of their (elite) base',hp.n>0&&hp.n<=(V139?30:22)&&hp.bad===0,JSON.stringify(hp)); /* M1.39: up to 30 when every room needs one */
     await ctx.close();
   }
 
@@ -3057,10 +3086,10 @@ async function m19Tests(){
   // ---- 8. pits
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-pits'});
-    const pg=await G(page,()=>{let maps=0,bad=[],cnt={};for(let sd=1;sd<=100;sd++)for(const f of [1,2,3,4,5,6,8,10,12,16,30,200]){if(f===1)continue;const d=__game.genMap(sd,f),m=d.map,h=m.length,w=m[0].length;maps++;let n=0;
-        for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(m[y][x]!=='P')continue;n++;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i];if(/[DLFkXYNph]/.test(q))bad.push(`${sd}:${f} ${q} by pit`);}}
+    const pg=await G(page,(V140)=>{let maps=0,bad=[],cnt={};for(let sd=1;sd<=100;sd++)for(const f of [1,2,3,4,5,6,8,10,12,16,30,200]){if(f===1)continue;const d=__game.genMap(sd,f),m=d.map,h=m.length,w=m[0].length;maps++;let n=0;const AR=V140&&d.boss&&d.boss.design?d.boss.room:null; /* M1.40: the arena design's own pits are not random pits */
+        for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(m[y][x]!=='P')continue;if(AR&&x>=AR.x&&x<AR.x+AR.w&&y>=AR.y&&y<AR.y+AR.h)continue;n++;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i];if(/[DLFkXYNph]/.test(q))bad.push(`${sd}:${f} ${q} by pit`);}}
         const want=f>=3?Math.min(6,1+(f>>1)):0;(cnt[f]=cnt[f]||[]).push(n);if(n>want)bad.push(`${sd}:${f} ${n}>${want}`);}
-      const avg={};for(const f in cnt)avg[f]=(cnt[f].reduce((a,b)=>a+b,0)/cnt[f].length).toFixed(1);return {maps,bad:bad.slice(0,6),nBad:bad.length,avg};});
+      const avg={};for(const f in cnt)avg[f]=(cnt[f].reduce((a,b)=>a+b,0)/cnt[f].length).toFixed(1);return {maps,bad:bad.slice(0,6),nBad:bad.length,avg};},V140);
     check(`M1.9 pits: none on floors 1-2, up to 1 + floor/2 (max 6) from floor 3; never on/next to the start, keys, doors, exit, slot, merchant or hearts (${pg.maps} maps)`,pg.nBad===0&&pg.avg[2]==='0.0'&&+pg.avg[8]>=3,JSON.stringify(pg));
     // solvability with pits: every lock order, any floor (M1.3 analysis covers 2-8; here floors 9-200 on 40 seeds, locks closed and open)
     const sol=await G(page,()=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let maps=0,bad=[];

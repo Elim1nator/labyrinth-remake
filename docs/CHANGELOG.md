@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.40: boss arenas, stairs down, the Screamer King's ears
+- Boss floors get a fixed arena design, 13 x 11 (bigger than any random room), set against the left or right edge of the map: THE ROTUNDA (a round room with four pillars), THE PILLAR HALL (2x2 pillar blocks to hide behind), THE PIT RING (a ring of deadly pits around the portal) or THE CROSSROADS (L-shaped walls and pits). The boss and the exit sit where the design puts them; you start as far from the arena as the floor allows. The arena keeps all its doors (they all slam shut when the fight starts) and the exit opens when the boss falls. Designs are in `ARENAS` in the game.
+- The exit is now a round staircase spiralling down, with the EXIT sign over it on an iron post (green when open, red with an iron grate over the well while a boss lives). Messages say "THE STAIRS" instead of "THE PORTAL". The art is still `assets/boss/portal.png` / `portalS.png`.
+- The Screamer King's ears stay attached to his head in every frame (each ear reaches in under the skull, and the flap is a little smaller).
+- The screamers the Screamer King calls are 60% size.
+- Normal floors: a test now checks that the exit room always has exactly one way in, a locked door, and that a key can be found without passing any lock.
+- QA build `m1.40-qa` (debug hook on).
+
 ## M1.39: rooms get their monsters; items stack freely; masks rock again
 - Monster placement, rooms first: every room except the start, shop, treasure room/vault and boss arena gets at least one monster, and rooms later on the route get 2 (25+ cells) or 3 (45+). Monsters are moved in from the corridors first; new ones are added only so that every room has one (the 22 cap can rise to 30 for that). The secret room keeps its guard, nothing spawns within 7 steps of the start, and decorations no longer count as filling a room. Across 100 test floors: no empty rooms (was 42% with no monsters), about the same number of monsters per floor.
 - Stat items have no stack limit (running shoes, dumbbell, cheeseburger, coffee, glasses, heart in a jar, glove, duck, watch, garlic, jacket, magnet, mirror, bubble wrap). The pickup message and shop show how many you have ("x4", "YOU HAVE 4") instead of "1/3". Safety ceilings: speed and balloon speed up to x3, throw delay down to 0.08 s, cheeseburger growth and eye height capped, enemy shots no slower than x0.25, jacket 20% / 36% / 49% ... up to 80%. More than 8 hearts show as one heart and a count.

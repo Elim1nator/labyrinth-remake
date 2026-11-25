@@ -54,8 +54,8 @@ Each `boss/*.png` is a strip of frames like the monsters:
 
 | File | What | Frames |
 |---|---|---|
-| `portal.png` | the exit portal, swirling | 4 |
-| `portalS.png` | the portal barred while a boss lives | 2 |
+| `portal.png` | the exit: a spiral staircase going down, EXIT sign above (M1.40) | 4 |
+| `portalS.png` | the exit while a boss lives: iron grate over the stairs, red sign | 2 |
 | `lectern.png` | the King in Yellow's lectern (unlit, lit) | 2 |
 | `ysign.png` | the Yellow Sign he scrawls | 2 |
 | `hali.png` | the mist of Lake Hali | 2 |

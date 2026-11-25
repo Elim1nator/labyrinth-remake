@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.49: new wall textures
+- All 20 wall tiles in `assets/walls.png` redrawn from the supplied sheet (same order and size). The fence's dark backdrop is cut out so it stays see-through.
+- All test groups pass (2,578 checks across the parallel group runs).
+- QA build `m1.49-qa` (debug hook on).
+
 ## M1.48: Hexeye art fix
 - The Hexeye's red-stare frame is no longer cut off on the left (the frames are now cut from the supplied image by shape, not by equal strips).
 - QA build `m1.48-qa` (debug hook on).

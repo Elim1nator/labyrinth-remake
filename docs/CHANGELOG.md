@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.47: the Hexeye; bigger pits and pit rooms
+- New monster, the **Hexeye** (from floor 12): a floating purple stone hexagon with one big eye (art from the supplied sprite, `assets/mobs/hexeye.png`: open, half-blink, closed, red). It floats toward you, blinks, and hangs back about 2.6 cells away. When it sees you within 4.2 cells it stares: a high whine, its eye turns red and the fog goes red; after 2 s you lose a heart if you are still in range. Step out of range to dodge it. The attack is psychic, so the leather jacket, bubble wrap, garlic and hand mirror do not stop it. Tuning: `HEXEYE` in the game.
+- Pits: more of them deeper down (6 spots by floor 10, +1 every 4 floors past 12, up to 10), 2x1 / 2x2 pits from floor 8 and up to 3x3 from floor 14, each keeping every part of the floor reachable. Tuning: `PITGEN`.
+- Pit rooms (from floor 14, 40% of floors): a room becomes all pit except 1-cell paths joining its doors. What stood there moves elsewhere and nothing stands on the paths; the start, exit, shop, treasure, arena, slot machine, key and secret-room entrance never end up in one.
+- Fix: monsters displaced by a pit room never land in the boss arena or the shop.
+- The single-file size limit is now 2 MB (the full-colour Hexeye art put the build at about 1 MB).
+- QA build `m1.47-qa` (debug hook on).
+
 ## M1.46: freeze fix, stuck skeletons
 - Fixed the game freezing (the view stopped updating; the pause menu still animated, but CONTINUE froze it again): an Infernal mob of a type without a pre-built glow (a skitter, an egg sac, the knight...) crashed the renderer every frame. The glow is now built for any mob type the first time it is needed.
 - Safety net: an error in one frame no longer freezes the game. The loop carries on, and the last error is shown in small red text on the pause screen (report it if you see it).

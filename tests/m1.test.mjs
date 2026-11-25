@@ -1231,7 +1231,7 @@ if(V147&&want('m147')){ await m147Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
-const size=fs.statSync(FILE).size,LIM=V121?1024:atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
+const size=fs.statSync(FILE).size,LIM=V147?2048:V121?1024:atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
 await browser.close();
 fs.writeFileSync(`${OUT}/results.json`,JSON.stringify({build:BUILD,file:FILE,date:new Date().toISOString(),passed:results.length-failed,failed,results},null,1));
 console.log(`\n${results.length-failed}/${results.length} passed`+(retired.length?` (${retired.length} checks of pre-M1.23 items or pre-M1.31 layouts retired)`:``));

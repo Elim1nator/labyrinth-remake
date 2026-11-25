@@ -55,5 +55,5 @@ on the inspiration are kept out of this repository.
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size budget (1 MB cap from M1.21; the M1.31 release build is about 758 KB).
+- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.47 release build is about 1 MB.
 - Keeping the slot machine coin-only with printed odds.

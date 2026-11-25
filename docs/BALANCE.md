@@ -83,6 +83,18 @@ Every knob is in `GEN` in the game (`genCfg()` sizes it per floor; the layout it
   and 2 coins), shrine (off the path, from floor 3; the shrine prefers it), arena (boss floors: the exit room if it has 35+
   cells, else a big room in the last 40% of the route).
 
+## Hexeye (M1.47)
+
+From floor 12 in the monster pools. HP 5, slow flyer (crosses pits). Stares when it sees you within 4.2 cells: 2 s of whine,
+red eye and red fog, then 1 heart if you are still in range (psychic: ignores the jacket, bubble wrap, garlic and mirror);
+3.5-5.5 s between stares; hovers about 2.6 cells away. `HEXEYE` in the game.
+
+## Pits (M1.47)
+
+Pit spots per floor: none on floors 1-2, then 1 + floor/2 up to 6, and from floor 13 6 + (floor - 12)/4, at most 10. From floor 8
+a growing share are 2x1 / 2x2 (5% per floor past 6, at most 60%), from floor 14 up to 3x3. From floor 14, 40% of floors get a pit
+room: all pit except 1-cell paths between its doors. `PITGEN` in the game.
+
 ## Infernal mobs (M1.28)
 
 Powered mobs (elites) are called **INFERNAL <NAME>** (the band shows the name and powers when you spot or hit one) and wear a

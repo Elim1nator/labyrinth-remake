@@ -9,8 +9,8 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 |---|---|
 | `walls.png` | All 20 wall textures (see below). |
 | `doors.png` | A door for each wall style, plus the gold lock for locked doors (see below). |
-| `hand.png` | Your arm holding a water balloon: 4 frames of 46 x 40 (idle, wind-up, throw, empty hand). |
-| `balloon.png` | The thrown water balloon (8 x 9). |
+| `hand.png` | Your arm holding a balloon: 4 frames (idle, wind-up, throw, empty hand) for each of the 7 balloon colours, 69 x 60 each. |
+| `balloon.png` | The thrown balloon in each of the 7 colours, 12 x 14 each. |
 | `items.png` | All item icons (run items, balloon colours, use-items), a grid of 24 x 24 tiles. |
 | `mobs/<name>.png` | One file per monster or boss: its animation frames side by side, all the same width. |
 | `boss/<name>.png` | Boss props and effects: portals, the lectern, signs, Hali, goo, the play script, and every projectile (`shot_*.png`). |
@@ -52,12 +52,14 @@ Notes:
 
 ## Editing the arm and balloons
 
-`hand.png` is 184 x 40: four 46 x 40 frames side by side, in this order: idle (holding a balloon), wind-up, throw (open hand,
-balloon gone), empty hand. `balloon.png` is the 8 x 9 balloon you throw (also the HUD icon).
+Every balloon colour is its own art, in this order: **blue, red, green, yellow, black, purple, pink**.
 
-- Paint the balloon **blue**. The other balloon colours (red, green, yellow, black, purple, pink) are made in code by recolouring the
-  blue pixels, so keep the balloon in blues and the hand, glove and sleeve out of them.
-- The frames are drawn at 2x on screen, anchored at the bottom right; keep the arm reaching off the bottom-right corner.
+- `hand.png` is 1932 x 60: 28 frames of 69 x 60 side by side, 4 per colour in that order - idle (holding the balloon), wind-up,
+  throw (open hand, balloon gone), empty hand. So frames 1-4 are the blue balloon, 5-8 red, and so on. The empty-hand and throw
+  frames are the same for every colour unless you change them.
+- `balloon.png` is 84 x 14: 7 frames of 12 x 14, one balloon per colour in the same order. It is the balloon you throw and the
+  HUD icon.
+- The arm is drawn at 2x on screen, anchored at the bottom right; keep it reaching off the bottom-right corner.
 - Then run `node tools/assets.mjs pack`.
 
 ## Editing boss props, portals and projectiles

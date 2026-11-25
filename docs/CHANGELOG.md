@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.44: every balloon colour is its own art
+- All 7 balloon colours (blue, red, green, yellow, black, purple, pink), thrown and in your hand, are now in the PNGs: `assets/balloon.png` has one balloon per colour and `assets/hand.png` has the 4 arm frames for each colour (28 frames). The recolouring code is gone; everything looks exactly as in M1.43. See assets/README.md.
+- QA build `m1.44-qa` (debug hook on).
+
 ## M1.43: the arm and balloons are PNGs
 - The first-person arm (idle, wind-up, throw, empty) and the thrown balloon now come from `assets/hand.png` and `assets/balloon.png` instead of drawing code, pixel-identical to M1.42. The other balloon colours are still made by recolouring the blue pixels. See assets/README.md, "Editing the arm and balloons".
 - QA build `m1.43-qa` (debug hook on).

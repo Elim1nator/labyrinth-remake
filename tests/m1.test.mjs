@@ -40,6 +40,7 @@ const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status e
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
+const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
 const V143=atLeast('1.43'); // M1.43+: the arm and balloon art come from assets/hand.png and assets/balloon.png
 const V142=atLeast('1.42'); // M1.42+: the EXIT sign hangs from the ceiling
 const V141=atLeast('1.41'); // M1.41+: the exit is a stairwell in the floor; the King's ears shear instead of rotating
@@ -981,6 +982,8 @@ async function m143Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m143'});
   const r=await G(page,()=>{const G=__game,h=[0,1,2,3].map(i=>{const d=G.atlasPng('hand');return d.length;}),st=G.assetState();
     const hs=['idle','windup','throw','empty'].map(f=>G.frameSig(f));return {embedded:{hand:!!G.embedded('hand'),balloon:!!G.embedded('balloon')},state:st,sigs:hs,uniq:new Set(hs).size,k:[G.fxK('hand'),G.fxK('balloon')]};});
+  if(V144){const bc=await G(page,()=>{const s=__game.ballSigs();return {n:Object.keys(s).length,balls:new Set(Object.values(s).map(v=>v[0])).size,idle:new Set(Object.values(s).map(v=>v[1])).size};});
+    check(`M1.44 every balloon colour is its own art: ${bc.n} colours, ${bc.balls} different balloons and ${bc.idle} different arms holding them (from assets/balloon.png and assets/hand.png, no recolouring)`,bc.n===7&&bc.balls===7&&bc.idle===7,JSON.stringify(bc));}
   check('M1.43 the arm (4 frames) and the balloon come from assets/hand.png and assets/balloon.png, embedded in the game, all 4 arm frames distinct',r.embedded.hand&&r.embedded.balloon&&r.uniq===4&&r.k.join()==='1.5,1.5'&&r.state.hand==='png'&&r.state.balloon==='png',JSON.stringify(r));
   await ctx.close();
 }

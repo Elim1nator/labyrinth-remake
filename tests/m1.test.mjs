@@ -40,6 +40,7 @@ const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status e
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
+const V139=atLeast('1.39'); // M1.39+: rooms get their monsters first; stat items stack without a limit; masks rock
 const V137=atLeast('1.37'); // M1.37+: doors are the leaf only (no wall frame); wall variations are just pillars and runes
 const V136=atLeast('1.36'); // M1.36+: new level generator (rooms and mazes, growing tree, braiding, distance-map content)
 const V135=atLeast('1.35'); // M1.35+: the treasure knight smashes doors and fences; doors match their wall style
@@ -793,8 +794,8 @@ async function m123Tests(){
     ['coffee','coffee','glasses','burger','heart','heart'].forEach(k=>G.addRunItem(k));r.cd2=cd();r.view=G.viewDist();r.eye=G.eyeLift();r.max=G.maxHearts();r.hearts=G.state().player.hearts;
     let n=0;while(G.addRunItem('dumbbell'))n++;r.dumbCap=n;
     G.nextFloorViaExit?G.nextFloorViaExit():null;G.startLevel(7,{hearts:G.state().player.hearts,coins:0,perm:G.perm()});r.carried=G.itemN('coffee')+G.itemN('dumbbell');return r;});
-  check('M1.23 run items stack: 2 Coffee = 0.82^2 throw cooldown, Glasses +1 sight, Cheeseburger lifts your eye, Heart in a Jar +1 max heart each, Dumbbell stops at 3, all carried to the next floor',
-    Math.abs(st.cd2-st.cd0*.82*.82)<1e-6&&st.view===st.view0+1&&st.eye>st.eye0&&st.max===st.max0+2&&st.dumbCap===3&&st.carried===5,JSON.stringify(st));
+  check('M1.23 run items stack: 2 Coffee = 0.82^2 throw cooldown, Glasses +1 sight, Cheeseburger lifts your eye, Heart in a Jar +1 max heart each, '+(V139?'Dumbbell keeps stacking (M1.39: no limit)':'Dumbbell stops at 3')+', all carried to the next floor',
+    Math.abs(st.cd2-st.cd0*.82*.82)<1e-6&&st.view===st.view0+1&&st.eye>st.eye0&&st.max===st.max0+2&&(V139?st.dumbCap>3&&st.carried===st.dumbCap+2:st.dumbCap===3&&st.carried===5),JSON.stringify(st));
   // balloon colours stack on every balloon
   const b=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);
     const setup=items=>{G.startLevel(6,{hearts:5,coins:0,perm:{items}});G.clearMobs();const s=G.state();let best=null;for(let y=1;y<s.mapH-1;y++)for(let x=1;x<s.mapW-1;x++){let n=0;while(n<9&&!G.solidAt(x+n+.5,y+.5)&&!G.pitUnder(x+n+.5,y+.5,0))n++;if(n>=7&&(!best||n>best.n))best={x,y,n};}G.teleport(best.x+.5,best.y+.5,0);G.setPitch(0);return best;};
@@ -971,6 +972,25 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m139Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m139'});
+  const rm=await G(page,()=>{const G=__game,mobCh=new Set(Object.values(G.mobs).map(m=>m.ch)),o={floors:0,fillable:0,empty:[],big:0,big2:0,mobs:0,corridor:0,maxMobs:0};
+    for(const sd of [1,2,3,4,5,6,7,8,9,10])for(const f of [2,3,4,6,7,8,9,11,13,16]){const d=G.genMap(sd,f),m=d.map,RR=G.genRooms(sd,f);o.floors++;let n=0;
+      for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++)if(mobCh.has(m[y][x])){n++;if(!RR.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h))o.corridor++;}o.mobs+=n;o.maxMobs=Math.max(o.maxMobs,n);
+      RR.forEach(r=>{if(r.start||r.shop||r.tag==='treasure'||r.tag==='arena')return;o.fillable++;let k=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++)if(mobCh.has(m[y][x]))k++;if(!k)o.empty.push(sd+':'+f);if(r.w*r.h>=25){o.big++;if(k>=2)o.big2++;}});}
+    o.mobsPerFloor=+(o.mobs/o.floors).toFixed(1);return o;});
+  check(`M1.39 every room except the start, shop, treasure room and arena has monsters (${rm.fillable} rooms on ${rm.floors} floors; decorations no longer count)`,rm.empty.length===0,JSON.stringify({empty:rm.empty.slice(0,6)}));
+  check(`M1.39 rooms first: monsters move out of the corridors into rooms (${rm.corridor} left in corridors), big rooms often get 2+ (${rm.big2} of ${rm.big}), ${rm.mobsPerFloor} per floor, never more than 30`,rm.corridor<rm.mobs*.1&&rm.big2>rm.big*.3&&rm.maxMobs<=30,JSON.stringify({corridor:rm.corridor,mobs:rm.mobs,big:rm.big,big2:rm.big2,max:rm.maxMobs}));
+  const it=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(5);G.startLevel(3,{hearts:5,coins:0,perm:{items:{}}});const out={};for(let i=0;i<10;i++){G.addRunItem('dumbbell');G.addRunItem('heart');}for(let i=0;i<30;i++){G.addRunItem('shoes');G.addRunItem('jacket');G.addRunItem('burger');G.addRunItem('watch');}
+    out.dumb=G.itemN('dumbbell');out.c=G.itemCeil();G.advance(0.05);out.hearts=G.state().player.hearts;return out;});
+  check(`M1.39 stat items have no stack limit: 10 dumbbells (${it.dumb}), 10 hearts in a jar (max ${it.c.maxH} hearts), 30 running shoes, jackets, burgers and watches all stack`,it.dumb===10&&it.c.maxH===15&&it.c.stack>=99,JSON.stringify(it));
+  check(`M1.39 ...with safety ceilings: speed x${it.c.shoes} (max 3), jacket ${(it.c.jacket*100).toFixed(1)}% (max 80%), eye lift ${it.c.eye} (max 0.3), enemy shots x${it.c.watch.toFixed(2)} (min 0.25)`,it.c.shoes===3&&it.c.jacket===.8&&it.c.eye<=.3&&it.c.watch===.25,JSON.stringify(it.c));
+  const tilt=await G(page,()=>{const ang=d=>{let n=0,mx=0,my=0;const P=[];for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++)if(d.px[y*d.w+x]>>>24){P.push([x,y]);mx+=x;my+=y;n++;}mx/=n;my/=n;let a=0,b=0,c=0;P.forEach(([x,y])=>{a+=(x-mx)*(x-mx);b+=(x-mx)*(y-my);c+=(y-my)*(y-my);});return .5*Math.atan2(2*b,a-c)*180/Math.PI;};
+    const out={};for(const t of ['zapfly','zapflyC','masque','masqueH']){const a0=[0,1,2,3].map(i=>ang(__game.spriteData(t,i))),a=a0.map(v=>((v-a0[0]+90)%180+180)%180-90);out[t]=+(Math.max(...a)-Math.min(...a)).toFixed(1);} /* angles relative to frame 0 (the axis of a wide mask flips near horizontal) */return out;});
+  check(`M1.39 the masks rock back and forth again (tilt swing across the 4 frames: ${Object.entries(tilt).map(([k,v])=>k+' '+v+'°').join(', ')})`,Object.values(tilt).every(v=>v>=10&&v<=25),JSON.stringify(tilt));
+  await ctx.close();
+}
+
 async function m137Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m137'});
   const r=await G(page,()=>{const G=__game;G.manual=true;const n=[0,0,0,0];for(const f of [1,10,30,50])for(const sd of [900,901,902]){G.setSeed(sd+f);G.startLevel(f-1);const s=G.state();for(let y=0;y<s.mapH;y++)for(let x=0;x<s.mapW;x++){const v=G.cellVariant(x,y);if(v>=0&&G.solidAt(x+.5,y+.5)&&G.cellAt(x,y).t===1)n[v]++;}}
@@ -996,7 +1016,7 @@ async function m136Tests(){
   check(`M1.36 dead ends are short nooks: the longest is ${r.ls.maxDead} cells (stubs are trimmed to 3; the secret-room pocket or slot alcove can add one)`,r.ls.maxDead<=cfg.maxStubLength+1,JSON.stringify(r.ls));
   check(`M1.36 loops: extra connectors (${st.extra}/floor), braided dead ends (${st.braids}/floor) and 1-2 loops around the critical path (${st.pathLoops}/floor)`,st.extra>3&&st.pathLoops>=1&&st.braids>0,JSON.stringify({extra:st.extra,braids:st.braids,pathLoops:st.pathLoops}));
   check(`M1.36 room tags: a start and a treasure room on every floor (${st.treasure}/96), an arena on every boss floor (${st.tags.arena||0}), shrine rooms off the path`,st.treasure===96&&st.tags.start===96&&(st.tags.arena||0)===36&&(st.tags.shrine||0)>40,JSON.stringify(st.tags));
-  check(`M1.36 content by distance from the critical path: the key sits 2-6 tiles off it on ${st.keyBand}/96 floors; rooms escalate: clearly more mobs in the second half of the route (${st.mobsLate}) than the first (${st.mobsEarly}); hearts mostly in far pockets or nooks (${st.heartsFar} of ${st.hearts})`,st.keyBand>=90&&st.mobsLate>st.mobsEarly*1.3&&st.heartsFar>=st.hearts*.6,JSON.stringify({keyBand:st.keyBand,early:st.mobsEarly,late:st.mobsLate,heartsFar:st.heartsFar,hearts:st.hearts}));
+  check(`M1.36 content by distance from the critical path: the key sits 2-6 tiles off it on ${st.keyBand}/96 floors; rooms escalate: clearly more mobs in the second half of the route (${st.mobsLate}) than the first (${st.mobsEarly}); hearts mostly in far pockets or nooks (${st.heartsFar} of ${st.hearts})`,st.keyBand>=90&&st.mobsLate>st.mobsEarly*(V139?1.1:1.3)&& /* M1.39: every room gets one now, so the ramp is gentler */st.heartsFar>=st.hearts*.6,JSON.stringify({keyBand:st.keyBand,early:st.mobsEarly,late:st.mobsLate,heartsFar:st.heartsFar,hearts:st.hearts}));
   check('M1.36 the same seed always gives the same map; another seed gives another',r.same&&r.differ);
   check(`M1.36 a 151 x 151 layout generates in ${r.big.ms} ms (under 250)`,r.big.ok&&r.big.ms<250,JSON.stringify(r.big));
   await G(page,()=>{const G=__game;G.manual=true;G.setSeed(4242);G.startLevel(7,{hearts:5,coins:0});G.seeAll&&G.seeAll();G.clearMobs();G.openMap();G.advance(0.05);});
@@ -1095,6 +1115,7 @@ if(V131&&want('m131')){ await m131Tests(); }
 if(V135&&want('m135')){ await m135Tests(); }
 if(V136&&want('m136')){ await m136Tests(); }
 if(V137&&want('m137')){ await m137Tests(); }
+if(V139&&want('m139')){ await m139Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2529,18 +2550,18 @@ async function m18Tests(){
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m18-gen'});
     const FLOORS=[9,10,12,13,16,17,20,21,25,30,50,100,200,500,1000,2500,5000,9999],SEEDS=[1,777,4242,99991,123456,2026];
-    const g=await G(page,({FLOORS,SEEDS,V19})=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));const MOB=new Set('ebtgrz'.split(''));
+    const g=await G(page,({FLOORS,SEEDS,V19,V139})=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));const MOB=new Set('ebtgrz'.split(''));
       const mobCh=new Set(Object.values(__game.mobs).map(m=>m.ch));
       const res=[];let maxMs=0,bad=[];const per={};
       for(const f of FLOORS)for(const sd of SEEDS){const t=__game.genTime(sd,f);maxMs=Math.max(maxMs,t.ms);(per[f]=per[f]||[]).push(t.ms);const m=t.map,h=m.length,w=m[0].length;let p=null,x0=0,nk=0,nx=0,ny=0,nm=0,nc=0,err='';
         if(t.fallback)err+='fallback ';if(m.some(r=>r.length!==w))err+='ragged ';
         for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if((x===0||y===0||x===w-1||y===h-1)&&!WALL.has(c))err+='border ';if(c==='p')p=[x,y];if(c==='X')nx++;if(c==='k')nk++;if(c==='Y')ny++;if(mobCh.has(c))nm++;if(c==='c')nc++;}
-        if(!p||nx!==1)err+='p/X ';if(nk<1)err+='key ';if(ny>1)err+='slots ';if(nm>22)err+='mobs '+nm;if(nc>33)err+='coins '+nc;
+        if(!p||nx!==1)err+='p/X ';if(nk<1)err+='key ';if(ny>1)err+='slots ';if(nm>(V139?30:22))err+='mobs '+nm; /* M1.39: up to 30 when every room needs one */if(nc>33)err+='coins '+nc;
         if(p){const seen=new Set([p[1]*w+p[0]]),q=[p];const walk=c=>!WALL.has(c)&&c!=='F'&&c!=='Y'&&c!=='P'&&c!=='N';const S=V19?t.secret:null,inS=(x,y)=>S&&x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=w||Y>=h)continue;const k=Y*w+X;if(seen.has(k)||!walk(m[Y][X]))continue;seen.add(k);q.push([X,Y]);}}
           for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if((c==='X'||c==='k'||c==='c'||c==='h'||mobCh.has(c))&&!seen.has(y*w+x)&&!inS(x,y)){err+='unreachable '+c+' ';y=h;break;}}}
         if(err)bad.push(`F${f}/s${sd}: ${err}`);}
-      const avg={};for(const f in per)avg[f]=per[f].reduce((a,b)=>a+b,0)/per[f].length;return {maxMs,bad,avg};},{FLOORS,SEEDS,V19});
-    check(`M1.8 generation is valid on floors 9-9999 (${FLOORS.length} floors x ${SEEDS.length} seeds: walls on the border, one start/exit, key, everything reachable with the slot machine as a wall, mobs <= 22, coins <= 33)`,g.bad.length===0,g.bad.slice(0,4).join(' | '));
+      const avg={};for(const f in per)avg[f]=per[f].reduce((a,b)=>a+b,0)/per[f].length;return {maxMs,bad,avg};},{FLOORS,SEEDS,V19,V139});
+    check(`M1.8 generation is valid on floors 9-9999 (${FLOORS.length} floors x ${SEEDS.length} seeds: walls on the border, one start/exit, key, everything reachable with the slot machine as a wall, mobs <= ${V139?30:22}, coins <= 33)`,g.bad.length===0,g.bad.slice(0,4).join(' | '));
     check('M1.8 generation stays fast at depth (every floor < 250 ms; L50 / L200 / L9999 averages reported)',g.maxMs<250,`max ${g.maxMs.toFixed(1)} ms; avg L50 ${g.avg[50].toFixed(1)} ms, L200 ${g.avg[200].toFixed(1)} ms, L5000 ${g.avg[5000].toFixed(1)} ms, L9999 ${g.avg[9999].toFixed(1)} ms`);
     fs.writeFileSync(`${OUT}/m18_gen_timing.json`,JSON.stringify(g,null,1));
     // M1.7 comparison: floors 2-8 identical apart from the slot machine cell

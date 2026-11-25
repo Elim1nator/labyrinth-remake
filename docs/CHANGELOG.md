@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.39: rooms get their monsters; items stack freely; masks rock again
+- Monster placement, rooms first: every room except the start, shop, treasure room/vault and boss arena gets at least one monster, and rooms later on the route get 2 (25+ cells) or 3 (45+). Monsters are moved in from the corridors first; new ones are added only so that every room has one (the 22 cap can rise to 30 for that). The secret room keeps its guard, nothing spawns within 7 steps of the start, and decorations no longer count as filling a room. Across 100 test floors: no empty rooms (was 42% with no monsters), about the same number of monsters per floor.
+- Stat items have no stack limit (running shoes, dumbbell, cheeseburger, coffee, glasses, heart in a jar, glove, duck, watch, garlic, jacket, magnet, mirror, bubble wrap). The pickup message and shop show how many you have ("x4", "YOU HAVE 4") instead of "1/3". Safety ceilings: speed and balloon speed up to x3, throw delay down to 0.08 s, cheeseburger growth and eye height capped, enemy shots no slower than x0.25, jacket 20% / 36% / 49% ... up to 80%. More than 8 hearts show as one heart and a count.
+- The masks (Tragedy, Comedy, Grand Masque) rock back and forth again: frames tilt 0 / -8 / 0 / +8 degrees (Grand Masque ±7), with a 1 px bob.
+- QA build `m1.39-qa` (debug hook on).
+
 ## M1.38: pillars in the middle of the wall
 - The pillar variation is now a single pillar standing in the middle of the wall (shaft with a capital and base, a soft shadow beside it) instead of half-pilasters at both edges with a recessed bay. The wall around it stays plain.
 - QA build `m1.38-qa` (debug hook on).

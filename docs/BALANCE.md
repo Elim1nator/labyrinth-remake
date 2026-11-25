@@ -75,6 +75,7 @@ Every knob is in `GEN` in the game (`genCfg()` sizes it per floor; the layout it
   nearest roomy room (15+ cells) to A, the exit the room nearest B, sealed to one locked door. The critical path is the shortest
   route between them.
 - **Content:** the key sits 2-6 tiles off the critical path, reachable without the lock (in the farther 60% of such spots).
+- **Monsters, rooms first (M1.39):** every room except the start, shop, treasure room and arena gets 1 monster; rooms past the first 40% of the route get 2 (25+ cells) or 3 (45+), moved in from the corridors. New monsters only fill rooms that would otherwise have none (cap 22, up to 30 for that). Nothing within 7 steps of the start.
   Mobs are placed mostly on or near the path, weighted towards its far end, so rooms get busier as you go. Coins sit just off
   the path; hearts and the secret room prefer far pockets (7+) and dead-end nooks.
 - **Room tags:** start, exit, treasure (the room farthest off the path: the locked vault from floor 4, else a room with a heart
@@ -142,6 +143,8 @@ Rubber Boots also stop webs and potion slowness.
 | REGEN | Heals 1 HP every 2.5 s while not hit. |
 
 ## Items (M1.23)
+
+M1.39: stat items stack without a limit (`STACK` = 99). Safety ceilings in `ITEM_FX`: speed and balloon speed x3, throw delay 0.08 s, cheeseburger growth and eye lift, enemy shots x0.25 at slowest, jacket chance 1-0.8^n up to 80%.
 
 Full list with effects in [CONTROLS_AND_FEATURES.md](CONTROLS_AND_FEATURES.md#items-and-pickups-m123).
 Tuning lives in `ITEMS` (name, max, shop price) and `ITEM_FX` in the game.

@@ -31,7 +31,7 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 Notes:
 - Keep pixels fully opaque, except where you want to see through (only the fence uses transparency). Pixels under
   50% alpha are treated as see-through, the rest as solid.
-- The shaded side of each wall, the damaged / pillared / torch variations, cracks and dents are made in code from your
+- The shaded side of each wall, the pillar and rune variations, cracks and dents are made in code from your
   tile, so they follow your edits automatically.
 - The order of the tiles is fixed (the maps refer to them by position). `atlas.json` lists the names.
 - `node tools/assets.mjs check` tells you if `src/index.html` is out of date; `node tools/release.mjs ...` always packs
@@ -44,7 +44,7 @@ Notes:
 
 `doors.png` is 384 x 192: a grid of 6 x 3 tiles, 64 x 64 each, in this order: brick, stone, wood, tile, moss, basalt, rust, slate, glyph, ember, sandstone, granite, cobble, limestone, dripstone, shale, ironbound, lock (the same names as the wall tiles; the list is in `atlas.json`).
 
-- Each door tile is the door leaf. Leave the frame around it **see-through**: the game fills it with the wall the door sits in, so the door always matches its wall. A door takes the style of the wall cell next to it.
+- Each door tile is the door leaf: paint it inside the box x 6-57, y 7-63. The game stretches that box to fill the whole door (M1.37), so nothing outside it shows; leave the rest see-through. A door takes the style of the wall cell next to it.
 - `lock` is laid over a door to make the locked version (the gold plate, keyhole and bands). Paint only the lock; everything else stays see-through.
 - Then run `node tools/assets.mjs pack`.
 

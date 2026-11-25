@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.37: cleaner doors and walls
+- Doors no longer include a strip of wall around them (it slid along with the door when it opened). The door leaf from `assets/doors.png` now fills the whole doorway; locked doors keep the gold lock and bands.
+- Wall variations are just pillar bays (~5% of wall cells) and, now and then, a glowing rune carved into the plain wall (~3%; each wall style has its own rune colour). The damaged walls and the wall torches are gone.
+- Tests: the two M1.20 variation checks retire; new checks for the variation mix, runes on plain walls and frameless doors. The elite-glow probe also clears pickups and avoids runes in view.
+- QA build `m1.37-qa` (debug hook on).
+
 ## M1.36: new level generator
 - Floors are built with "rooms and mazes" (Bob Nystrom's approach): rooms placed first, a growing-tree maze in the space between (newest cell 80% of the time), regions merged outward from a random room, then 8% of the spare connectors opened as loops. Dead ends are trimmed to nooks of at most 3 cells (a quarter kept), 10% of the rest braided into the next corridor.
 - The entrance and exit are found with a double BFS (they sit at opposite ends of the floor), and 1-2 loops branch off the critical path and rejoin it.

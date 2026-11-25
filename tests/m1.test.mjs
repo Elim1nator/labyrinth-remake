@@ -39,6 +39,7 @@ const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy mask
 const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status effects, 1 px glow)
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
+const V137=atLeast('1.37'); // M1.37+: doors are the leaf only (no wall frame); wall variations are just pillars and runes
 const V136=atLeast('1.36'); // M1.36+: new level generator (rooms and mazes, growing tree, braiding, distance-map content)
 const V135=atLeast('1.35'); // M1.35+: the treasure knight smashes doors and fences; doors match their wall style
 const V131=atLeast('1.31'); // M1.31+: no dead-end corridors (long ones link back, short spurs pruned)
@@ -62,9 +63,10 @@ const RETIRED_M123=[/^M1\.4 (walking over a power-up|slot full|same item already
   /^M1\.17 a Torch pushes/];
 // M1.31 rebuilt the level layout on purpose (no dead ends), so the checks that pin floors to their older layouts retire from M1.31 on
 const RETIRED_M136=[/^M1\.31 no corridors that lead nowhere/];
+const RETIRED_M137=[/^M1\.20 every wall style has damaged, structural and decorative variations/,/^M1\.20 most wall cells are plain; some damaged/];
 const RETIRED_M131=[/^M1\.8 floors 2-8 keep their M1\.7 layouts/,/^M1\.10 floors without a boss are generated exactly as in M1\.9\.1/];
 const retired=[];
-function check(name,cond,detail=''){if((V123&&RETIRED_M123.some(re=>re.test(name)))||(V131&&RETIRED_M131.some(re=>re.test(name)))||(V136&&RETIRED_M136.some(re=>re.test(name)))){retired.push(name);console.log('RETIRED  '+name);return;}results.push({name,ok:!!cond,detail});if(!cond)failed++;console.log((cond?'PASS':'FAIL')+'  '+name+(detail?'  ('+detail+')':''));}
+function check(name,cond,detail=''){if((V123&&RETIRED_M123.some(re=>re.test(name)))||(V131&&RETIRED_M131.some(re=>re.test(name)))||(V136&&RETIRED_M136.some(re=>re.test(name)))||(V137&&RETIRED_M137.some(re=>re.test(name)))){retired.push(name);console.log('RETIRED  '+name);return;}results.push({name,ok:!!cond,detail});if(!cond)failed++;console.log((cond?'PASS':'FAIL')+'  '+name+(detail?'  ('+detail+')':''));}
 const browser=await chromium.launch();
 const consoleProblems=[];const badRequests=[];
 async function newPage(opts={}){
@@ -968,6 +970,18 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m137Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m137'});
+  const r=await G(page,()=>{const G=__game;G.manual=true;const n=[0,0,0,0];for(const f of [1,10,30,50])for(const sd of [900,901,902]){G.setSeed(sd+f);G.startLevel(f-1);const s=G.state();for(let y=0;y<s.mapH;y++)for(let x=0;x<s.mapW;x++){const v=G.cellVariant(x,y);if(v>=0&&G.solidAt(x+.5,y+.5)&&G.cellAt(x,y).t===1)n[v]++;}}
+    const tot=n.reduce((a,b)=>a+b,0),W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19],rune=W.map(ti=>G.runeOutside(ti)),diff=W.map(ti=>G.variantDiff(ti,3).diff);
+    const doors=[];for(const f of [2,4,6,9,13,20,30]){G.setSeed(31);G.startLevel(f-1);const s=G.state();for(let y=0;y<s.mapH&&doors.length<40;y++)for(let x=0;x<s.mapW;x++){const c=G.cellAt(x,y);if(c&&c.t===2&&!c.coin){const v=G.doorWallShare(x,y);if(v!==null)doors.push(v);}}}
+    return {share:n.map(c=>c/tot),tot,rune:Math.max(...rune),runeDiff:Math.min(...diff),doors:doors.length,maxWall:Math.max(...doors)};});
+  check(`M1.37 wall variations are just pillars and runes: ${(r.share[0]*100).toFixed(1)}% plain, ${(r.share[2]*100).toFixed(1)}% pillar bays, ${(r.share[3]*100).toFixed(1)}% runes, no damaged walls or torches`,r.share[0]>.88&&r.share[1]===0&&r.share[2]>.025&&r.share[2]<.08&&r.share[3]>.01&&r.share[3]<.05&&r.share[3]<r.share[2],r.share.map(x=>x.toFixed(3)).join(' '));
+  check('M1.37 a rune is carved into the plain wall (no pillar bay around it): outside the rune the wall is unchanged, and the rune itself shows',r.rune===0&&r.runeDiff>3,JSON.stringify({outside:r.rune,minDiff:r.runeDiff}));
+  check(`M1.37 doors are the door leaf only: no wall pixels in any door texture (${r.doors} doors checked), so nothing but the door slides when it opens`,r.doors>=20&&r.maxWall<.01,JSON.stringify(r));
+  await ctx.close();
+}
+
 async function m136Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m136'});
   const r=await G(page,()=>{const G=__game,t0=performance.now(),st=G.genStats([1,2,3,4,5,6,7,8,9,10,777,4242],[2,4,6,8,10,13,20,30]);st.ms=Math.round(performance.now()-t0);
@@ -1077,6 +1091,7 @@ if(V130&&want('m130')){ await m130Tests(); }
 if(V131&&want('m131')){ await m131Tests(); }
 if(V135&&want('m135')){ await m135Tests(); }
 if(V136&&want('m136')){ await m136Tests(); }
+if(V137&&want('m137')){ await m137Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2246,18 +2261,18 @@ async function m16Tests(){
     const cols=await G(page,()=>__game.modCols());const hx=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)],dist=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
     const wisp=[[0xf5,0x9a,0xc0],[0xff,0xb8,0xe4]];
     const pairs=[['ranged','kettle'],['slime','springle'],['beefy','clunk'],['fast','screamer'],['regen','wisp']];
-    const r=await G(page,({pairs,cols,V17,V136})=>{const hx=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];const D=__game.dims;
+    const r=await G(page,({pairs,cols,V17,V136,V137})=>{const hx=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];const D=__game.dims;
       const hsv=p=>{const [r,g,b]=p.map(v=>v/255),mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d+6)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;}return [h*60,mx?d/mx:0,mx];};
       const hd=(a,b)=>{const d=Math.abs(a-b)%360;return Math.min(d,360-d);};
       const grab=()=>{const a=[];for(let y=0;y<D.H;y++)for(let x=0;x<D.W;x++)a.push(__game.pixelAt(x,y));return a;};
-      const set=(t,m)=>{__game.manual=true;__game.viewOverride=14; /* M1.17: this check looks 6 cells away, past the fog */__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();__game.setHearts(99);let P=[7,1];if(V136){const st=__game.state();outer:for(let y=1;y<st.mapH-1;y++)for(let x=1;x<st.mapW-9;x++){let ok=true;for(let k=0;k<=6&&ok;k++){const c=__game.cellAt(x+k,y);if(!c||c.t!==0)ok=false;}const e=__game.cellAt(x+7,y);if(ok&&e&&e.t===1&&__game.solidAt(x+.5,y-.5)&&__game.solidAt(x+.5,y+1.5)){P=[x,y];break outer;}}} /* M1.36: a 6-cell straight run to a wall (layouts changed) */__game.teleport(P[0]+.5,P[1]+.5,0);__game.freeze=true;if(t)__game.spawn(t,P[0]+6.5,P[1]+.5,false,m?[m]:[]);__game.advance(0.02);};
+      const set=(t,m)=>{__game.manual=true;__game.viewOverride=14; /* M1.17: this check looks 6 cells away, past the fog */__game.setSeed(4243);__game.startLevel(6);__game.clearMobs();if(V137)__game.clearItems(); /* M1.37: no hearts or coins in view either */__game.setHearts(99);let P=[7,1];if(V136){const st=__game.state();outer:for(let y=1;y<st.mapH-1;y++)for(let x=1;x<st.mapW-9;x++){let ok=true;for(let k=0;k<=6&&ok;k++){const c=__game.cellAt(x+k,y);if(!c||c.t!==0)ok=false;}const e=__game.cellAt(x+7,y);let rune=false;if(V137)for(let yy=y-3;yy<=y+3;yy++)for(let xx=x;xx<=x+9;xx++)if(__game.cellVariant(xx,yy)===3)rune=true; /* M1.37: no glowing rune in view */if(ok&&!rune&&e&&e.t===1&&__game.solidAt(x+.5,y-.5)&&__game.solidAt(x+.5,y+1.5)){P=[x,y];break outer;}}} /* M1.36: a 6-cell straight run to a wall (layouts changed) */__game.teleport(P[0]+.5,P[1]+.5,0);__game.freeze=true;if(t)__game.spawn(t,P[0]+6.5,P[1]+.5,false,m?[m]:[]);__game.advance(0.02);};
       set(null);const wall=grab();let br=[0,0,0],bn=0;for(let y=60;y<140;y++)for(let x=0;x<150;x++){const q=wall[y*D.W+x];br[0]+=q[0];br[1]+=q[1];br[2]+=q[2];bn++;}br=br.map(v=>Math.round(v/bn));
       const out={brick:br};for(const [m,t] of pairs){const c=hx(cols[m]),hc=hsv(c);const like=q=>{const h=hsv(q);return h[1]>(hc[1]>.35?.3:.15)&&h[2]>.55&&(!V17||(q[0]+q[1]+q[2])/3>115)&&(hc[1]<.35?h[1]<hc[1]+.25:true)&&hd(h[0],hc[0])<20;};
         set(t,null);const A=grab();set(t,m);const B=grab();let ring=0,dark=0,inWall=0;
         for(let i=0;i<A.length;i++){const a=A[i],b=B[i],ch=Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2])>30;if(ch&&like(b))ring++;if(ch&&b[0]+b[1]+b[2]<60&&a[0]+a[1]+a[2]>=60)dark++;}
         for(let y=45;y<200;y++)for(let x=0;x<390;x++)if(like(wall[y*D.W+x]))inWall++;
         out[m]={ring,dark,inWall,iconPx:+__game.state().stats.iconPx.toFixed(1)};}
-      return out;},{pairs,cols,V17,V136});
+      return out;},{pairs,cols,V17,V136,V137});
     const brick=r.brick;delete r.brick;
     check('Elite modifier icons are outlined and at least 8 px tall on screen at distance 6',Object.values(r).every(v=>v.iconPx>=8),Object.entries(r).map(([m,v])=>`${m} ${v.iconPx}px`).join(', '));
     check('Elite glow at distance 6 on red brick: each colour ring is strong (60+ px) with a dark frame, and the colour barely appears in the brick itself',Object.values(r).every(v=>v.ring>=60&&v.dark>=30&&(V131?v.inWall<v.ring*.3:v.inWall<30)), /* M1.31: the new brick art has orange in it, so the ring must clearly outweigh it */Object.entries(r).map(([m,v])=>`${m}: ring ${v.ring}, frame ${v.dark}, in brick ${v.inWall}`).join('; ')+`; brick ${brick}`);

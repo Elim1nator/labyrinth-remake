@@ -107,7 +107,7 @@
         "flare",
         "freeze",
         "firecracker",
-        "veil", "trowel"
+        "veil", "trowel", "plunger"
       ]
     },
     "mods": {
@@ -175,6 +175,7 @@
     },
     "mortar": { "file": "mobs/mortar.png", "frames": 3, "k": 1.5 },
     "lichen": { "file": "mobs/lichen.png", "frames": 5, "k": 1.5 },
+    "bather": { "file": "mobs/bather.png", "frames": 5, "k": 1.5 },
     "kettle": {
       "file": "mobs/kettle.png",
       "frames": 4,

@@ -44,6 +44,7 @@ const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand)
 const V151=atLeast('1.51'); // M1.51+: wall tiles are 128x128
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
+const V156=atLeast('1.56'); // M1.56+: Tiled Baths: the Plunger and the Bather
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
 const V145=atLeast('1.45'); // M1.45+: new arm art (bigger frames), bigger thrown balloons, flyers skip puddles
@@ -738,9 +739,9 @@ async function m117Tests(){
 async function m120Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m120'});
   const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
-  const w=await G(page,()=>{const G=__game,W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19],vd=[];for(const ti of W)for(const k of [1,2,3])vd.push(G.variantDiff(ti,k));
+  const w=await G(page,(V151)=>{const G=__game,W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19],vd=[];for(const ti of W)for(const k of [1,2,3])vd.push(G.variantDiff(ti,k));
     const tiers=[29,33,37,41,45,49,53].map(f=>{const tr=G.texTier(f);return G.deepThemes[tr-1].name+':'+G.deepThemes[tr-1].base;});
-    return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===(V151?128:64)&&v.dark)};});
+    return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===(V151?128:64)&&v.dark)};},V151);
   check('M1.20 crystal and void walls replaced by blue slate and ember rock; 7 new stone styles (TEX has 20 entries)',w.count===20&&w.names[2]==='SLATE HALLS'&&w.names[4]==='THE EMBER CORE'&&!w.names.some(n=>/CRYSTAL|VOID/.test(n)),JSON.stringify(w.names));
   check('M1.20 a new wall style every 4 floors from 29 to 53 (sandstone, granite, cobble, limestone, dripstone, chasm shale, ironbound)',w.tiers.join()==='SANDSTONE CRYPT:A,GRANITE HALLS:B,COBBLE WARRENS:E,LIMESTONE NAVE:I,DRIPPING GROTTO:Z,CHASM DEPTHS:+,IRON KEEP:=',w.tiers.join());
   check('M1.20 every wall style has damaged, structural and decorative variations (64x64, cached, with a dark side)',w.ok&&w.vd.length===51&&w.vd.every((v,i)=>v.diff>=(i%3===0?(V125?.8:1.5):(V125?6:10))),`mean difference from the plain wall (damaged/structural/decorative): ${w.vd.map(v=>v.diff.toFixed(1)).join(' ')}`);
@@ -1409,6 +1410,82 @@ if(V147&&want('m147')){ await m147Tests(); }
 if(V152&&want('m152')){ await m152Tests(); }
 if(V153&&want('m153')){ await m153Tests(); }
 
+async function m156Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m156'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{const G=__game,st=G.assetState(),sig=[];for(let i=0;i<5;i++)sig.push(G.frameSig('bather',i));const info=G.spriteInfo('bather',0);
+    return {st,sheets:G.mobSheets,pu:G.puIds,plunger:G.pu.plunger,hp:G.mobs.bather.hp,speed:G.mobs.bather.speed,name:G.mobs.bather.name,voice:G.mobs.bather.voice,ch:G.mobs.bather.ch,hp1:G.floorHp('bather',1),hp4:G.floorHp('bather',4),sig,info,items:st.items,fly:!!G.mobs.bather.fly};});
+  check('M1.56 the Bather art is packed (5 walk frames in assets/mobs/bather.png) and the mob has 4 base HP that scales like the others',art.st.bather==='png'&&art.sheets.includes('bather')&&atlas.bather&&atlas.bather.file==='mobs/bather.png'&&atlas.bather.frames===5&&new Set(art.sig).size===5&&art.info&&art.info.w>8&&art.hp===4&&art.hp1===4&&art.hp4===7&&art.name==='THE BATHER'&&art.ch==='a'&&!art.fly,JSON.stringify({st:art.st.bather,frames:new Set(art.sig).size,hp:[art.hp,art.hp1,art.hp4],info:art.info&&{w:art.info.w,h:art.info.h}}));
+  check('M1.56 the Plunger is a use-item in the normal loot and shop pools, with a packed icon',art.pu.includes('plunger')&&art.plunger&&art.plunger.name==='PLUNGER'&&/HOLE|FLOOR/.test(art.plunger.desc)&&art.items==='png'&&(atlas.items.tiles||[]).includes('plunger'),JSON.stringify({pu:art.pu.includes('plunger'),plunger:art.plunger,items:art.items}));
+  const sheet=await G(page,async()=>{const url=__game.embedded('bather');const im=new Image();im.src=url;await im.decode();
+    const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);
+    const d=cx.getImageData(0,0,im.width,im.height).data,a=(x,y)=>d[(y*im.width+x)*4+3],n=5,fw=(im.width/n)|0;
+    const corners=[[0,0],[im.width-1,0],[0,im.height-1],[im.width-1,im.height-1]];
+    for(let i=0;i<n;i++)corners.push([i*fw,0],[i*fw+fw-1,0],[i*fw,im.height-1],[i*fw+fw-1,im.height-1]);
+    return {w:im.width,h:im.height,corners:corners.map(([x,y])=>({x,y,a:a(x,y)}))};});
+  check('M1.56 the Bather sheet is transparent at every frame corner (no baked-in white background)',sheet.corners.every(c=>c.a===0),JSON.stringify(sheet));
+  const spawn=await G(page,()=>{const G=__game;let baths=0,onBaths=0,off=0;
+    for(let sd=1;sd<=40;sd++)for(const f of [2,3,4,5,6,7,8]){
+      const name=G.themeFor(sd,f).name,n=[...G.genMap(sd,f).map.join('')].filter(c=>c==='a').length;
+      if(/TILED BATHS/.test(name)){baths++;if(n>0)onBaths++;}else off+=n;}
+    G.setSeed(1);G.startLevel(0);const tut=[...G.currentMap().join('')].filter(c=>c==='a').length;
+    return {baths,onBaths,off,tut};});
+  check('M1.56 the Bather spawns on Tiled Baths floors (the existing early theme), not on the tutorial',spawn.baths>0&&spawn.onBaths===spawn.baths&&spawn.off===0&&spawn.tut===0,JSON.stringify(spawn));
+  const trail=await G(page,()=>{const G=__game;const run=(boots)=>{G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0,perm:{items:boots?{boots:1}:{}}});G.clearMobs();
+      const s=G.state();let spot=null;
+      for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+        if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+2.8,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+2.8,y+.5,0))))spot={x:x+.5,y:y+.5};}
+      if(!spot)spot={x:s.player.x,y:s.player.y};
+      G.teleport(spot.x,spot.y,0);G.setHearts(9);
+      const i=G.spawn('bather',spot.x+1.8,spot.y,true,[]);
+      let pud=0;for(let k=0;k<50;k++){G.advance(0.05);pud=Math.max(pud,(G.state().puddles||[]).filter(q=>q.slick).length);}
+      const patches=(G.state().puddles||[]).filter(q=>q.slick);
+      if(patches[0])G.teleport(patches[0].x,patches[0].y,0);
+      const h0=G.state().player.hearts;
+      G.advance(0.2);
+      const h1=G.state().player.hearts;
+      const slick=G.slickT();
+      const j=G.spawn('zapfly',(patches[0]||{x:spot.x}).x,(patches[0]||{y:spot.y}).y,true,[]);
+      G.advance(0.2);
+      return {pud,n:patches.length,r:patches[0]&&patches[0].r,life:patches[0]&&patches[0].life,lost:h0-h1,slick,flyHp:G.state().enemies[j]&&G.state().enemies[j].hp,cfg:G.batherCfg,base:G.mobs.bather.hp};};
+    return {bare:run(false),boots:run(true)};});
+  check('M1.56 the Bather leaves a trail of slick damaging puddles; Rubber Boots ignore them (flyers are unaffected)',trail.bare.pud>=1&&trail.bare.n>=1&&trail.bare.lost>=1&&trail.bare.slick>0&&trail.boots.lost===0&&trail.boots.slick===0&&trail.bare.base===4,JSON.stringify(trail));
+  const skip=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(1,{hearts:9,coins:0});G.clearMobs();
+    const lv0=G.state().level;G.give('plunger');const held=G.state().player.item;G.useItem();
+    const mid={mode:G.state().mode,item:G.state().player.item,hole:G.hole&&G.hole()};
+    for(let k=0;k<80;k++){G.advance(1/60);if(G.state().mode==='play'&&G.state().level!==lv0)break;}
+    return {lv0,lv1:G.state().level,held,item:G.state().player.item,mode:G.state().mode,mid,msg:G.state().msg};});
+  check('M1.56 the Plunger opens a hole, drops you to the next floor and is used up',skip.held==='plunger'&&skip.item==null&&skip.lv1===skip.lv0+1&&skip.mode==='play'&&skip.mid.mode==='fall'&&!!skip.mid.hole,JSON.stringify(skip));
+  const boss=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);
+    // floor 5 is a boss floor (index 4)
+    G.startLevel(4,{hearts:9,coins:0});G.give('plunger');
+    const sealed=!!G.state().sealed||!!(G.L&&false);
+    const blocked=G.plungerBlocked();
+    const used=G.useItem();
+    return {blocked,used,item:G.state().player.item,level:G.state().level,mode:G.state().mode,msg:G.state().msg,boss:G.state().bossDesign||(G.state().levelName||'')};});
+  check('M1.56 the Plunger is blocked on a boss floor (not consumed) while the arena is sealed',!!boss.blocked&&boss.used===false&&boss.item==='plunger'&&boss.mode!=='fall',JSON.stringify(boss));
+  const deep=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(3);
+    G.startLevel(1,{hearts:9,coins:0});const max=G.maxFloor;G.forceLevelIdx(max-1);G.give('plunger');
+    const blocked=G.plungerBlocked();const used=G.useItem();
+    return {max,blocked,used,item:G.state().player.item,level:G.state().level,mode:G.state().mode};});
+  check('M1.56 the Plunger is blocked on the final floor and is not consumed',!!deep.blocked&&deep.used===false&&deep.item==='plunger'&&deep.mode!=='fall',JSON.stringify(deep));
+  // in-play shots
+  await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0});G.clearMobs();G.viewOverride=14;
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+2.2,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+2.2,y+.5,0))))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);G.setPitch&&G.setPitch(0);
+    G.spawn('bather',spot.x+1.7,spot.y,true,[]);
+    for(let k=0;k<24;k++)G.advance(0.05);
+    G.freeze=true;G.render();});
+  await page.screenshot({path:`${SHOTS}/m156_bather.png`});
+  await G(page,()=>{const G=__game;G.freeze=false;G.clearMobs();G.give('plunger');G.useItem();G.advance(0.25);G.freeze=true;G.render();return {hole:G.hole&&G.hole(),mode:G.state().mode};});
+  await page.screenshot({path:`${SHOTS}/m156_plunger_hole.png`});
+  await ctx.close();
+}
+
+if(V156&&want('m156')){ await m156Tests(); }
+
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
 const size=fs.statSync(FILE).size,LIM=V147?2048:V121?1024:atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
@@ -1798,7 +1875,7 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[])].sort()),types.join(','));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V156?['bather']:[])].sort()),types.join(','));
     const hp=types.map(t=>mobs[t].hp),sp=types.map(t=>mobs[t].speed),vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name);
     check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===types.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hp)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));

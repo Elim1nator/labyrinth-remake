@@ -1,12 +1,12 @@
 {
   "name": "labyrinth-remake-tests",
-  "version": "1.55.0",
+  "version": "1.56.0",
   "private": true,
   "description": "Playwright test suite for Labyrinth Remake builds",
   "license": "UNLICENSED",
   "type": "commonjs",
   "scripts": {
-    "test": "node m1.test.mjs m1.55",
+    "test": "node m1.test.mjs m1.56",
     "test:build": "node m1.test.mjs",
     "smoke": "node smoke.mjs",
     "stub": "node hs_stub.mjs ../src 8787"

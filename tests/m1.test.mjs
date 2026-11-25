@@ -40,6 +40,7 @@ const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status e
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
+const V142=atLeast('1.42'); // M1.42+: the EXIT sign hangs from the ceiling
 const V141=atLeast('1.41'); // M1.41+: the exit is a stairwell in the floor; the King's ears shear instead of rotating
 const V140=atLeast('1.40'); // M1.40+: fixed boss-arena designs; the King's ears stay attached; his screamers are small
 const V139=atLeast('1.39'); // M1.39+: rooms get their monsters first; stat items stack without a limit; masks rock
@@ -982,7 +983,7 @@ async function m141Tests(){
     return out;});
   check(`M1.41 the exit is a hole in the floor with stairs going down (${sw.open.stair} px drawn below the floor) under a floating EXIT sign; while a boss lives an iron grate covers it (${sw.sealed.grate} px)`,sw.open.ok&&sw.open.stair>2000&&sw.open.grate===0&&sw.sealed.grate>2000&&sw.sealed.stair===0,JSON.stringify(sw));
   const sg=await G(page,()=>[0,1].map(i=>{const d=__game.spriteData('portal',i);return [d.w,d.h];}));
-  check('M1.41 the exit sprite is just the EXIT sign (36 x 12)',sg.every(([w,h])=>w===36&&h===12),JSON.stringify(sg));
+  check(V142?'M1.41/M1.42 the exit sprite is just the EXIT sign on two chains (36 x 15), hung from the ceiling':'M1.41 the exit sprite is just the EXIT sign (36 x 12)',sg.every(([w,h])=>w===36&&h===(V142?15:12)),JSON.stringify(sg));
   await ctx.close();
 }
 

@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.42: the EXIT sign hangs from the ceiling
+- The EXIT sign over the stairwell now hangs from the ceiling on two short chains (the sign frames in `assets/boss/portal.png` / `portalS.png` are 36 x 15 with the chains).
+- QA build `m1.42-qa` (debug hook on).
+
 ## M1.41: a real stairwell; the Screamer King's ears
 - The exit is now an actual hole in the floor: a stone-lipped stairwell with 5 steps going down along one side, stone walls around it and a dark passage at the bottom, drawn by the floor renderer like the pits. You go down from the side with open floor. Only the EXIT sign remains as a sprite, floating over the hole (green; red while a boss lives, when an iron grate covers the well). The sign art is `assets/boss/portal.png` / `portalS.png` (now 36 x 12 per frame).
 - The Screamer King's ears now shear up and down from the joint instead of rotating, so the skull and ears meet exactly in every frame (no bits of head poking out under an ear).

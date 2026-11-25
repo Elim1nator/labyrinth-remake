@@ -56,7 +56,9 @@ on the inspiration are kept out of this repository.
 | M1.55 | done | Mortared Man recoloured to match the bricks. |
 | M1.56 | done | Infernal Mounted modifier (riders) removed. |
 | M1.57 | done | Tiled Baths: the Plunger and the Bather (statue art, pool-blue puddles); Slate Halls: the Slick Man. |
-| M1.58 | done | Guaranteed minimum of theme mobs (1, or 2 from floor 5) after later swaps; Bather walk centred and sped up. Current release is M1.58. |
+| M1.58 | done | Guaranteed minimum of theme mobs (1, or 2 from floor 5) after later swaps; Bather walk centred and sped up. |
+| M1.60 | done | Ranged elite crash fix; L3 and Rattlebones swaps skip all theme mobs. Current release is M1.60. |
+| M1.59 | done | The Spirit Slate and the item screen (I). |
 | Next | planned | More weapon families, further polish |
 
 ## Risks we watch
@@ -64,5 +66,5 @@ on the inspiration are kept out of this repository.
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.58 release build is about 1.5 MB.
+- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.60 release build is about 1.5 MB.
 - Keeping the slot machine coin-only with printed odds.

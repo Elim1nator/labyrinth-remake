@@ -89,7 +89,7 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 | Bubble Wrap | blocks the first hit each floor (two hits with two) | 2 |
 | Wax Wings | float over pits | 1 |
 | Ice Cube | balloons chill monsters (slower for 1.5 s) | 1 |
-| Rubber Boots | webs, frost, goo and Lichen Face spores can't touch you | 1 |
+| Rubber Boots | webs, frost, goo, Lichen Face spores and Bather puddles can't touch you | 1 |
 
 - **Balloon colours** are run items too, and they stack: every colour you own is on every balloon
   (the HUD balloon box shows a dot per colour).
@@ -106,7 +106,7 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 - **Use-items** go in the item slot and are used with Q / Y / ITEM: Healing Herb (+2 hearts),
   Warding Bell (stuns monsters around you), Flare (lights up the dark), Freeze Pop (monsters slow
   down for the floor), Firecracker (3 damage to everything near you), Mourner's Veil (blinds every
-  mob in view for 5 s). Elites drop them. The
+  mob in view for 5 s), Plunger (drop to the next floor through a black hole; only found on Baths floors). Elites drop them. The
   Backpack (a shop item) adds a second slot, switched with F / RB / a tap on the bar.
 - **Vaults** (from level 4): a second locked room with a spare key and a heart.
 - Item icons are in `assets/items.png` (see `assets/README.md`).
@@ -136,6 +136,8 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **The Lichen Face** (M1.52) hovers and drifts toward you on Mossy Cellar floors (3 HP). When it pops it leaves
   a slowing patch of spores (flyers and Rubber Boots ignore it). **Mourner's Veil** blinds every mob
   in your view for 5 s; blinded mobs wander and show a dark mark.
+- **The Bather** (M1.57) slowly chases you on Tiled Baths floors (4 HP, marble statue art) and leaves slick, pool-water-blue damaging puddles (flyers and Rubber Boots ignore them). **Plunger** opens a black hole at your feet and drops you to the next floor, then is used up (blocked on a sealed boss floor or the last floor). It only appears as loot or in the shop on floors labeled Baths; a Plunger you already hold still works on any floor.
+- **The Slick Man** (M1.57) lumbers toward you on Slate Halls floors (10 HP). It reflects about 30% of your balloons back at you, and while it is within 10 cells the fog thickens to 5 blocks no matter what sight items you have.
 
 ## Treasure Knight, masks and items (M1.11)
 

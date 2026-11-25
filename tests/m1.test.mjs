@@ -1080,8 +1080,10 @@ async function m149Tests(){
     G.teleport(spot.x,spot.y,0);G.setPitch&&G.setPitch(0);
     G.spawn('lichen',spot.x+1.7,spot.y,true,[]);G.advance(0.25);G.render();});
   await page.screenshot({path:`${SHOTS}/m149_lichen_face.png`});
-  await G(page,()=>{const G=__game;G.give('veil');G.useItem();G.freeze=false;G.advance(0.15);G.freeze=true;G.render();});
+  await G(page,()=>{const G=__game;G.give('veil');G.useItem();G.freeze=false;G.advance(0.2);G.freeze=true;G.render();return {mist:G.veilMist&&G.veilMist()};});
   await page.screenshot({path:`${SHOTS}/m149_mourners_veil.png`});
+  await G(page,()=>{const G=__game;G.freeze=false;G.advance(1);G.freeze=true;G.render();return {mist:G.veilMist&&G.veilMist()};});
+  await page.screenshot({path:`${SHOTS}/m149_mourners_veil_after.png`});
   await ctx.close();
 }
 

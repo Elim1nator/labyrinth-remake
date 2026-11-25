@@ -106,7 +106,7 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 - **Use-items** go in the item slot and are used with Q / Y / ITEM: Healing Herb (+2 hearts),
   Warding Bell (stuns monsters around you), Flare (lights up the dark), Freeze Pop (monsters slow
   down for the floor), Firecracker (3 damage to everything near you), Mourner's Veil (blinds every
-  mob in view for 5 s), Plunger (drop to the next floor through a black hole). Elites drop them. The
+  mob in view for 5 s), Plunger (drop to the next floor through a black hole; only found on Baths floors). Elites drop them. The
   Backpack (a shop item) adds a second slot, switched with F / RB / a tap on the bar.
 - **Vaults** (from level 4): a second locked room with a spare key and a heart.
 - Item icons are in `assets/items.png` (see `assets/README.md`).
@@ -137,7 +137,7 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
   a slowing patch of spores (flyers and Rubber Boots ignore it). **Mourner's Veil** blinds every mob
   in your view for 5 s; blinded mobs wander and show a dark mark.
 - **The Bather** (M1.56) slowly chases you on Tiled Baths floors (4 HP) and leaves slick, damaging puddles
-  (flyers and Rubber Boots ignore them). **Plunger** opens a black hole at your feet and drops you to the next floor, then is used up (blocked on a sealed boss floor or the last floor).
+  (flyers and Rubber Boots ignore them). **Plunger** opens a black hole at your feet and drops you to the next floor, then is used up (blocked on a sealed boss floor or the last floor). It only appears as loot or in the shop on floors labeled Baths; a Plunger you already hold still works on any floor.
 
 ## Treasure Knight, masks and items (M1.11)
 

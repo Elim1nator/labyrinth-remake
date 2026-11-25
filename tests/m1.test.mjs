@@ -41,6 +41,7 @@ const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
+const V151=atLeast('1.51'); // M1.51+: wall tiles are 128x128
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
 const V145=atLeast('1.45'); // M1.45+: new arm art (bigger frames), bigger thrown balloons, flyers skip puddles
@@ -737,7 +738,7 @@ async function m120Tests(){
   const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
   const w=await G(page,()=>{const G=__game,W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19],vd=[];for(const ti of W)for(const k of [1,2,3])vd.push(G.variantDiff(ti,k));
     const tiers=[29,33,37,41,45,49,53].map(f=>{const tr=G.texTier(f);return G.deepThemes[tr-1].name+':'+G.deepThemes[tr-1].base;});
-    return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===64&&v.dark)};});
+    return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===(V151?128:64)&&v.dark)};});
   check('M1.20 crystal and void walls replaced by blue slate and ember rock; 7 new stone styles (TEX has 20 entries)',w.count===20&&w.names[2]==='SLATE HALLS'&&w.names[4]==='THE EMBER CORE'&&!w.names.some(n=>/CRYSTAL|VOID/.test(n)),JSON.stringify(w.names));
   check('M1.20 a new wall style every 4 floors from 29 to 53 (sandstone, granite, cobble, limestone, dripstone, chasm shale, ironbound)',w.tiers.join()==='SANDSTONE CRYPT:A,GRANITE HALLS:B,COBBLE WARRENS:E,LIMESTONE NAVE:I,DRIPPING GROTTO:Z,CHASM DEPTHS:+,IRON KEEP:=',w.tiers.join());
   check('M1.20 every wall style has damaged, structural and decorative variations (64x64, cached, with a dark side)',w.ok&&w.vd.length===51&&w.vd.every((v,i)=>v.diff>=(i%3===0?(V125?.8:1.5):(V125?6:10))),`mean difference from the plain wall (damaged/structural/decorative): ${w.vd.map(v=>v.diff.toFixed(1)).join(' ')}`);
@@ -761,7 +762,7 @@ async function m121Tests(){
   const cmp=await G(page,async(url)=>{const im=new Image();im.src=url;await im.decode();const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);const u=new Uint32Array(cx.getImageData(0,0,im.width,im.height).data.buffer);
     const b=await new Promise(r=>{const i2=new Image();i2.onload=()=>r(i2);i2.src=__game.atlasPng('walls');});const cv2=document.createElement('canvas');cv2.width=b.width;cv2.height=b.height;const c2=cv2.getContext('2d');c2.drawImage(b,0,0);const v=new Uint32Array(c2.getImageData(0,0,b.width,b.height).data.buffer);
     let diff=0;for(let i=0;i<u.length;i++){const p=u[i]>>>24>=128?u[i]|0xff000000:0,q=v[i]>>>24>=128?v[i]|0xff000000:0;if(p!==q)diff++;}return {w:im.width,h:im.height,diff};},a.emb);
-  check('M1.21 the walls in game are exactly the pixels of the PNG (export round-trips)',cmp.w===640&&cmp.h===128&&cmp.diff===0,JSON.stringify(cmp));
+  check('M1.21 the walls in game are exactly the pixels of the PNG (export round-trips)',cmp.w===(V151?1280:640)&&cmp.h===(V151?256:128)&&cmp.diff===0,JSON.stringify(cmp));
   await ctx.close();
   // a build whose art is missing still runs (magenta check walls), instead of crashing
   const tmp=`${OUT}/m121_noart.html`;fs.writeFileSync(tmp,fs.readFileSync(FILE,'utf8').replace(/var ASSETS=\{.*\};/,'var ASSETS={};'));
@@ -1614,7 +1615,7 @@ async function m13Tests(){
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m13-desk'});
     await sleep(300);
     const r=await G(page,()=>{const c=document.getElementById('screen');return {d:__game.dims,cw:c.width,ch:c.height,css:getComputedStyle(c).imageRendering,n:__game.numLevels,hand:__game.spriteInfo('hand','idle'),scr:__game.spriteInfo('screamer',0)};});
-    check('M1.3 internal resolution is 480x300 (16:10) with a crisp pixelated canvas',r.d.W===480&&r.d.H===300&&r.cw===480&&r.ch===300&&r.d.W/r.d.H===1.6&&/pixelated|crisp/.test(r.css)&&r.d.TS===64,`${r.cw}x${r.ch}, ${r.css}, textures ${r.d.TS}px`);
+    check('M1.3 internal resolution is 480x300 (16:10) with a crisp pixelated canvas',r.d.W===480&&r.d.H===300&&r.cw===480&&r.ch===300&&r.d.W/r.d.H===1.6&&/pixelated|crisp/.test(r.css)&&r.d.TS===(V151?128:64),`${r.cw}x${r.ch}, ${r.css}, textures ${r.d.TS}px`);
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
@@ -2707,7 +2708,7 @@ async function m18Tests(){
     const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);const walls=[0,1,2,3,4,8,9,10,11,12];let minD=1e9,pair='';
     for(const i of [8,9,10,11,12])for(const j of walls){if(i===j||(j>i&&j>=8&&walls.indexOf(j)<walls.indexOf(i)))continue;if(j===i)continue;const dd=dist(t.info[i].mean,t.info[j].mean);if(dd<minD){minD=dd;pair=i+'/'+j;}}
     const sigs=new Set(t.info.map(x=>x.sig));
-    check('M1.8 five new 64x64 wall textures, all distinct, cached once (TEX has 13 entries, same objects every frame)',t.count===(V120?20:13)&&t.same&&sigs.size===t.count&&t.info.slice(8).every(x=>x.w===64&&x.h===64)&&t.md>=(V125?20:30),`smallest mean per-pixel difference ${t.mp}: ${t.md.toFixed(1)} of 255 (closest mean colours ${pair}: ${minD.toFixed(1)})`);
+    check('M1.8 five new 64x64 wall textures, all distinct, cached once (TEX has 13 entries, same objects every frame)',t.count===(V120?20:13)&&t.same&&sigs.size===t.count&&t.info.slice(8).every(x=>x.w===(V151?128:64)&&x.h===(V151?128:64))&&t.md>=(V125?20:30),`smallest mean per-pixel difference ${t.mp}: ${t.md.toFixed(1)} of 255 (closest mean colours ${pair}: ${minD.toFixed(1)})`);
     savePng('m18_textures_all_4x.png',await G(page,()=>__game.textures(4)));
     // in-game views per tier
     // in-game views per tier: stand in front of a stretch of the floor's base wall (the newest unlocked style), 1.6 cells away

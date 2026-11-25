@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.51: higher-resolution walls
+- Wall tiles are 128x128 instead of 64x64 (`assets/walls.png` is now 1280x256, re-cut from the supplied art; 256-colour PNG to keep the file small). The pillar, rune, crack, dent, gold-brick and coin-door effects are scaled to match; doors still use the 64px `doors.png`.
+- Game file: 1,317 KB (limit 2 MB).
+- All test groups pass.
+- QA build `m1.51-qa` (debug hook on).
+
 ## M1.50: transparent fence art
 - The fence tile in `assets/walls.png` now uses the supplied transparent fence image.
 - All test groups pass.

@@ -20,7 +20,7 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 
 ## Editing the walls
 
-`walls.png` is 640 x 128: a grid of 10 x 2 tiles, each 64 x 64 pixels, in this order:
+`walls.png` is 1280 x 256: a grid of 10 x 2 tiles, each 128 x 128 pixels (64 x 64 before M1.51), in this order:
 
 | Row | Tiles (left to right) |
 |---|---|

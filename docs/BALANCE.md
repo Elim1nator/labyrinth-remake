@@ -1,4 +1,4 @@
-# Balance (M1.52)
+# Balance (M1.57)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -14,12 +14,14 @@
 | Zapfly | 1 | 2.6 | fast, fragile; flies over pits | L5 |
 | Rattlebone | 4 | 1.25 | collapses into a bone pile (see below) | L6 |
 | Lichen Face | 3 | 1.65 | flies (slow hover bob); leaves a slowing spore patch (radius 0.36, 5 s) on the floor below; flyers and Rubber Boots ignore it | Mossy Cellar (floors 2-8) |
+| The Bather | 4 | 1.0 | pale marble statue; leaves pool-blue slick damaging puddles (radius 0.34, 4.5 s) that also sap traction; flyers and Rubber Boots ignore them | Tiled Baths (floors 2-8) |
+| The Slick Man | 10 | 0.8 | dark slimy stone; reflects player projectiles 30%; forces view distance to 5 blocks while within 10 cells (overrides glasses and flares) | Slate Halls (from floor 17) |
 
 Pools: L2 Screamer + Kettlegrump; L3 adds Springle and Hazewisp; L4 adds Clunkbot; L5+ adds
 Zapfly; L6+ adds Rattlebone. Featured (weighted) mobs: L2 Kettlegrump; L3 Springle, Hazewisp,
 Kettlegrump; L4 Clunkbot; L5 Zapfly, Clunkbot, Kettlegrump. On a **Mossy Cellar** theme (floors 2-8
 when the seed picks that early theme), the Lichen Face is added to the pool and is featured (a second
-one from L5). It does not appear on the tutorial or on deep-theme floors.
+one from L5). It does not appear on the tutorial or on deep-theme floors. On a **Tiled Baths** theme, the Bather is added the same way. On a **Slate Halls** theme (a deep style from floor 17), the Slick Man is added to the pool and featured the same way.
 
 **Rattlebone:** guaranteed as one of the placed mobs on L6, then about 1 in 7 mobs. At 0 HP it
 becomes a bone pile: it rattles a warning at 3 s and reforms at 4.5 s unless a balloon smashes
@@ -289,3 +291,13 @@ Hearts and use-items are the real prize.
 ## Brick Halls: Mortared Man and Masonry Trowel (M1.53)
 - Mortared Man: 4 base HP (scales like other mobs), slides 1.2 cells/s along wall faces; sight 9 cells. Fires when the angle between your view and it is wider than acos(0.8) = 37 deg (just off screen): 0.45 s mouth opening, mortar glob at 5.2 cells/s, mouth open 1.6 s, then 2.2-3.4 s before it can fire again. Only damageable while the mouth is open; no contact bite. One featured per Brick Halls floor (two from floor 5) plus the normal pool.
 - Masonry Trowel: max 1, 30 coins in the shop; only in the item pool on Brick Halls floors.
+
+## Tiled Baths: the Bather and the Plunger (M1.57)
+
+The Bather has 4 base HP (`4 + (L-1)` like other regular mobs), speed 1.0, and slowly chases you, leaving slick puddles (`BATHER`: radius 0.34, life 4.5 s, spaced 0.55 cells). The puddles are drawn in pool-water blue (`#3FC8E6` with a paler highlight), deal 1 heart (with the usual goo cooldown) and apply a short ice-like slide (`slickT` 1.4 s). Rubber Boots ignore both; flying mobs are not affected. A quiet wet voice plays when it spots you, with dripping footsteps while it walks. Art: `assets/mobs/bather.png` (4 statue walk frames, same 120 px height as the earlier sheet).
+
+The Plunger is a use-item: it opens a black hole at your feet and drops you exactly one floor, then is used up. A held key or button cannot chain another drop. It is blocked (and not consumed) on a sealed boss floor or when you are already on the last floor (`MAX_FLOOR`). It only appears on floors whose theme label says Baths (Tiled Baths). Every drop source (normal loot, elite drops, coin doors, secret rooms, shrines, the slot machine, boss loot and Old Murkle's shop) rerolls it to another use-item on any other theme. A Plunger you already hold still works on any floor. On Baths floors it is uncommon (about a third the weight of other use-items) and at most one is placed per floor.
+
+## Slate Halls: the Slick Man (M1.57)
+
+The Slick Man has 10 base HP (`10 + (L-1)`, same +1-per-floor scaling), about 2.5× a typical 4-HP regular and above Clunkbot's 8. Speed 0.8 (it lumbers). Map letter `d`. It uses the earlier hunched 5-frame walk sheet (`assets/mobs/slickman.png`). 30% of player projectiles (water balloons and the like, not thorns) bounce back toward you, can hurt you, and play a spark plus a wet-stone clack (`SLICK.reflect`). While a living Slick Man is within 10 cells, view distance is clamped to 5 (`SLICK.fog`) even if you have glasses or a flare; `VIEW.cur` lerps to the new value (`fogLerp` 3.2) so the fog thickens and lifts smoothly when it dies or you move out of range. The 10-cell trigger is wider than the 5-block fog so you feel the clamp as it approaches, rather than locking the whole floor. A low, wet stone voice plays when it spots you, with heavy wet footsteps while it walks.

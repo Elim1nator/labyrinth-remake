@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.49: Mourner's Veil and the Lichen Face
+- New use-item, **Mourner's Veil**: a damp lace veil. Using it blinds every mob within your current view range (and in line of sight) for 5 s. Blinded mobs lose track of you and wander, with a dark-veil mark and motes over them. The Warding Bell's stun still freezes a mob if both are applied. The Veil is in the normal use-item loot and shop pools. Pickup text and the HUD tooltip use the name and "BLINDS EVERY MOB IN VIEW FOR 5 S"; Q, gamepad Y and the ITEM button all use it.
+- New monster, **the Lichen Face** (3 base HP, scales like the other regular mobs): a pale face growing out of the moss that hops after you. It lives on **Mossy Cellar** floors (the existing early theme on floors 2-8, not the tutorial Gatehouse and not the deep themes). When it pops it leaves a slowing spore patch about the size of a slime puddle, lasting 5 s. Flyers and mid-hop airborne mobs ignore it; Rubber Boots also shrug it off, same as webs, frost and goo. Tuning: `VEIL` and `SPORE` in the game.
+- Art for the Veil icon and the Lichen Face's four hop/pop frames is packed from `assets/items.png` and `assets/mobs/lichen.png`.
+- The source banner now says world art is packed from PNG sheets in `assets/`, not generated in code.
+- QA build `m1.49-qa` (debug hook on).
+
 ## M1.48: Hexeye art fix
 - The Hexeye's red-stare frame is no longer cut off on the left (the frames are now cut from the supplied image by shape, not by equal strips).
 - QA build `m1.48-qa` (debug hook on).

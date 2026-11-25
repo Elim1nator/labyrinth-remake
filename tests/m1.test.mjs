@@ -1464,12 +1464,44 @@ async function m156Tests(){
     const st=G.state(),held=(st.player.item==='plunger'?1:0)+(st.player.item2==='plunger'?1:0);
     return {theme,lv0,lv1:st.level,delta:st.level-lv0,mode:st.mode,used,mid,item:st.player.item,held,fellPit:st.fellPit,msg:st.msg,hole:G.hole&&G.hole()};});
   check('M1.56 one Plunger use on Basalt Depths drops exactly one floor; holding use does not chain; none left in hand',/BASALT/.test(basalt.theme)&&basalt.used===true&&basalt.delta===1&&basalt.mode==='play'&&basalt.held===0&&basalt.item==null&&!basalt.fellPit&&basalt.mid.mode==='fall'&&!!basalt.mid.hole&&!basalt.hole,JSON.stringify(basalt));
-  const loot=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;let max=0,multi=0,floors=0,withP=0;
-    for(let seed=1;seed<=40;seed++){G.setSeed(seed);for(const idx of [8,10,11]){G.startLevel(idx,{hearts:9,coins:0});
-      const n=(G.state().items||[]).filter(it=>it.kind==='power'&&it.ptype==='plunger'&&!it.taken).length;
-      floors++;if(n)withP++;if(n>max)max=n;if(n>1)multi++;}}
-    return {floors,withP,max,multi};});
-  check('M1.56 at most one Plunger appears in normal floor loot',loot.max<=1&&loot.multi===0,JSON.stringify(loot));
+  const loot=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;
+    const isBaths=th=>/Baths/i.test(th||'');
+    const nPl=its=>(its||[]).filter(it=>it.kind==='power'&&it.ptype==='plunger'&&!it.taken).length;
+    const forced=n=>{let c=0;for(let i=0;i<n;i++)if(G.randPU()==='plunger')c++;return c;};
+    const shopHas=()=>(G.shopOffers()||[]).includes('plunger');
+    const slotHas=n=>{let c=0;for(let i=0;i<n;i++){const r=G.slotResolve('power',0,5);if(r&&r.power==='plunger')c++;}return c;};
+    const off={floors:0,themes:{},floorLoot:0,forced:0,shop:0,slot:0,pool:0};
+    const on={floors:0,themes:{},floorLoot:0,forced:0,shop:0,slot:0,pool:0,max:0,multi:0,withP:0};
+    const seen={mossy:0,basalt:0,baths:0,other:0};
+    function rec(theme){
+      const b=isBaths(theme)?on:off;
+      b.floors++;b.themes[theme]=(b.themes[theme]||0)+1;
+      const n=nPl(G.state().items);b.floorLoot+=n;
+      if(b===on){if(n>b.max)b.max=n;if(n>1)b.multi++;if(n)b.withP++;}
+      b.forced+=forced(120);
+      if(shopHas())b.shop++;
+      b.slot+=slotHas(80);
+      if((G.puPool()||[]).includes('plunger'))b.pool++;
+      if(/MOSSY CELLAR/.test(theme))seen.mossy++;
+      else if(/BASALT/.test(theme))seen.basalt++;
+      else if(isBaths(theme))seen.baths++;
+      else seen.other++;
+    }
+    for(let seed=1;seed<=24;seed++){
+      G.setSeed(seed);
+      for(const idx of [0,1,2,3,4,5,6,7,8,10,12,16]){
+        G.startLevel(idx,{hearts:9,coins:20});
+        rec(G.themeNow());
+      }
+    }
+    return {off,on,seen};});
+  check('M1.56 forced loot rolls never give a Plunger off Baths floors (Basalt Depths, Mossy Cellar and other themes), and Baths floors can',
+    loot.seen.mossy>0&&loot.seen.basalt>0&&loot.seen.baths>0&&loot.seen.other>0
+    &&loot.off.floorLoot===0&&loot.off.forced===0&&loot.off.shop===0&&loot.off.slot===0&&loot.off.pool===0
+    &&(loot.on.withP>0||loot.on.forced>0||loot.on.shop>0)
+    &&loot.on.pool===loot.on.floors,
+    JSON.stringify(loot));
+  check('M1.56 at most one Plunger appears in normal loot on Baths floors',loot.on.max<=1&&loot.on.multi===0&&loot.on.floors>0,JSON.stringify({floors:loot.on.floors,withP:loot.on.withP,max:loot.on.max,multi:loot.on.multi}));
   const boss=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);
     // floor 5 is a boss floor (index 4)
     G.startLevel(4,{hearts:9,coins:0});G.give('plunger');

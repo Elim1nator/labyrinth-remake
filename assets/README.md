@@ -95,7 +95,7 @@ Each `mobs/*.png` is a strip of animation frames, left to right, all the same wi
 |---|---|---|
 | `screamer.png`, `screamerO.png` | Screamer (normal / mouth open while screaming) | 4 wing flaps each |
 | `springle.png`, `kettle.png`, `wisp.png`, `clunk.png`, `skeleton.png` | Springle, Kettlegrump, Hazewisp, Clunkbot, Rattlebone | 4 |
-| `lichen.png` | the Lichen Face (rest, hop, mid-hop, pop) | 4 |
+| `lichen.png` | the Lichen Face (5-frame tendril-wave / float loop) | 5 |
 | `hexeye.png` | the Hexeye (open, half-blink, closed, red stare) | 4 |
 | `zapfly.png`, `zapflyC.png` | Tragedy mask, Comedy mask | 4 |
 | `bonePile.png` | Rattlebone's collapsed pile (resting, rattling) | 2 |

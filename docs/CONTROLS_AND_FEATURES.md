@@ -133,7 +133,7 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **Rattlebone** from floor 6: at 0 HP it becomes a bone pile, rattles at 3 s and reforms at
   4.5 s unless you smash the pile with a balloon.
 - **Hazewisp** drifts through fences and closed doors, and flies over pits.
-- **The Lichen Face** (M1.49) hops after you on Mossy Cellar floors (3 HP). When it pops it leaves
+- **The Lichen Face** (M1.49) hovers and drifts toward you on Mossy Cellar floors (3 HP). When it pops it leaves
   a slowing patch of spores (flyers and Rubber Boots ignore it). **Mourner's Veil** blinds every mob
   in your view for 5 s; blinded mobs wander and show a dark mark.
 

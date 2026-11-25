@@ -13,7 +13,7 @@
 | Clunkbot | 8 | 0.7 | slow tank | L4 |
 | Zapfly | 1 | 2.6 | fast, fragile; flies over pits | L5 |
 | Rattlebone | 4 | 1.25 | collapses into a bone pile (see below) | L6 |
-| Lichen Face | 3 | 1.65 | hops; leaves a slowing spore patch (radius 0.36, 5 s); flyers and Rubber Boots ignore it | Mossy Cellar (floors 2-8) |
+| Lichen Face | 3 | 1.65 | flies (slow hover bob); leaves a slowing spore patch (radius 0.36, 5 s) on the floor below; flyers and Rubber Boots ignore it | Mossy Cellar (floors 2-8) |
 
 Pools: L2 Screamer + Kettlegrump; L3 adds Springle and Hazewisp; L4 adds Clunkbot; L5+ adds
 Zapfly; L6+ adds Rattlebone. Featured (weighted) mobs: L2 Kettlegrump; L3 Springle, Hazewisp,
@@ -88,7 +88,7 @@ Every knob is in `GEN` in the game (`genCfg()` sizes it per floor; the layout it
 
 ## Lichen Face and Mourner's Veil (M1.49)
 
-The Lichen Face has 3 base HP (`3 + (L-1)` like other regular mobs), speed 1.65, and hops like a Springle.
+The Lichen Face has 3 base HP (`3 + (L-1)` like other regular mobs), speed 1.65, and flies: it hovers at flyer height with a slow bob and drifts toward you. Pits, puddles and spores do not affect it. A quiet procedural moan plays when it spots you, and it has its own pop sound.
 On death it leaves a spore patch (radius 0.36, the size of a slime puddle, life 5 s) that slows the player
 and ground mobs. Flyers and mid-hop airborne mobs skip it; Rubber Boots skip it too. `SPORE` in the game.
 

@@ -136,8 +136,8 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **The Lichen Face** (M1.52) hovers and drifts toward you on Mossy Cellar floors (3 HP). When it pops it leaves
   a slowing patch of spores (flyers and Rubber Boots ignore it). **Mourner's Veil** blinds every mob
   in your view for 5 s; blinded mobs wander and show a dark mark.
-- **The Bather** (M1.57) slowly chases you on Tiled Baths floors (4 HP, marble statue art) and leaves slick, pool-water-blue damaging puddles (flyers and Rubber Boots ignore them). **Plunger** opens a black hole at your feet and drops you to the next floor, then is used up (blocked on a sealed boss floor or the last floor). It only appears as loot or in the shop on floors labeled Baths; a Plunger you already hold still works on any floor.
-- **The Slick Man** (M1.57) lumbers toward you on Slate Halls floors (10 HP). It reflects about 30% of your balloons back at you, and while it is within 10 cells the fog thickens to 5 blocks no matter what sight items you have.
+- **The Bather** (M1.57) slowly chases you on Tiled Baths floors (4 HP, marble statue art; at least one per Baths floor, two from floor 5) and leaves slick, pool-water-blue damaging puddles (flyers and Rubber Boots ignore them). **Plunger** opens a black hole at your feet and drops you to the next floor, then is used up (blocked on a sealed boss floor or the last floor). It only appears as loot or in the shop on floors labeled Baths; a Plunger you already hold still works on any floor.
+- **The Slick Man** (M1.57) lumbers toward you on Slate Halls floors (10 HP; at least one per Slate floor, two from floor 5). It reflects about 30% of your balloons back at you, and while it is within 10 cells the fog thickens to 5 blocks no matter what sight items you have.
 
 ## Treasure Knight, masks and items (M1.11)
 

@@ -41,6 +41,7 @@ const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
+const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
 const V145=atLeast('1.45'); // M1.45+: new arm art (bigger frames), bigger thrown balloons, flyers skip puddles
 const V143=atLeast('1.43'); // M1.43+: the arm and balloon art come from assets/hand.png and assets/balloon.png
 const V142=atLeast('1.42'); // M1.42+: the EXIT sign hangs from the ceiling
@@ -979,6 +980,21 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m146Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m146'});
+  const r=await G(page,()=>{const G=__game,out={errors:[],n:0};const types=['screamer','springle','kettle','wisp','clunk','zapfly','skeleton','skitter','bigspider','eggsac','knight'];
+    for(const t of types)for(const m of ['ranged','beefy','mama','mounted','splitter','ghost']){try{G.manual=true;G.freeze=false;G.setSeed(4242);G.startLevel(5,{hearts:99,coins:0});G.clearMobs();G.god=true;const pl=G.state().player;
+        G.teleport(pl.x,pl.y,0);let sp=null;for(let d=2.5;d>=1.5&&!sp;d-=.5)for(let a=-.6;a<=.6&&!sp;a+=.3){const x=pl.x+Math.cos(a)*d,y=pl.y+Math.sin(a)*d;if(!G.solidAt(x,y)&&G.clearPath(pl.x,pl.y,x,y))sp=[x,y];}if(!sp)continue;
+        G.spawn(t,sp[0],sp[1],true,[m]);for(let k=0;k<10;k++)G.advance(0.1);out.n++;}catch(e){out.errors.push(t+'+'+m+': '+e.message);}}
+    return out;});
+  check(`M1.46 every mob type can carry an Infernal power and be drawn with its glow (${r.n} type/power pairs on screen, incl. skitters, egg sacs and the knight; this crashed the renderer and froze the game before)`,r.errors.length===0&&r.n>=50,JSON.stringify(r.errors.slice(0,4)));
+  const lp=await G(page,async()=>{const G=__game;G.manual=false;G.setSeed(5);G.startLevel(1,{hearts:9,coins:0});const t0=G.state().stats.frames;G.failOnce();await new Promise(r=>setTimeout(r,600));const s=G.state();return {err:G.lastErr(),framesGone:s.stats.frames-t0,time:s.stats.errors};});
+  check('M1.46 an error in one frame no longer freezes the game: the loop keeps updating and drawing, and the error is shown on the pause screen',!!lp.err&&/test failure/.test(lp.err)&&lp.framesGone>5,JSON.stringify(lp));
+  const mt=await G(page,()=>{const G=__game,c={};let same=0;for(let r=0;r<40;r++){G.manual=true;G.setSeed(9+r);G.startLevel(5,{hearts:99,coins:0});G.clearMobs();const pl=G.state().player;G.spawn('skeleton',pl.x+1.5,pl.y,true,['mounted']);G.advance(0.05);const es=G.state().enemies;if(es.filter(e=>e.type==='skeleton').length>1)same++;es.forEach(e=>c[e.type]=(c[e.type]|0)+1);}return {same,c};});
+  check(`M1.46 Mounted never rides a mob of its own kind or a Rattlebones (40 mounted skeletons: ${JSON.stringify(mt.c)})`,mt.same===0&&!mt.c.skeleton_carrier,JSON.stringify(mt));
+  await ctx.close();
+}
+
 async function m145Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m145'});
   const pd=await G(page,()=>{const G=__game,out={};for(const t of ['clunk','kettle','screamer','wisp','zapfly']){G.manual=true;G.freeze=false;G.setSeed(4242);G.startLevel(0);G.clearMobs();G.setHearts(99);G.teleport(2.5,2.5,0);
@@ -1187,6 +1203,7 @@ if(V140&&want('m140')){ await m140Tests(); }
 if(V141&&want('m141')){ await m141Tests(); }
 if(V143&&want('m143')){ await m143Tests(); }
 if(V145&&want('m145')){ await m145Tests(); }
+if(V146&&want('m146')){ await m146Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

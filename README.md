@@ -33,9 +33,9 @@ URL options: `?seed=<text>` plays a reproducible run; `?debug` exposes the test 
 
 | Path | What |
 |---|---|
-| `src/index.html` | The current game (M1.45 release build). The single file *is* the source. |
-| `builds/<milestone>/index.html` | Frozen builds M1 to M1.45, checksums in `builds/SHA256SUMS`. |
-| `builds/m1.7-qa` … `builds/m1.45-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
+| `src/index.html` | The current game (M1.46 release build). The single file *is* the source. |
+| `builds/<milestone>/index.html` | Frozen builds M1 to M1.46, checksums in `builds/SHA256SUMS`. |
+| `builds/m1.7-qa` … `builds/m1.46-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
 | `assets/` | **Game art as PNG sheets** (walls, monsters, bosses, boss props and projectiles, item and power icons). Edit them, then `node tools/assets.mjs pack`. See `assets/README.md`. |
 | `tools/release.mjs` | Freezes `src/` into a release + QA build pair (see Release below). |
 | `tools/assets.mjs` | Embeds the PNGs in `assets/` into `src/index.html` (`pack`, `check`, `export`). |
@@ -51,8 +51,8 @@ Needs Node 18+.
 cd tests
 npm ci
 npx playwright install chromium
-npm test                     # full suite against builds/m1.45 (+ builds/m1.45-qa)
-node m1.test.mjs m1.8        # any older milestone: m1, m1.1 ... m1.45
+npm test                     # full suite against builds/m1.46 (+ builds/m1.46-qa)
+node m1.test.mjs m1.8        # any older milestone: m1, m1.1 ... m1.46
 ```
 
 Results and screenshots go to `test-output/<build>/` (gitignored). From M1.7 on, the

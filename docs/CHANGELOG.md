@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.46: freeze fix, stuck skeletons
+- Fixed the game freezing (the view stopped updating; the pause menu still animated, but CONTINUE froze it again): an Infernal mob of a type without a pre-built glow (a skitter, an egg sac, the knight...) crashed the renderer every frame. The glow is now built for any mob type the first time it is needed.
+- Safety net: an error in one frame no longer freezes the game. The loop carries on, and the last error is shown in small red text on the pause screen (report it if you see it).
+- Fixed two skeletons stuck on top of each other: the Mounted power could put a Rattlebones on a Rattlebones carrier, and when the carrier collapsed into its bone pile the rider stayed pinned to it. Riders never get a carrier of their own kind, Rattlebones are no longer carriers, and a carrier that collapses throws its rider off.
+- QA build `m1.46-qa` (debug hook on).
+
 ## M1.45: new arm and balloon art, explosions, flyers skip puddles
 - New art for the blue water balloon and the arm, from the supplied reference images: holding, wind-up (pulled back), throw and the empty hand (the supplied open-hand art). The arm frames are now 100 x 80 and the sleeve runs on past the bottom-right corner, so it never shows a cut end while the arm moves. The other six balloon colours (red, green, yellow, black, purple, pink) are made from the new blue art, thrown and in hand.
 - Thrown balloons are drawn about 30% bigger (giant pump balloons too), and the balloon's edge pixels are darker than its centre. The blue balloon colour (HUD chip, splashes) is the new art's sky blue (#40c9fc).

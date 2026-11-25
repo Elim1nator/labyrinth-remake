@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.54: Mortared Man art
+- `assets/mobs/mortar.png` is now cut from the supplied face sheet (three 96 x 96 frames: shut, opening, open; the baked-in checkerboard keyed out).
+- QA build `m1.54-qa` (debug hook on).
+
 ## M1.53: Brick Halls - the Masonry Trowel and the Mortared Man
 - New run item, **Masonry Trowel** (only drops or is sold on Brick Halls floors): secret cracked walls show a wide, deep, very visible crack. Icon from the supplied art, in `assets/items.png`.
 - New monster, **the Mortared Man** (4 base HP, Brick Halls floors only): a brick-red face painted into the wall itself (no standing sprite) that slides along the walls after you, round inner and outer corners. While you look at it, it keeps its mouth shut and can't be hurt (balloons clank off). When you look away (it is off screen), it opens its mouth (0.45 s), spits a mortar glob at you and stays open for 1.6 s: that's when you can hit it. It never bites. Art: `assets/mobs/mortar.png` (shut, opening, open) and `assets/boss/shot_mortar.png`. Tuning: `MORTAR` in the game.

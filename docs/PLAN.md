@@ -51,7 +51,8 @@ on the inspiration are kept out of this repository.
 | M1.32–M1.48 | done | Further items, monsters, art and fixes, including the Hexeye and pit rooms (see [CHANGELOG.md](CHANGELOG.md)) |
 | M1.49–M1.51 | done | New wall art (128x128 tiles) and the transparent fence. |
 | M1.52 | done | Mourner's Veil and the Lichen Face in the Mossy Cellar (merged from Grok-Code-3). |
-| M1.53 | done | Brick Halls: the Masonry Trowel and the Mortared Man. Current release is M1.53. |
+| M1.53 | done | Brick Halls: the Masonry Trowel and the Mortared Man. |
+| M1.54 | done | Mortared Man art from the supplied sheet. Current release is M1.54. |
 | Next | planned | More weapon families, further polish |
 
 ## Risks we watch
@@ -59,5 +60,5 @@ on the inspiration are kept out of this repository.
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.53 release build is about 1.4 MB.
+- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.54 release build is about 1.4 MB.
 - Keeping the slot machine coin-only with printed odds.

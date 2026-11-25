@@ -55,7 +55,9 @@ on the inspiration are kept out of this repository.
 | M1.54 | done | Mortared Man art from the supplied sheet. |
 | M1.55 | done | Mortared Man recoloured to match the bricks. |
 | M1.56 | done | Infernal Mounted modifier (riders) removed. |
-| M1.57 | done | The Spirit Slate (Slate Halls). Current release is M1.57. |
+| M1.57 | done | Tiled Baths: the Plunger and the Bather (statue art, pool-blue puddles); Slate Halls: the Slick Man. |
+| M1.58 | done | Guaranteed minimum of theme mobs (1, or 2 from floor 5) after later swaps; Bather walk centred and sped up. |
+| M1.59 | done | The Spirit Slate and the item screen (I). Current release is M1.59. |
 | Next | planned | More weapon families, further polish |
 
 ## Risks we watch
@@ -63,5 +65,5 @@ on the inspiration are kept out of this repository.
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.57 release build is about 1.4 MB.
+- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.59 release build is about 1.5 MB.
 - Keeping the slot machine coin-only with printed odds.

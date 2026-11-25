@@ -3,8 +3,23 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
-## M1.57: the Spirit Slate
-- New run item, **Spirit Slate** (only drops or is sold on Slate Halls floors; max 1, 40 coins; lasts the whole run): every monster shows as a red X on the minimap and the full map, even in rooms you haven't explored. Icon in `assets/items.png`.
+## M1.59: the Spirit Slate and the item screen
+- New run item, **Spirit Slate** (only drops or is sold on Slate Halls floors; max 1, 40 coins; lasts the whole run): every monster shows as a red X on the minimap and the full map, even in rooms you haven't explored. Icon in `assets/items.png` (next to the Plunger).
+- New **item screen**: press **I** (gamepad **D-pad up**, or tap the hearts/coins panel on touch) to see every run item you have (with counts) and the use-items you carry. Pick one with the arrows / WASD, the d-pad, or a click / tap to read its name and what it does. The game waits while it is open; I, Esc or B closes it.
+- Merged with Grok-Code-5/6 (M1.57/M1.58 below).
+- QA build `m1.59-qa` (debug hook on).
+
+## M1.58: guaranteed Baths / Cellar / Slate mobs; Bather walk fixed
+- Theme featured mobs now keep their minimum after later generation steps (Rattlebone swaps, shop and boss arenas moving monsters): **at least 1** on that theme, **2 from floor 5**. This is the Bather on Tiled Baths, the Lichen Face on Mossy Cellar, the Slick Man on Slate Halls, and the Mortared Man on Brick Halls. The earlier M1.57 letter-count test could pass while a later swap removed a featured mob (visible on some Slate floors, where only one Slick Man was left).
+- The Bather's 4-frame statue walk is re-cut: every frame is bottom-aligned and centred on the feet so the sprite no longer wobbles. The walk cycle is twice as fast (8 frames/s, in line with other walkers).
+- Treasure Knights are unchanged: one is guaranteed on every floor from 2, and a coin door can add a second (~4% of floors). Two knights is intended, not a double-spawn bug.
+- All test groups pass.
+- QA build `m1.58-qa` (debug hook on).
+
+## M1.57: Tiled Baths (the Bather, the Plunger) and Slate Halls (the Slick Man)
+- **The Bather** (Tiled Baths floors only): a pale marble statue (4-frame walk loop from the supplied sheet) with 4 base HP. It slowly chases you and leaves slick, damaging puddles in *pool water blue* (`#3FC8E6`, with a lighter highlight). Rubber Boots ignore them; flyers are unaffected. The old hunched 5-frame art was kept for the Slick Man.
+- **Plunger** (use-item): opens a black hole at your feet and drops you exactly one floor, then is used up. A held key cannot chain another drop. Blocked (and not consumed) on a sealed boss floor or the last floor. Only appears on floors whose theme label says Baths; a held Plunger still works anywhere. Uncommon (about a third the weight of other use-items) and at most one per Baths floor.
+- **The Slick Man** (Slate Halls floors only): a dark slimy stone figure using the old Bather walk sheet (`assets/mobs/slickman.png`, 5 frames). 10 base HP (2.5× a typical 4-HP mob; tougher than Clunkbot), speed 0.8. It reflects player projectiles 30% of the time (the balloon bounces back and can hurt you, with a spark and a clack). While one is alive and within 10 cells, view distance is forced to 5 blocks, overriding glasses, flares and other sight items, then lerps back when it dies or you leave its range. Heavy wet-stone voice and footsteps.
 - All test groups pass.
 - QA build `m1.57-qa` (debug hook on).
 

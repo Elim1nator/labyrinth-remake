@@ -83,7 +83,7 @@ Each `boss/*.png` is a strip of frames like the monsters:
 
 `items.png` is 240 x 96: 10 icons per row, each 24 x 24 pixels, in the order listed under `items`
 in `atlas.json` (shoes, dumbbell, burger, ... red, green, yellow, black, purple, pink, herb, bell,
-flare, freeze, firecracker, veil). Draw on a transparent background. The round pickup tokens on the floor,
+flare, freeze, firecracker, veil, trowel, plunger). Draw on a transparent background. The round pickup tokens on the floor,
 the small HUD and shop icons, and their coloured rims are made in code from your icon. What each
 item does lives in the game (`ITEMS`, `ITEM_FX`, `PU`), not in the PNG.
 
@@ -96,6 +96,8 @@ Each `mobs/*.png` is a strip of animation frames, left to right, all the same wi
 | `screamer.png`, `screamerO.png` | Screamer (normal / mouth open while screaming) | 4 wing flaps each |
 | `springle.png`, `kettle.png`, `wisp.png`, `clunk.png`, `skeleton.png` | Springle, Kettlegrump, Hazewisp, Clunkbot, Rattlebone | 4 |
 | `lichen.png` | the Lichen Face (5-frame tendril-wave / float loop) | 5 |
+| `bather.png` | the Bather (4-frame marble statue walk loop) | 4 |
+| `slickman.png` | the Slick Man (5-frame hunched walk loop; former Bather art) | 5 |
 | `hexeye.png` | the Hexeye (open, half-blink, closed, red stare) | 4 |
 | `zapfly.png`, `zapflyC.png` | Tragedy mask, Comedy mask | 4 |
 | `bonePile.png` | Rattlebone's collapsed pile (resting, rattling) | 2 |
@@ -122,3 +124,5 @@ Notes:
 - A missing or broken file shows that monster as a magenta check instead of crashing; `pack` tells you what's wrong.
 
 - `mobs/mortar.png` (M1.53): the Mortared Man, 3 frames of 96 x 96 (shut, opening, open). It is drawn onto the wall surface, not as a standing sprite.
+- `mobs/bather.png` (M1.57, recut M1.58): the Bather, 4 walk frames at 120 px tall, cut from the supplied statue sheet (gutters cropped, feet-centred and bottom-aligned so the walk does not wobble, fringe cleaned; corners fully transparent).
+- `mobs/slickman.png` (M1.57): the Slick Man, the earlier 5-frame hunched walk sheet (also 120 px tall, transparent corners).

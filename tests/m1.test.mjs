@@ -43,9 +43,10 @@ const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
 const V151=atLeast('1.51'); // M1.51+: wall tiles are 128x128
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
-const V158=atLeast('1.58'); // M1.58+: the item screen (I)
-const V157=atLeast('1.57'); // M1.57+: the Spirit Slate (Slate Halls)
+const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the item screen (I)
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
+const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
+const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
@@ -741,9 +742,9 @@ async function m117Tests(){
 async function m120Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m120'});
   const savePng=(name,url)=>fs.writeFileSync(`${SHOTS}/${name}`,Buffer.from(url.split(',')[1],'base64'));
-  const w=await G(page,()=>{const G=__game,W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19],vd=[];for(const ti of W)for(const k of [1,2,3])vd.push(G.variantDiff(ti,k));
+  const w=await G(page,(V151)=>{const G=__game,W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19],vd=[];for(const ti of W)for(const k of [1,2,3])vd.push(G.variantDiff(ti,k));
     const tiers=[29,33,37,41,45,49,53].map(f=>{const tr=G.texTier(f);return G.deepThemes[tr-1].name+':'+G.deepThemes[tr-1].base;});
-    return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===(V151?128:64)&&v.dark)};});
+    return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===(V151?128:64)&&v.dark)};},V151);
   check('M1.20 crystal and void walls replaced by blue slate and ember rock; 7 new stone styles (TEX has 20 entries)',w.count===20&&w.names[2]==='SLATE HALLS'&&w.names[4]==='THE EMBER CORE'&&!w.names.some(n=>/CRYSTAL|VOID/.test(n)),JSON.stringify(w.names));
   check('M1.20 a new wall style every 4 floors from 29 to 53 (sandstone, granite, cobble, limestone, dripstone, chasm shale, ironbound)',w.tiers.join()==='SANDSTONE CRYPT:A,GRANITE HALLS:B,COBBLE WARRENS:E,LIMESTONE NAVE:I,DRIPPING GROTTO:Z,CHASM DEPTHS:+,IRON KEEP:=',w.tiers.join());
   check('M1.20 every wall style has damaged, structural and decorative variations (64x64, cached, with a dark side)',w.ok&&w.vd.length===51&&w.vd.every((v,i)=>v.diff>=(i%3===0?(V125?.8:1.5):(V125?6:10))),`mean difference from the plain wall (damaged/structural/decorative): ${w.vd.map(v=>v.diff.toFixed(1)).join(' ')}`);
@@ -988,29 +989,29 @@ async function m130Tests(){
 }
 
 
-async function m158Tests(){
-  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m158'});
+async function m159InvTests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m159'});
   const ico=await G(page,()=>{const G=__game;const ids=Object.keys(G.items).concat(G.puIds||[]);return ids.map(k=>[k,G.itemIcoPx(k)]).filter(([k,n])=>n<20);});
-  check('M1.58 every item and use-item has a drawn icon (no blank tiles)',ico.length===0,JSON.stringify(ico));
+  check('M1.59 every item and use-item has a drawn icon (no blank tiles)',ico.length===0,JSON.stringify(ico));
   await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(5);G.startLevel(3,{hearts:5,coins:0});G.clearMobs();['shoes','shoes','dumbbell','clover','duck'].forEach(k=>G.give(k));G.give('veil');});
   await page.keyboard.press('KeyI');
   const o=await G(page,()=>{const G=__game;const st=G.state();const i=G.spawn('clunk',st.player.x+2,st.player.y,true,[]);const e0=G.state().enemies[i];G.advance(1);const e1=G.state().enemies[i];
     return {mode:G.state().mode,list:G.invList(),still:Math.hypot(e1.x-e0.x,e1.y-e0.y)<1e-6};});
-  check('M1.58 I opens the item screen with every run item and carried use-item, and the game waits while it is open',o.mode==='inv'&&o.list.length===5&&o.list.find(x=>x.k==='shoes').n===2&&o.list.some(x=>x.k==='veil'&&x.kind==='use')&&o.still,JSON.stringify(o));
+  check('M1.59 I opens the item screen with every run item and carried use-item, and the game waits while it is open',o.mode==='inv'&&o.list.length===5&&o.list.find(x=>x.k==='shoes').n===2&&o.list.some(x=>x.k==='veil'&&x.kind==='use')&&o.still,JSON.stringify(o));
   await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowRight');
   const k=await G(page,()=>__game.invSel());
   const c=await G(page,()=>{const G=__game,r=G.invCell(3),cv=document.querySelector('canvas').getBoundingClientRect();return {x:cv.left+(r[0]+r[2]/2)/480*cv.width,y:cv.top+(r[1]+r[3]/2)/300*cv.height};});
   await page.mouse.click(c.x,c.y);await G(page,()=>{__game.advance(0.05);__game.render();});
   const k2=await G(page,()=>({sel:__game.invSel(),item:__game.invList()[__game.invSel()]}));
-  check('M1.58 arrows and clicks pick an item, and its name and description are shown',k===2&&k2.sel===3&&!!k2.item.name&&!!k2.item.desc,JSON.stringify({k,k2}));
-  await page.screenshot({path:`${SHOTS}/m158_items.png`});
+  check('M1.59 arrows and clicks pick an item, and its name and description are shown',k===2&&k2.sel===3&&!!k2.item.name&&!!k2.item.desc,JSON.stringify({k,k2}));
+  await page.screenshot({path:`${SHOTS}/m159_items.png`});
   await page.keyboard.press('KeyI');const m=await G(page,()=>__game.state().mode);
-  check('M1.58 I closes it again',m==='play',m);
+  check('M1.59 I closes it again',m==='play',m);
   await ctx.close();
 }
 
-async function m157Tests(){
-  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m157'});
+async function m159SlateTests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m159'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
   const r=await G(page,()=>{const G=__game;let slate=null,other=null;
     for(let sd=1;sd<=60&&!(slate&&other);sd++)for(const f of [13,17,21,25,29]){const nm=G.themeFor(sd,f).name;if(!slate&&/SLATE HALLS/.test(nm))slate={sd,f};else if(!other&&!/SLATE HALLS/.test(nm))other={sd,f};}
@@ -1022,10 +1023,10 @@ async function m157Tests(){
     G.give('spirit');const after=G.mapMobCount();
     G.setSeed(slate.sd+1);G.startLevel(slate.f,{hearts:99,coins:0});const kept=G.mapMobCount(),all=G.state().enemies.filter(e=>!e.gone&&e.state!=='dead'&&!e.dormant).length;
     return {slate,other,offPool,onPool,theme,before,after,hidden,kept,all,max:G.items.spirit&&G.items.spirit.max};});
-  check('M1.57 the Spirit Slate only drops (or is sold) on Slate Halls floors, and has a packed icon',r.onPool&&!r.offPool&&(atlas.items.tiles||[]).includes('spirit'),JSON.stringify(r));
-  check('M1.57 with the Spirit Slate every monster shows on the map, even in unexplored rooms (and it lasts the run)',r.before<r.hidden&&r.after===r.hidden&&r.kept===r.all&&r.all>0,JSON.stringify(r));
+  check('M1.59 the Spirit Slate only drops (or is sold) on Slate Halls floors, and has a packed icon',r.onPool&&!r.offPool&&(atlas.items.tiles||[]).includes('spirit'),JSON.stringify(r));
+  check('M1.59 with the Spirit Slate every monster shows on the map, even in unexplored rooms (and it lasts the run)',r.before<r.hidden&&r.after===r.hidden&&r.kept===r.all&&r.all>0,JSON.stringify(r));
   await G(page,()=>{const G=__game;G.openMap&&G.openMap();});
-  await page.screenshot({path:`${SHOTS}/m157_spirit_slate_map.png`});
+  await page.screenshot({path:`${SHOTS}/m159_spirit_slate_map.png`});
   await ctx.close();
 }
 
@@ -1461,9 +1462,285 @@ if(V146&&want('m146')){ await m146Tests(); }
 if(V147&&want('m147')){ await m147Tests(); }
 if(V152&&want('m152')){ await m152Tests(); }
 if(V153&&want('m153')){ await m153Tests(); }
+async function m157Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m157'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{const G=__game,st=G.assetState(),bsig=[],ssig=[];
+    for(let i=0;i<4;i++)bsig.push(G.frameSig('bather',i));
+    for(let i=0;i<5;i++)ssig.push(G.frameSig('slickman',i));
+    return {st,sheets:G.mobSheets,pu:G.puIds,plunger:G.pu.plunger,
+      bather:{hp:G.mobs.bather.hp,speed:G.mobs.bather.speed,name:G.mobs.bather.name,voice:G.mobs.bather.voice,ch:G.mobs.bather.ch,hp1:G.floorHp('bather',1),hp4:G.floorHp('bather',4),sig:bsig,info:G.spriteInfo('bather',0),fly:!!G.mobs.bather.fly},
+      slick:{hp:G.mobs.slickman.hp,speed:G.mobs.slickman.speed,name:G.mobs.slickman.name,voice:G.mobs.slickman.voice,ch:G.mobs.slickman.ch,hp1:G.floorHp('slickman',1),hp4:G.floorHp('slickman',4),sig:ssig,info:G.spriteInfo('slickman',0),fly:!!G.mobs.slickman.fly},
+      items:st.items,cfg:G.slickCfg,batherCfg:G.batherCfg};});
+  check('M1.57 the Bather art is packed (4 statue walk frames in assets/mobs/bather.png) and the mob has 4 base HP that scales like the others',art.st.bather==='png'&&art.sheets.includes('bather')&&atlas.bather&&atlas.bather.file==='mobs/bather.png'&&atlas.bather.frames===4&&new Set(art.bather.sig).size===4&&art.bather.info&&art.bather.info.w>8&&art.bather.info.h===120&&art.bather.hp===4&&art.bather.hp1===4&&art.bather.hp4===7&&art.bather.name==='THE BATHER'&&art.bather.ch==='a'&&!art.bather.fly,JSON.stringify({st:art.st.bather,frames:new Set(art.bather.sig).size,hp:[art.bather.hp,art.bather.hp1,art.bather.hp4],info:art.bather.info&&{w:art.bather.info.w,h:art.bather.info.h}}));
+  check('M1.57 the Slick Man uses the old 5-frame dark Bather art (assets/mobs/slickman.png), 10 base HP (2.5x a typical 4-HP mob) that scales like the others, and lumbers at speed 0.8',art.st.slickman==='png'&&art.sheets.includes('slickman')&&atlas.slickman&&atlas.slickman.file==='mobs/slickman.png'&&atlas.slickman.frames===5&&new Set(art.slick.sig).size===5&&art.slick.info&&art.slick.info.w>8&&art.slick.info.h===120&&art.slick.hp===10&&art.slick.hp1===10&&art.slick.hp4===13&&art.slick.name==='THE SLICK MAN'&&art.slick.ch==='d'&&art.slick.speed===.8&&art.slick.voice==='slickman'&&!art.slick.fly&&art.cfg&&art.cfg.reflect===.3&&art.cfg.fog===5&&art.cfg.range===10,JSON.stringify({st:art.st.slickman,frames:new Set(art.slick.sig).size,hp:[art.slick.hp,art.slick.hp1,art.slick.hp4],speed:art.slick.speed,cfg:art.cfg,info:art.slick.info&&{w:art.slick.info.w,h:art.slick.info.h}}));
+  check('M1.57 the Plunger is a use-item (loot and shop on Baths floors) with a packed icon',art.pu.includes('plunger')&&art.plunger&&art.plunger.name==='PLUNGER'&&/HOLE|FLOOR/.test(art.plunger.desc)&&art.items==='png'&&(atlas.items.tiles||[]).includes('plunger'),JSON.stringify({pu:art.pu.includes('plunger'),plunger:art.plunger,items:art.items}));
+  const sheet=await G(page,async()=>{const load=async name=>{const url=__game.embedded(name);const im=new Image();im.src=url;await im.decode();
+    const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);
+    const d=cx.getImageData(0,0,im.width,im.height).data,a=(x,y)=>d[(y*im.width+x)*4+3],n=name==='bather'?4:5,fw=(im.width/n)|0;
+    const corners=[[0,0],[im.width-1,0],[0,im.height-1],[im.width-1,im.height-1]];
+    for(let i=0;i<n;i++)corners.push([i*fw,0],[i*fw+fw-1,0],[i*fw,im.height-1],[i*fw+fw-1,im.height-1]);
+    return {w:im.width,h:im.height,n,corners:corners.map(([x,y])=>({x,y,a:a(x,y)}))};};
+    return {bather:await load('bather'),slickman:await load('slickman')};});
+  check('M1.57 the Bather and Slick Man sheets are transparent at every frame corner',sheet.bather.corners.every(c=>c.a===0)&&sheet.slickman.corners.every(c=>c.a===0)&&sheet.bather.n===4&&sheet.slickman.n===5&&sheet.bather.h===120&&sheet.slickman.h===120,JSON.stringify(sheet));
+  const spawn=await G(page,()=>{const G=__game;let baths=0,onBaths=0,offA=0,slate=0,onSlate=0,offD=0,aOnSlate=0,dOnBaths=0;
+    for(let sd=1;sd<=40;sd++)for(const f of [2,3,4,5,6,7,8,9,13,17,18,21,22,25,26,29]){
+      const name=G.themeFor(sd,f).name,chars=[...G.genMap(sd,f).map.join('')],na=chars.filter(c=>c==='a').length,nd=chars.filter(c=>c==='d').length;
+      if(/TILED BATHS/.test(name)){baths++;if(na>0)onBaths++;dOnBaths+=nd;}
+      else offA+=na;
+      if(/Slate/i.test(name)){slate++;if(nd>0)onSlate++;aOnSlate+=na;}
+      else offD+=nd;}
+    G.setSeed(1);G.startLevel(0);const tut=[...G.currentMap().join('')].filter(c=>c==='a'||c==='d').length;
+    return {baths,onBaths,offA,slate,onSlate,offD,aOnSlate,dOnBaths,tut};});
+  check('M1.57 the Bather spawns on Tiled Baths floors only, not on the tutorial or any other theme',spawn.baths>0&&spawn.onBaths===spawn.baths&&spawn.offA===0&&spawn.tut===0&&spawn.aOnSlate===0,JSON.stringify(spawn));
+  check('M1.57 the Slick Man spawns on Slate Halls floors only, not on the tutorial, Baths, or any other theme',spawn.slate>0&&spawn.onSlate===spawn.slate&&spawn.offD===0&&spawn.dOnBaths===0&&spawn.tut===0,JSON.stringify(spawn));
+  const trail=await G(page,()=>{const G=__game;const run=(boots)=>{G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0,perm:{items:boots?{boots:1}:{}}});G.clearMobs();
+      const s=G.state();let spot=null;
+      for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+        if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+2.8,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+2.8,y+.5,0))))spot={x:x+.5,y:y+.5};}
+      if(!spot)spot={x:s.player.x,y:s.player.y};
+      G.teleport(spot.x,spot.y,0);G.setHearts(9);
+      const i=G.spawn('bather',spot.x+1.8,spot.y,true,[]);
+      let pud=0;for(let k=0;k<50;k++){G.advance(0.05);pud=Math.max(pud,(G.state().puddles||[]).filter(q=>q.slick).length);}
+      const patches=(G.state().puddles||[]).filter(q=>q.slick);
+      if(patches[0])G.teleport(patches[0].x,patches[0].y,0);
+      const h0=G.state().player.hearts;
+      G.advance(0.2);
+      const h1=G.state().player.hearts;
+      const slick=G.slickT();
+      const j=G.spawn('zapfly',(patches[0]||{x:spot.x}).x,(patches[0]||{y:spot.y}).y,true,[]);
+      G.advance(0.2);
+      return {pud,n:patches.length,r:patches[0]&&patches[0].r,life:patches[0]&&patches[0].life,col:patches[0]&&patches[0].col,lost:h0-h1,slick,flyHp:G.state().enemies[j]&&G.state().enemies[j].hp,cfg:G.batherCfg,base:G.mobs.bather.hp};};
+    return {bare:run(false),boots:run(true)};});
+  check('M1.57 the Bather leaves pool-water-blue slick damaging puddles; Rubber Boots ignore them (flyers are unaffected)',trail.bare.pud>=1&&trail.bare.n>=1&&trail.bare.lost>=1&&trail.bare.slick>0&&trail.bare.col==='#3FC8E6'&&trail.boots.lost===0&&trail.boots.slick===0&&trail.bare.base===4,JSON.stringify(trail));
+  const skip=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(1,{hearts:9,coins:0});G.clearMobs();
+    const lv0=G.state().level;G.give('plunger');const held=G.state().player.item;G.useItem();
+    const mid={mode:G.state().mode,item:G.state().player.item,hole:G.hole&&G.hole()};
+    for(let k=0;k<80;k++){G.advance(1/60);if(G.state().mode==='play'&&G.state().level!==lv0)break;}
+    return {lv0,lv1:G.state().level,held,item:G.state().player.item,mode:G.state().mode,mid,msg:G.state().msg};});
+  check('M1.57 the Plunger opens a hole, drops you to the next floor and is used up',skip.held==='plunger'&&skip.item==null&&skip.lv1===skip.lv0+1&&skip.mode==='play'&&skip.mid.mode==='fall'&&!!skip.mid.hole,JSON.stringify(skip));
+  const basalt=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(7);
+    G.startLevel(8,{hearts:9,coins:0}); // floor 9 is always Basalt Depths and is not a boss floor
+    const theme=G.themeNow();const lv0=G.state().level;G.give('plunger');const used=G.useItem();
+    const mid={mode:G.state().mode,item:G.state().player.item,hole:G.hole&&G.hole()};
+    for(let k=0;k<180;k++){G.useItem();G.advance(1/60);} // held use must not chain
+    const st=G.state(),held=(st.player.item==='plunger'?1:0)+(st.player.item2==='plunger'?1:0);
+    return {theme,lv0,lv1:st.level,delta:st.level-lv0,mode:st.mode,used,mid,item:st.player.item,held,fellPit:st.fellPit,msg:st.msg,hole:G.hole&&G.hole()};});
+  check('M1.57 one Plunger use on Basalt Depths drops exactly one floor; holding use does not chain; none left in hand',/BASALT/.test(basalt.theme)&&basalt.used===true&&basalt.delta===1&&basalt.mode==='play'&&basalt.held===0&&basalt.item==null&&!basalt.fellPit&&basalt.mid.mode==='fall'&&!!basalt.mid.hole&&!basalt.hole,JSON.stringify(basalt));
+  const loot=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;
+    const isBaths=th=>/Baths/i.test(th||'');
+    const nPl=its=>(its||[]).filter(it=>it.kind==='power'&&it.ptype==='plunger'&&!it.taken).length;
+    const forced=n=>{let c=0;for(let i=0;i<n;i++)if(G.randPU()==='plunger')c++;return c;};
+    const shopHas=()=>(G.shopOffers()||[]).includes('plunger');
+    const slotHas=n=>{let c=0;for(let i=0;i<n;i++){const r=G.slotResolve('power',0,5);if(r&&r.power==='plunger')c++;}return c;};
+    const off={floors:0,themes:{},floorLoot:0,forced:0,shop:0,slot:0,pool:0};
+    const on={floors:0,themes:{},floorLoot:0,forced:0,shop:0,slot:0,pool:0,max:0,multi:0,withP:0};
+    const seen={mossy:0,basalt:0,baths:0,other:0};
+    function rec(theme){
+      const b=isBaths(theme)?on:off;
+      b.floors++;b.themes[theme]=(b.themes[theme]||0)+1;
+      const n=nPl(G.state().items);b.floorLoot+=n;
+      if(b===on){if(n>b.max)b.max=n;if(n>1)b.multi++;if(n)b.withP++;}
+      b.forced+=forced(120);
+      if(shopHas())b.shop++;
+      b.slot+=slotHas(80);
+      if((G.puPool()||[]).includes('plunger'))b.pool++;
+      if(/MOSSY CELLAR/.test(theme))seen.mossy++;
+      else if(/BASALT/.test(theme))seen.basalt++;
+      else if(isBaths(theme))seen.baths++;
+      else seen.other++;
+    }
+    for(let seed=1;seed<=24;seed++){
+      G.setSeed(seed);
+      for(const idx of [0,1,2,3,4,5,6,7,8,10,12,16]){
+        G.startLevel(idx,{hearts:9,coins:20});
+        rec(G.themeNow());
+      }
+    }
+    return {off,on,seen};});
+  check('M1.57 forced loot rolls never give a Plunger off Baths floors (Basalt Depths, Mossy Cellar and other themes), and Baths floors can',
+    loot.seen.mossy>0&&loot.seen.basalt>0&&loot.seen.baths>0&&loot.seen.other>0
+    &&loot.off.floorLoot===0&&loot.off.forced===0&&loot.off.shop===0&&loot.off.slot===0&&loot.off.pool===0
+    &&(loot.on.withP>0||loot.on.forced>0||loot.on.shop>0)
+    &&loot.on.pool===loot.on.floors,
+    JSON.stringify(loot));
+  check('M1.57 at most one Plunger appears in normal loot on Baths floors',loot.on.max<=1&&loot.on.multi===0&&loot.on.floors>0,JSON.stringify({floors:loot.on.floors,withP:loot.on.withP,max:loot.on.max,multi:loot.on.multi}));
+  const boss=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);
+    G.startLevel(4,{hearts:9,coins:0});G.give('plunger');
+    const blocked=G.plungerBlocked();
+    const used=G.useItem();
+    return {blocked,used,item:G.state().player.item,level:G.state().level,mode:G.state().mode,msg:G.state().msg,boss:G.state().bossDesign||(G.state().levelName||'')};});
+  check('M1.57 the Plunger is blocked on a boss floor (not consumed) while the arena is sealed',!!boss.blocked&&boss.used===false&&boss.item==='plunger'&&boss.mode!=='fall',JSON.stringify(boss));
+  const deep=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(3);
+    G.startLevel(1,{hearts:9,coins:0});const max=G.maxFloor;G.forceLevelIdx(max-1);G.give('plunger');
+    const blocked=G.plungerBlocked();const used=G.useItem();
+    return {max,blocked,used,item:G.state().player.item,level:G.state().level,mode:G.state().mode};});
+  check('M1.57 the Plunger is blocked on the final floor and is not consumed',!!deep.blocked&&deep.used===false&&deep.item==='plunger'&&deep.mode!=='fall',JSON.stringify(deep));
+  const reflect=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(42);G.startLevel(16,{hearts:99,coins:0});G.clearMobs();G.viewOverride=null;
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-4&&!spot;x++){
+      const cells=[[x+.5,y+.5],[x+1.5,y+.5],[x+2.5,y+.5]];
+      if(cells.every(([a,b])=>!G.solidAt(a,b)&&!(G.pitUnder&&G.pitUnder(a,b,0))))spot={x:x+.5,y:y+.5};}
+    if(!spot)spot={x:s.player.x,y:s.player.y};
+    const mx=spot.x+1.6,my=spot.y;
+    G.teleport(spot.x,spot.y,0);G.setHearts(9);
+    let ei=G.spawn('slickman',mx,my,true,[]);
+    const keep=()=>G.keepAlive('slickman',80);
+    const N=240;const d0=G.slickDeflects();
+    let bouncedHurt=false,hits=0;
+    for(let i=0;i<N;i++){
+      if(!G.state().enemies.some(q=>q.type==='slickman'&&!q.gone))ei=G.spawn('slickman',mx,my,true,[]);
+      keep();
+      G.placeEnemy(ei,mx,my);
+      G.teleport(spot.x,spot.y,0);
+      G.setHearts(9);
+      const hBefore=G.state().player.hearts;
+      const def0=G.slickDeflects();
+      const hp0=(G.state().enemies.find(q=>q.type==='slickman')||{}).hp;
+      G.shoot(0);
+      for(let k=0;k<40;k++)G.advance(1/60);
+      const def=G.slickDeflects()>def0;
+      const hp1=(G.state().enemies.find(q=>q.type==='slickman')||{}).hp;
+      if(def||hp1<hp0)hits++;
+      if(def&&G.state().player.hearts<hBefore)bouncedHurt=true;
+    }
+    const def=G.slickDeflects()-d0,rate=def/N;
+    return {N,def,rate,hits,bouncedHurt,hp:G.mobs.slickman.hp};});
+  check('M1.57 the Slick Man reflects about 30% of player projectiles over many trials (and a bounce can hurt you)',reflect.N===240&&Math.abs(reflect.rate-0.3)<=0.08&&reflect.bouncedHurt===true&&reflect.hp===10,JSON.stringify(reflect));
+  const fog=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(42);G.startLevel(16,{hearts:99,coins:0});G.clearMobs();G.viewOverride=null;
+    const s=G.state();let spot=null,far=null;
+    for(let y=2;y<s.mapH-2;y++)for(let x=2;x<s.mapW-2;x++){
+      if(G.solidAt(x+.5,y+.5)||(G.pitUnder&&G.pitUnder(x+.5,y+.5,0)))continue;
+      if(!spot)spot={x:x+.5,y:y+.5};
+      if(spot&&Math.hypot(x+.5-spot.x,y+.5-spot.y)>=12)far={x:x+.5,y:y+.5};}
+    if(!spot)spot={x:s.player.x,y:s.player.y};
+    G.teleport(spot.x,spot.y,0);
+    for(let i=0;i<3;i++)G.give('glasses');
+    const base=G.viewDist();
+    const ei=G.spawn('slickman',spot.x+1.4,spot.y,true,[]);
+    for(let k=0;k<90;k++)G.advance(1/60);
+    const near={fog:G.slickFog(),vd:G.viewDist(),cur:G.viewCur(),on:true};
+    G.give('flare');G.useItem();
+    for(let k=0;k<20;k++)G.advance(1/60);
+    const withFlare={fog:G.slickFog(),vd:G.viewDist(),cur:G.viewCur(),flareT:G.state().flareT||G.flareT};
+    let gone=false;
+    if(far){
+      G.teleport(far.x,far.y,0);
+      for(let k=0;k<120;k++)G.advance(1/60);
+    }
+    const farV={usedFar:!!far,fog:G.slickFog(),vd:G.viewDist(),cur:G.viewCur()};
+    // kill it and confirm fog lifts even if we could not find a far tile
+    G.clearMobs();
+    for(let k=0;k<120;k++)G.advance(1/60);
+    const after={fog:G.slickFog(),vd:G.viewDist(),cur:G.viewCur()};
+    return {base,near,withFlare,farV,after,cfg:G.slickCfg};});
+  check('M1.57 a nearby Slick Man forces fog to 5 blocks even with glasses or a flare, and the clamp lifts when it dies or is out of range',
+    fog.base>5&&fog.near.fog===true&&fog.near.vd===5&&fog.near.cur<=5.15
+    &&fog.withFlare.fog===true&&fog.withFlare.vd===5
+    &&fog.after.fog===false&&fog.after.vd>5&&fog.after.cur>5.4
+    &&(!fog.farV.usedFar||(fog.farV.fog===false&&fog.farV.vd>5)),
+    JSON.stringify(fog));
+  // in-play shots
+  await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(777);G.startLevel(2,{hearts:9,coins:0});G.clearMobs();G.viewOverride=14;
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+2.2,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+2.2,y+.5,0))))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);G.setPitch&&G.setPitch(0);
+    G.spawn('bather',spot.x+1.7,spot.y,true,[]);
+    for(let k=0;k<24;k++)G.advance(0.05);
+    G.freeze=true;G.render();});
+  await page.screenshot({path:`${SHOTS}/m157_bather.png`});
+  await G(page,()=>{const G=__game;G.freeze=false;G.clearMobs();G.give('plunger');G.useItem();G.advance(0.25);G.freeze=true;G.render();return {hole:G.hole&&G.hole(),mode:G.state().mode};});
+  await page.screenshot({path:`${SHOTS}/m157_plunger_hole.png`});
+  await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;G.setSeed(42);G.startLevel(16,{hearts:9,coins:0});G.clearMobs();G.viewOverride=null;
+    for(let i=0;i<3;i++)G.give('glasses');
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+2.2,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+2.2,y+.5,0))))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);G.setPitch&&G.setPitch(0);
+    G.spawn('slickman',spot.x+1.6,spot.y,true,[]);
+    for(let k=0;k<90;k++)G.advance(1/60);
+    G.freeze=true;G.render();
+    return {vd:G.viewDist(),cur:G.viewCur(),fog:G.slickFog()};});
+  await page.screenshot({path:`${SHOTS}/m157_slickman.png`});
+  await ctx.close();
+}
+
 if(V156&&want('m156')){ await m156Tests(); }
+async function m158Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m158'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,async()=>{
+    const G=__game,st=G.assetState();
+    const url=G.embedded('bather');const im=new Image();im.src=url;await im.decode();
+    const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);
+    const d=cx.getImageData(0,0,im.width,im.height).data,a=(x,y)=>d[(y*im.width+x)*4+3],n=4,fw=(im.width/n)|0;
+    const frames=[];
+    for(let i=0;i<n;i++){
+      const xs=[],ys=[],feet=[];
+      for(let y=0;y<im.height;y++)for(let x=i*fw;x<(i+1)*fw;x++)if(a(x,y)>16){xs.push(x-i*fw);ys.push(y);}
+      const y1=Math.max(...ys),y0=Math.min(...ys),cut=y1-Math.max(2,((y1-y0)*0.12)|0);
+      for(let k=0;k<xs.length;k++)if(ys[k]>=cut)feet.push(xs[k]);
+      const fx=feet.reduce((s,v)=>s+v,0)/feet.length;
+      frames.push({i,fx,mid:fw/2,d:fx-fw/2,bottom:im.height-1-y1,y0,corners:[a(i*fw,0),a(i*fw+fw-1,0),a(i*fw,im.height-1),a(i*fw+fw-1,im.height-1)]});
+    }
+    const walk=p=>G.animFrame({type:'bather',state:'chase',ph:p});
+    return {st:st.bather,w:im.width,h:im.height,info:frames,
+      idle:G.animFrame({type:'bather',state:'idle',ph:1}),
+      ph0:walk(0),ph013:walk(0.13),ph02:walk(0.2),ph05:walk(0.5)};});
+  check('M1.58 the Bather walk frames are bottom-aligned and centred on the feet (no sideways wobble)',
+    art.st==='png'&&atlas.bather&&atlas.bather.frames===4&&art.h===120&&art.info.length===4
+    &&art.info.every(f=>f.corners.every(c=>c===0)&&f.bottom===0&&Math.abs(f.d)<=1.0),
+    JSON.stringify(art.info));
+  check('M1.58 the Bather walk cycle is about twice as fast as M1.57 (8 frames/s) and idle stays on frame 0',
+    art.idle===0&&art.ph0===0&&art.ph013===1&&art.ph02===1&&art.ph05===0,
+    JSON.stringify({idle:art.idle,ph0:art.ph0,ph013:art.ph013,ph02:art.ph02,ph05:art.ph05}));
+  const placed=await G(page,()=>{const G=__game;G.manual=true;G.freeze=true;
+    const floors=[2,3,4,5,6,7,8,9,13,17,18,21,22,25,26,29];
+    function rec(){return {n:0,zero:0,short:0,byLvl:{},knights:{floors:0,zero:0,one:0,two:0,more:0}};}
+    const out={bather:rec(),lichen:rec(),slickman:rec(),knights:rec().knights};
+    function add(b,lvl,c,min){
+      b.n++; if(c===0)b.zero++; if(c<min)b.short++;
+      const o=b.byLvl[lvl]||(b.byLvl[lvl]={n:0,sum:0,min:99,max:0,zero:0});
+      o.n++; o.sum+=c; o.min=Math.min(o.min,c); o.max=Math.max(o.max,c); if(!c)o.zero++;
+    }
+    for(let sd=1;sd<=30;sd++){
+      G.setSeed(sd);
+      for(const f of floors){
+        G.startLevel(f-1,{hearts:9,coins:20});
+        const theme=G.themeNow()||'',ents=G.state().enemies||[],types={};
+        for(const e of ents){if(!e.gone)types[e.type]=(types[e.type]||0)+1;}
+        const kn=types.knight||0; out.knights.floors++;
+        if(kn===0)out.knights.zero++; else if(kn===1)out.knights.one++; else if(kn===2)out.knights.two++; else out.knights.more++;
+        const min=f>=5?2:1;
+        if(/TILED BATHS/.test(theme))add(out.bather,f,types.bather||0,min);
+        if(/MOSSY CELLAR/.test(theme))add(out.lichen,f,types.lichen||0,min);
+        if(/Slate/i.test(theme))add(out.slickman,f,types.slickman||0,min);
+      }
+    }
+    for(const k of ['bather','lichen','slickman']){
+      const b=out[k];
+      const by={};
+      for(const [l,o] of Object.entries(b.byLvl)) by[l]={n:o.n,avg:o.sum/o.n,min:o.min,max:o.max,zero:o.zero};
+      b.byLvl=by;
+    }
+    return out;});
+  const okTheme=(b,name)=>b.n>0&&b.zero===0&&b.short===0&&Object.keys(b.byLvl).every(l=>(+l>=5?b.byLvl[l].min>=2:b.byLvl[l].min>=1));
+  check('M1.58 a real-flow Tiled Baths floor always has at least 1 Bather (2 from floor 5), counting placed mobs not the pool',
+    okTheme(placed.bather),JSON.stringify(placed.bather));
+  check('M1.58 a real-flow Mossy Cellar floor always has at least 1 Lichen Face (2 from floor 5), counting placed mobs',
+    okTheme(placed.lichen),JSON.stringify(placed.lichen));
+  check('M1.58 a real-flow Slate Halls floor always has at least 1 Slick Man (2 from floor 5), counting placed mobs',
+    okTheme(placed.slickman),JSON.stringify(placed.slickman));
+  check('M1.58 a Treasure Knight is guaranteed on floors 2+; a second one is occasional (coin door), not a double-spawn bug',
+    placed.knights.floors>0&&placed.knights.zero===0&&placed.knights.one>placed.knights.two&&placed.knights.more===0,
+    JSON.stringify(placed.knights));
+  await ctx.close();
+}
+
 if(V157&&want('m157')){ await m157Tests(); }
 if(V158&&want('m158')){ await m158Tests(); }
+if(V159&&want('m159')){ await m159SlateTests(); await m159InvTests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -1854,10 +2131,10 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[])].sort()),types.join(','));
-    const hp=types.map(t=>mobs[t].hp),sp=types.map(t=>mobs[t].speed),vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name);
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[])].sort()),types.join(','));
+    const hp=types.map(t=>mobs[t].hp),sp=types.map(t=>mobs[t].speed),vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name),hpTank=types.filter(t=>t!=='slickman').map(t=>mobs[t].hp);
     check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===types.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
-    check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hp)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));
+    check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hpTank)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));
     // animation frames + hit-flash frames
     const fr=await G(page,(all)=>all.map(t=>{const s=new Set();for(let i=0;i<4;i++)s.add(__game.frameSig(t,i));return s.size;}),ALL);
     check('M1.3 all 6 mobs have 4 distinct animation frames',fr.every(n=>n===4),ALL.map((t,i)=>t+':'+fr[i]).join(' '));

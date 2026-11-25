@@ -41,6 +41,7 @@ const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
+const V145=atLeast('1.45'); // M1.45+: new arm art (bigger frames), bigger thrown balloons, flyers skip puddles
 const V143=atLeast('1.43'); // M1.43+: the arm and balloon art come from assets/hand.png and assets/balloon.png
 const V142=atLeast('1.42'); // M1.42+: the EXIT sign hangs from the ceiling
 const V141=atLeast('1.41'); // M1.41+: the exit is a stairwell in the floor; the King's ears shear instead of rotating
@@ -176,7 +177,7 @@ const G=(page,fn,arg)=>page.evaluate(fn,arg);
   check('continue restores level 2 with saved coins',st.mode==='play'&&st.level===1&&st.player.coins===coinsAtL2,`coins=${st.player.coins}`);
 
   // death + retry
-  st=await G(page,()=>{__game.wakeAll();for(let i=0;i<14;i++){const s=__game.state();if(s.mode!=='play')break;const en=s.enemies.find(x=>!x.gone);__game.teleport(en.x+0.3,en.y,Math.PI);__game.advance(1.55);}return __game.state();});
+  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&!(x.type==='zapfly'&&x.face==='comedy')):s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
   check('touching enemies costs hearts until death screen',st.mode==='dead'&&st.player.hearts===0);
   await page.screenshot({path:`${SHOTS}/desktop_1280x720_death.png`});
   st=await G(page,()=>{__game.advance(0.6);__game.confirm();return __game.advance(0.05);});
@@ -978,6 +979,16 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m145Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m145'});
+  const pd=await G(page,()=>{const G=__game,out={};for(const t of ['clunk','kettle','screamer','wisp','zapfly']){G.manual=true;G.freeze=false;G.setSeed(4242);G.startLevel(0);G.clearMobs();G.setHearts(99);G.teleport(2.5,2.5,0);
+      G.spawn(t,7.5,3.5,false);G.addYPud(7.5,3.5);const i=G.state().enemies.length-1;G.freeze=true;const h0=G.state().enemies[i].hp;for(let k=0;k<20;k++)G.advance(0.1);out[t]=h0-G.state().enemies[i].hp;}return out;});
+  check(`M1.45 flying monsters pass over yellow puddles; ground monsters still take the damage (${Object.entries(pd).map(([k,v])=>k+' -'+v).join(', ')})`,pd.clunk>0&&pd.kettle>0&&pd.screamer===0&&pd.wisp===0&&pd.zapfly===0,JSON.stringify(pd));
+  const hb=await G(page,()=>{const f=__game.spriteData('handAll',0);return [f.w,f.h];});
+  check('M1.45 the arm frames are 100 x 80 so the sleeve runs on past the bottom-right corner while it animates',hb[0]===100&&hb[1]===80,JSON.stringify(hb));
+  await ctx.close();
+}
+
 async function m143Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m143'});
   const r=await G(page,()=>{const G=__game,h=[0,1,2,3].map(i=>{const d=G.atlasPng('hand');return d.length;}),st=G.assetState();
@@ -1172,6 +1183,7 @@ if(V139&&want('m139')){ await m139Tests(); }
 if(V140&&want('m140')){ await m140Tests(); }
 if(V141&&want('m141')){ await m141Tests(); }
 if(V143&&want('m143')){ await m143Tests(); }
+if(V145&&want('m145')){ await m145Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

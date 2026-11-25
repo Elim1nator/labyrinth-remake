@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.56: no more riders
+- Infernal mobs no longer get the **Mounted** modifier (a second mob riding on top). It is never rolled; every other modifier is unchanged. Switch: `MOD_OFF` in the game.
+- All test groups pass.
+- QA build `m1.56-qa` (debug hook on).
+
 ## M1.55: Mortared Man colours
 - The face is recoloured to match the brick walls (its shading mapped onto the brick tile's browns and reds; the glowing red eyes are kept).
 - QA build `m1.55-qa` (debug hook on).

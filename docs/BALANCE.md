@@ -145,7 +145,7 @@ Powered mobs (elites) are called **INFERNAL <NAME>** (the band shows the name an
 | Firework | 4 | sparks burst when hit (1 damage if you're within 1.5) |
 | Gravity | 5 | bite levitates you for 3 s (higher view, 60% speed, you float over pits) |
 | Flying | 3 | flies over pits |
-| Mounted | 6 | rides a Clunkbot, Rattlebone, Kettlegrump or Springle; drops off when its mount dies |
+| ~~Mounted~~ | - | removed in M1.56 (never rolled); used to ride a Clunkbot, Kettlegrump or Springle |
 | Morph | 7 | every 10-16 s, 40% chance to turn into another monster (keeps its powers) |
 | Ghost | 4 | a Hazewisp ghost rises when it dies |
 | Confusing | 5 | bite reverses your controls for 3 s |

@@ -43,6 +43,7 @@ const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
 const V151=atLeast('1.51'); // M1.51+: wall tiles are 128x128
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
+const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
@@ -985,6 +986,15 @@ async function m130Tests(){
 }
 
 
+async function m156Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m156'});
+  const r=await G(page,()=>{const G=__game;const c=G.rollModsAt(7,20,4000),c2=G.rollModsAt(8,40,4000);let riders=0,lv=0;
+    for(let sd=1;sd<=25;sd++)for(const f of [6,9,13,17,22]){G.manual=true;G.freeze=true;G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0});lv++;riders+=G.state().enemies.filter(e=>(e.mods||[]).includes('mounted')).length;}
+    return {mounted:(c.mounted|0)+(c2.mounted|0),others:Object.keys(c).length,riders,lv};});
+  check('M1.56 Infernal mobs no longer get riders (Mounted is never rolled; other modifiers still are)',r.mounted===0&&r.riders===0&&r.others>=8,JSON.stringify(r));
+  await ctx.close();
+}
+
 async function m153Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m153'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
@@ -1408,6 +1418,7 @@ if(V146&&want('m146')){ await m146Tests(); }
 if(V147&&want('m147')){ await m147Tests(); }
 if(V152&&want('m152')){ await m152Tests(); }
 if(V153&&want('m153')){ await m153Tests(); }
+if(V156&&want('m156')){ await m156Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

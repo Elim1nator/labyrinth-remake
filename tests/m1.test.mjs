@@ -41,6 +41,7 @@ const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
+const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
 const V145=atLeast('1.45'); // M1.45+: new arm art (bigger frames), bigger thrown balloons, flyers skip puddles
 const V143=atLeast('1.43'); // M1.43+: the arm and balloon art come from assets/hand.png and assets/balloon.png
@@ -980,6 +981,28 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m147Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m147'});
+  const hx=await G(page,()=>{const G=__game,out={};const run=(items,leave)=>{G.manual=true;G.freeze=false;G.setSeed(4242);G.startLevel(0,{hearts:9,coins:0,perm:{items}});G.clearMobs();G.teleport(7.5,3.5,0);G.setHearts(9);
+      const i=G.spawn('hexeye',10.5,3.5,true,[]);const s0=G.state().stats,c0=s0.psyCasts|0,hit0=s0.psyHits|0,dg0=s0.psyDodged|0,h0=G.state().player.hearts;let red=false,fog=0,left=false;
+      for(let k=0;k<70;k++){G.advance(0.1);const st=G.state();if(st.enemies[i].frame===3){red=true;fog=Math.max(fog,G.psyK());if(leave&&!left){G.teleport(2.5,3.5,0);left=true;}}}
+      const s=G.state();return {casts:(s.stats.psyCasts|0)-c0,hits:(s.stats.psyHits|0)-hit0,dodged:(s.stats.psyDodged|0)-dg0,lost:h0-s.player.hearts,red,fog:+fog.toFixed(2)};};
+    out.plain=run({},false);out.armour=run({jacket:10,bubble:5,garlic:3,mirror:3},false);out.dodge=run({},true);out.cfg=G.hexeyeCfg;
+    out.pool={f11:G.mobsOnFloor?0:0};return out;});
+  check(`M1.47 the Hexeye stares (eye red, fog red): after ${hx.cfg.charge} s you take a heart if still within ${hx.cfg.range} cells`,hx.plain.casts>=1&&hx.plain.hits>=1&&hx.plain.lost>=1&&hx.plain.red&&hx.plain.fog>.5,JSON.stringify(hx.plain));
+  check('M1.47 the Hexeye\'s attack is psychic: the jacket, bubble wrap, garlic and mirror do not stop it',hx.armour.hits>=1&&hx.armour.lost>=1,JSON.stringify(hx.armour));
+  check('M1.47 stepping out of range while the Hexeye stares dodges it',hx.dodge.casts>=1&&hx.dodge.dodged>=1&&hx.dodge.lost===0,JSON.stringify(hx.dodge));
+  const pl=await G(page,()=>{const G=__game,mob=new Set(['v']),o={hexBefore:0,hexAfter:0,rows:{}};for(let sd=1;sd<=20;sd++){for(const f of [8,11])for(const row of G.genMap(sd,f).map)for(const c of row)if(c==='v')o.hexBefore++;for(const f of [12,16])for(const row of G.genMap(sd,f).map)for(const c of row)if(c==='v')o.hexAfter++;}
+    for(const f of [3,6,10,13,14,20,30]){let cells=0,big=0,rooms=0,badPath=0;for(let sd=1;sd<=20;sd++){const d=G.genMap(sd,f),m=d.map;if(d.pitRoom){rooms++;const R=d.pitRoom;let walk=0,wide=false;const W=(x,y)=>m[y][x]!=='P';for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){if(W(x,y))walk++;if(x+1<R.x+R.w&&y+1<R.y+R.h&&W(x,y)&&W(x+1,y)&&W(x,y+1)&&W(x+1,y+1))wide=true;}if(wide||walk===R.w*R.h)badPath++;} /* paths are 1 cell wide (no 2x2 of floor) and there is pit */
+        for(let y=0;y<m.length-1;y++)for(let x=0;x<m[0].length-1;x++){if(m[y][x]==='P')cells++;if(m[y][x]==='P'&&m[y][x+1]==='P'&&m[y+1][x]==='P'&&m[y+1][x+1]==='P')big++;}}o.rows[f]={cells:+(cells/20).toFixed(1),big,rooms,badPath};}
+    return o;});
+  check(`M1.47 the Hexeye joins the monster pools on floor 12 (${pl.hexBefore} on floors 8/11, ${pl.hexAfter} on floors 12/16 over 20 seeds)`,pl.hexBefore===0&&pl.hexAfter>0,JSON.stringify(pl));
+  const R=pl.rows;
+  check(`M1.47 deeper floors have more pits and bigger ones: ${Object.entries(R).map(([f,v])=>'floor '+f+' '+v.cells).join(', ')} pit cells per floor; 2x2 pits from floor 8`,R[3].cells<=R[10].cells&&R[10].cells<R[30].cells&&R[6].big===0&&R[10].big>0,JSON.stringify(R));
+  check(`M1.47 pit rooms (all pit but 1-cell paths between the doors) only from floor 14: ${R[14].rooms+R[20].rooms+R[30].rooms} on 60 deep floors, none before`,R[3].rooms+R[6].rooms+R[10].rooms+R[13].rooms===0&&R[14].rooms+R[20].rooms+R[30].rooms>10&&R[14].badPath+R[20].badPath+R[30].badPath===0,JSON.stringify(R));
+  await ctx.close();
+}
+
 async function m146Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m146'});
   const r=await G(page,()=>{const G=__game,out={errors:[],n:0};const types=['screamer','springle','kettle','wisp','clunk','zapfly','skeleton','skitter','bigspider','eggsac','knight'];
@@ -1060,7 +1083,7 @@ async function m139Tests(){
   const rm=await G(page,()=>{const G=__game,mobCh=new Set(Object.values(G.mobs).map(m=>m.ch)),o={floors:0,fillable:0,empty:[],big:0,big2:0,mobs:0,corridor:0,maxMobs:0};
     for(const sd of [1,2,3,4,5,6,7,8,9,10])for(const f of [2,3,4,6,7,8,9,11,13,16]){const d=G.genMap(sd,f),m=d.map,RR=G.genRooms(sd,f);o.floors++;let n=0;
       for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++)if(mobCh.has(m[y][x])){n++;if(!RR.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h))o.corridor++;}o.mobs+=n;o.maxMobs=Math.max(o.maxMobs,n);
-      RR.forEach(r=>{if(r.start||r.shop||r.tag==='treasure'||r.tag==='arena')return;o.fillable++;let k=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++)if(mobCh.has(m[y][x]))k++;if(!k)o.empty.push(sd+':'+f);if(r.w*r.h>=25){o.big++;if(k>=2)o.big2++;}});}
+      RR.forEach(r=>{if(r.start||r.shop||r.tag==='treasure'||r.tag==='arena'||r.tag==='pit')return;o.fillable++;let k=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++)if(mobCh.has(m[y][x]))k++;if(!k)o.empty.push(sd+':'+f);if(r.w*r.h>=25){o.big++;if(k>=2)o.big2++;}});}
     o.mobsPerFloor=+(o.mobs/o.floors).toFixed(1);return o;});
   check(`M1.39 every room except the start, shop, treasure room and arena has monsters (${rm.fillable} rooms on ${rm.floors} floors; decorations no longer count)`,rm.empty.length===0,JSON.stringify({empty:rm.empty.slice(0,6)}));
   check(`M1.39 rooms first: monsters move out of the corridors into rooms (${rm.corridor} left in corridors), big rooms often get 2+ (${rm.big2} of ${rm.big}), ${rm.mobsPerFloor} per floor, never more than 30`,rm.corridor<rm.mobs*.1&&rm.big2>rm.big*.3&&rm.maxMobs<=30,JSON.stringify({corridor:rm.corridor,mobs:rm.mobs,big:rm.big,big2:rm.big2,max:rm.maxMobs}));
@@ -1204,6 +1227,7 @@ if(V141&&want('m141')){ await m141Tests(); }
 if(V143&&want('m143')){ await m143Tests(); }
 if(V145&&want('m145')){ await m145Tests(); }
 if(V146&&want('m146')){ await m146Tests(); }
+if(V147&&want('m147')){ await m147Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -1594,7 +1618,7 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[])].sort()),types.join(','));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[])].sort()),types.join(','));
     const hp=types.map(t=>mobs[t].hp),sp=types.map(t=>mobs[t].speed),vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name);
     check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===types.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hp)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));
@@ -3126,7 +3150,7 @@ async function m19Tests(){
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-rooms'});
     const r=await G(page,(V191)=>{const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));if(__game.bosses)Object.values(__game.bosses).forEach(b=>mob.add(b.ch)); /* M1.10: a boss fills its arena */let rooms=0,empty=0,decos=0,badDeco=[];const kinds=new Set();const ex=[];
       for(let sd=1;sd<=60;sd++)for(const f of [2,3,4,5,6,8,10,13,20]){const d=__game.genMap(sd,f),m=d.map,RR=__game.genRooms(sd,f);
-        for(const R of RR){rooms++;let has=false,free=0;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){const c=m[y][x];if(mob.has(c)||/[1-8N]/.test(c))has=true;if(c==='.')free++;}if(!free)has=true; /* a room packed with keys/coins/hearts is not empty */
+        for(const R of RR){if(R.tag==='pit')continue; /* M1.47: a pit room is all pit and paths by design */rooms++;let has=false,free=0;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){const c=m[y][x];if(mob.has(c)||/[1-8N]/.test(c))has=true;if(c==='.')free++;}if(!free)has=true; /* a room packed with keys/coins/hearts is not empty */
           if(V191&&!has&&R.start){let clear=false;for(let y=R.y;y<R.y+R.h;y++)for(let x=R.x;x<R.x+R.w;x++){if(m[y][x]!=='.')continue;let ok=true;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i];if(/[DL]/.test(q)||((i===0)!==(j===0)&&/[FkXYNpP]/.test(q)))ok=false;}if(ok)clear=true;}if(!clear)has=true;} /* M1.9.1: a tiny start room ringed by doors may stay bare (you start in it) */
           if(!has){empty++;if(ex.length<4)ex.push(sd+':'+f+(R.start?' start':''));}}
         for(let y=1;y<m.length-1;y++)for(let x=1;x<m[0].length-1;x++){const c=m[y][x];if(!/[1-8]/.test(c))continue;decos++;kinds.add(c);for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i],four=(i===0)!==(j===0),diag=i!==0&&j!==0;if((four&&/[DLFkXYNpP]/.test(q))||(V191&&diag&&/[DL]/.test(q))){badDeco.push(sd+':'+f+' '+q+(diag?' (diagonal)':''));}}}}
@@ -3145,11 +3169,11 @@ async function m19Tests(){
   // ---- 8. pits
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-pits'});
-    const pg=await G(page,(V140)=>{let maps=0,bad=[],cnt={};for(let sd=1;sd<=100;sd++)for(const f of [1,2,3,4,5,6,8,10,12,16,30,200]){if(f===1)continue;const d=__game.genMap(sd,f),m=d.map,h=m.length,w=m[0].length;maps++;let n=0;const AR=V140&&d.boss&&d.boss.design?d.boss.room:null; /* M1.40: the arena design's own pits are not random pits */
-        for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(m[y][x]!=='P')continue;if(AR&&x>=AR.x&&x<AR.x+AR.w&&y>=AR.y&&y<AR.y+AR.h)continue;n++;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i];if(/[DLFkXYNph]/.test(q))bad.push(`${sd}:${f} ${q} by pit`);}}
-        const want=f>=3?Math.min(6,1+(f>>1)):0;(cnt[f]=cnt[f]||[]).push(n);if(n>want)bad.push(`${sd}:${f} ${n}>${want}`);}
-      const avg={};for(const f in cnt)avg[f]=(cnt[f].reduce((a,b)=>a+b,0)/cnt[f].length).toFixed(1);return {maps,bad:bad.slice(0,6),nBad:bad.length,avg};},V140);
-    check(`M1.9 pits: none on floors 1-2, up to 1 + floor/2 (max 6) from floor 3; never on/next to the start, keys, doors, exit, slot, merchant or hearts (${pg.maps} maps)`,pg.nBad===0&&pg.avg[2]==='0.0'&&+pg.avg[8]>=3,JSON.stringify(pg));
+    const pg=await G(page,([V140,V147])=>{let maps=0,bad=[],cnt={};for(let sd=1;sd<=100;sd++)for(const f of [1,2,3,4,5,6,8,10,12,16,30,200]){if(f===1)continue;const d=__game.genMap(sd,f),m=d.map,h=m.length,w=m[0].length;maps++;let n=0;const AR=V140&&d.boss&&d.boss.design?d.boss.room:null; /* M1.40: the arena design's own pits are not random pits */const PR=V147?d.pitRoom:null; /* M1.47: nor are the pit room's */
+        for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(m[y][x]!=='P')continue;if(AR&&x>=AR.x&&x<AR.x+AR.w&&y>=AR.y&&y<AR.y+AR.h)continue;if(PR&&x>=PR.x&&x<PR.x+PR.w&&y>=PR.y&&y<PR.y+PR.h)continue;n++;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const q=m[y+j][x+i];if(/[DLFkXYNph]/.test(q))bad.push(`${sd}:${f} ${q} by pit`);}}
+        const want=f>=3?(V147?Math.min(10,Math.max(Math.min(6,1+(f>>1)),f>12?6+((f-12)>>2):0))*(f>=14?9:f>=8?4:1):Math.min(6,1+(f>>1))):0; /* M1.47: more pit spots deeper, each up to 2x2 from floor 8 and 3x3 from 14 */(cnt[f]=cnt[f]||[]).push(n);if(n>want)bad.push(`${sd}:${f} ${n}>${want}`);}
+      const avg={};for(const f in cnt)avg[f]=(cnt[f].reduce((a,b)=>a+b,0)/cnt[f].length).toFixed(1);return {maps,bad:bad.slice(0,6),nBad:bad.length,avg};},[V140,V147]);
+    check(`M1.9 pits: none on floors 1-2, up to 1 + floor/2 (max 6) from floor 3${V147?' (M1.47: more and bigger deeper down, pit rooms aside)':''}; never on/next to the start, keys, doors, exit, slot, merchant or hearts (${pg.maps} maps)`,pg.nBad===0&&pg.avg[2]==='0.0'&&+pg.avg[8]>=3,JSON.stringify(pg));
     // solvability with pits: every lock order, any floor (M1.3 analysis covers 2-8; here floors 9-200 on 40 seeds, locks closed and open)
     const sol=await G(page,()=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let maps=0,bad=[];
       for(let sd=1;sd<=40;sd++)for(const f of [3,5,7,9,11,14,18,25,60,200,999]){const d=__game.genMap(sd,f),m=d.map,S=d.secret,h=m.length,w=m[0].length;maps++;const inS=(x,y)=>S&&x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;let p;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y][x]==='p')p=[x,y];

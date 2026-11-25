@@ -37,6 +37,7 @@
     "clunk": { "file": "mobs/clunk.png", "frames": 4, "k": 1.5 },
     "zapfly": { "file": "mobs/zapfly.png", "frames": 4, "k": 1.5 },
     "zapflyC": { "file": "mobs/zapflyC.png", "frames": 4, "k": 1.5 },
+    "hexeye": { "file": "mobs/hexeye.png", "frames": 4, "k": 1.5 },
     "skeleton": { "file": "mobs/skeleton.png", "frames": 4, "k": 1.5 },
     "bonePile": { "file": "mobs/bonePile.png", "frames": 2, "k": 1.5 },
     "knight": { "file": "mobs/knight.png", "frames": 5, "k": 1.5 },

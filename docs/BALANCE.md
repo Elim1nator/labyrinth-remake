@@ -1,4 +1,4 @@
-# Balance (M1.57)
+# Balance (M1.58)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -13,9 +13,9 @@
 | Clunkbot | 8 | 0.7 | slow tank | L4 |
 | Zapfly | 1 | 2.6 | fast, fragile; flies over pits | L5 |
 | Rattlebone | 4 | 1.25 | collapses into a bone pile (see below) | L6 |
-| Lichen Face | 3 | 1.65 | flies (slow hover bob); leaves a slowing spore patch (radius 0.36, 5 s) on the floor below; flyers and Rubber Boots ignore it | Mossy Cellar (floors 2-8) |
-| The Bather | 4 | 1.0 | pale marble statue; leaves pool-blue slick damaging puddles (radius 0.34, 4.5 s) that also sap traction; flyers and Rubber Boots ignore them | Tiled Baths (floors 2-8) |
-| The Slick Man | 10 | 0.8 | dark slimy stone; reflects player projectiles 30%; forces view distance to 5 blocks while within 10 cells (overrides glasses and flares) | Slate Halls (from floor 17) |
+| Lichen Face | 3 | 1.65 | flies (slow hover bob); leaves a slowing spore patch (radius 0.36, 5 s) on the floor below; flyers and Rubber Boots ignore it. At least 1 per Mossy Cellar floor, 2 from L5 | Mossy Cellar (floors 2-8) |
+| The Bather | 4 | 1.0 | pale marble statue; leaves pool-blue slick damaging puddles (radius 0.34, 4.5 s) that also sap traction; flyers and Rubber Boots ignore them. At least 1 per Baths floor, 2 from L5 | Tiled Baths (floors 2-8) |
+| The Slick Man | 10 | 0.8 | dark slimy stone; reflects player projectiles 30%; forces view distance to 5 blocks while within 10 cells (overrides glasses and flares). At least 1 per Slate floor, 2 from L5 | Slate Halls (from floor 17) |
 
 Pools: L2 Screamer + Kettlegrump; L3 adds Springle and Hazewisp; L4 adds Clunkbot; L5+ adds
 Zapfly; L6+ adds Rattlebone. Featured (weighted) mobs: L2 Kettlegrump; L3 Springle, Hazewisp,
@@ -301,3 +301,7 @@ The Plunger is a use-item: it opens a black hole at your feet and drops you exac
 ## Slate Halls: the Slick Man (M1.57)
 
 The Slick Man has 10 base HP (`10 + (L-1)`, same +1-per-floor scaling), about 2.5× a typical 4-HP regular and above Clunkbot's 8. Speed 0.8 (it lumbers). Map letter `d`. It uses the earlier hunched 5-frame walk sheet (`assets/mobs/slickman.png`). 30% of player projectiles (water balloons and the like, not thorns) bounce back toward you, can hurt you, and play a spark plus a wet-stone clack (`SLICK.reflect`). While a living Slick Man is within 10 cells, view distance is clamped to 5 (`SLICK.fog`) even if you have glasses or a flare; `VIEW.cur` lerps to the new value (`fogLerp` 3.2) so the fog thickens and lifts smoothly when it dies or you move out of range. The 10-cell trigger is wider than the 5-block fog so you feel the clamp as it approaches, rather than locking the whole floor. A low, wet stone voice plays when it spots you, with heavy wet footsteps while it walks.
+
+## Featured theme minimum (M1.58)
+
+On a Tiled Baths, Mossy Cellar, Slate Halls or Brick Halls floor the theme mob is featured first (`feat.unshift`) and a second copy is featured from floor 5. It also stays in the random pool, so floors often have more than the minimum. After later steps (Rattlebone swaps from floor 6, shop and boss-arena moves that can drop a monster), a final pass restores the minimum if it was lost: **1 on L2–4, 2 from L5**. Real-flow checks count placed entities after `startLevel`, not just pool or map-letter membership.

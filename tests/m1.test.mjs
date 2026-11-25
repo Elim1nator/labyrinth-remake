@@ -984,6 +984,9 @@ async function m145Tests(){
   const pd=await G(page,()=>{const G=__game,out={};for(const t of ['clunk','kettle','screamer','wisp','zapfly']){G.manual=true;G.freeze=false;G.setSeed(4242);G.startLevel(0);G.clearMobs();G.setHearts(99);G.teleport(2.5,2.5,0);
       G.spawn(t,7.5,3.5,false);G.addYPud(7.5,3.5);const i=G.state().enemies.length-1;G.freeze=true;const h0=G.state().enemies[i].hp;for(let k=0;k<20;k++)G.advance(0.1);out[t]=h0-G.state().enemies[i].hp;}return out;});
   check(`M1.45 flying monsters pass over yellow puddles; ground monsters still take the damage (${Object.entries(pd).map(([k,v])=>k+' -'+v).join(', ')})`,pd.clunk>0&&pd.kettle>0&&pd.screamer===0&&pd.wisp===0&&pd.zapfly===0,JSON.stringify(pd));
+  const bm=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(4242);G.startLevel(0);G.clearMobs();G.setHearts(99);G.teleport(2.5,3.5,0);G.advance(0.05);const s0=G.state().stats.booms|0;G.blackBoom(4.5,3.5);
+    const a=G.booms();G.advance(0.9);return {made:(G.state().stats.booms|0)-s0,live:a,after:G.booms(),frames:[0,1,2,3].map(i=>{const d=G.spriteData('boom',i);return d.w+'x'+d.h;})};});
+  check('M1.45 explosions use the new art (assets/boom.png: burst, fireball, peak, smoke) and clear away after about 0.75 s',bm.made===1&&bm.live===1&&bm.after===0&&bm.frames.every(f=>f==='32x32'),JSON.stringify(bm));
   const hb=await G(page,()=>{const f=__game.spriteData('handAll',0);return [f.w,f.h];});
   check('M1.45 the arm frames are 100 x 80 so the sleeve runs on past the bottom-right corner while it animates',hb[0]===100&&hb[1]===80,JSON.stringify(hb));
   await ctx.close();

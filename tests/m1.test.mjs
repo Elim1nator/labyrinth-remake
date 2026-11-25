@@ -39,6 +39,7 @@ const V127=atLeast('1.27'); // M1.27+: balloons pass through smiling Comedy mask
 const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status effects, 1 px glow)
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
+const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
 const V137=atLeast('1.37'); // M1.37+: doors are the leaf only (no wall frame); wall variations are just pillars and runes
 const V136=atLeast('1.36'); // M1.36+: new level generator (rooms and mazes, growing tree, braiding, distance-map content)
 const V135=atLeast('1.35'); // M1.35+: the treasure knight smashes doors and fences; doors match their wall style
@@ -978,6 +979,8 @@ async function m137Tests(){
     return {share:n.map(c=>c/tot),tot,rune:Math.max(...rune),runeDiff:Math.min(...diff),doors:doors.length,maxWall:Math.max(...doors)};});
   check(`M1.37 wall variations are just pillars and runes: ${(r.share[0]*100).toFixed(1)}% plain, ${(r.share[2]*100).toFixed(1)}% pillar bays, ${(r.share[3]*100).toFixed(1)}% runes, no damaged walls or torches`,r.share[0]>.88&&r.share[1]===0&&r.share[2]>.025&&r.share[2]<.08&&r.share[3]>.01&&r.share[3]<.05&&r.share[3]<r.share[2],r.share.map(x=>x.toFixed(3)).join(' '));
   check('M1.37 a rune is carved into the plain wall (no pillar bay around it): outside the rune the wall is unchanged, and the rune itself shows',r.rune===0&&r.runeDiff>3,JSON.stringify({outside:r.rune,minDiff:r.runeDiff}));
+  if(V138){const pc=await G(page,()=>[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19].map(ti=>__game.pillarCols(ti)));
+    check('M1.38 the pillar stands in the middle of the wall: only columns 24-41 change (pillar 24-39, shadow beside it); the wall edges stay plain',pc.every(c=>c.length>=12&&Math.min(...c)>=24&&Math.max(...c)<=41),JSON.stringify(pc.map(c=>[Math.min(...c),Math.max(...c)])));}
   check(`M1.37 doors are the door leaf only: no wall pixels in any door texture (${r.doors} doors checked), so nothing but the door slides when it opens`,r.doors>=20&&r.maxWall<.01,JSON.stringify(r));
   await ctx.close();
 }

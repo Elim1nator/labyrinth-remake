@@ -226,7 +226,7 @@ A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
 - Deep wall styles unlock every 4 floors: L9 basalt, L13 rusted iron, L17 slate, L21 glyph
   stone, L25 ember rock, L29 sandstone, L33 granite, L37 cobblestone, L41 limestone, L45 dripstone,
   L49 chasm shale, L53 ironbound (M1.20). A deep floor uses one unlocked style, the newest about half the time.
-- Wall cells vary (M1.37): ~92% plain, ~5% pillared bay, ~3% glowing rune (cosmetic only; no damaged walls or torches).
+- Wall cells vary (M1.37): ~92% plain, ~5% a pillar in the middle of the wall (M1.38), ~3% glowing rune (cosmetic only; no damaged walls or torches).
 
 ## Score
 

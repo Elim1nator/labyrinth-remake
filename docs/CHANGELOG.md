@@ -3,6 +3,10 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.38: pillars in the middle of the wall
+- The pillar variation is now a single pillar standing in the middle of the wall (shaft with a capital and base, a soft shadow beside it) instead of half-pilasters at both edges with a recessed bay. The wall around it stays plain.
+- QA build `m1.38-qa` (debug hook on).
+
 ## M1.37: cleaner doors and walls
 - Doors no longer include a strip of wall around them (it slid along with the door when it opened). The door leaf from `assets/doors.png` now fills the whole doorway; locked doors keep the gold lock and bands.
 - Wall variations are just pillar bays (~5% of wall cells) and, now and then, a glowing rune carved into the plain wall (~3%; each wall style has its own rune colour). The damaged walls and the wall torches are gone.

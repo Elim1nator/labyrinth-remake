@@ -12,6 +12,8 @@
       "cols": 6,
       "tiles": ["brick", "stone", "wood", "tile", "moss", "basalt", "rust", "slate", "glyph", "ember", "sandstone", "granite", "cobble", "limestone", "dripstone", "shale", "ironbound", "lock"]
     },
+    "hand": { "file": "hand.png", "frames": 4, "k": 1.5 },
+    "balloon": { "file": "balloon.png", "frames": 1, "k": 1.5 },
     "items": {
       "file": "items.png",
       "tile": 24,

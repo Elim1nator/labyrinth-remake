@@ -40,6 +40,7 @@ const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status e
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
+const V143=atLeast('1.43'); // M1.43+: the arm and balloon art come from assets/hand.png and assets/balloon.png
 const V142=atLeast('1.42'); // M1.42+: the EXIT sign hangs from the ceiling
 const V141=atLeast('1.41'); // M1.41+: the exit is a stairwell in the floor; the King's ears shear instead of rotating
 const V140=atLeast('1.40'); // M1.40+: fixed boss-arena designs; the King's ears stay attached; his screamers are small
@@ -831,7 +832,7 @@ async function m123Tests(){
 async function m124Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m124'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
-  const st=await G(page,()=>({st:__game.assetState(),fx:__game.fxSheets}));const bad=st.fx.filter(n=>st.st[n]!=='png'||!atlas[n]||atlas[n].file!=='boss/'+n+'.png');
+  const st=await G(page,()=>({st:__game.assetState(),fx:__game.fxSheets.filter(n=>n!=='hand'&&n!=='balloon')})); /* M1.43: the arm and balloon live in assets/, not assets/boss/ */const bad=st.fx.filter(n=>st.st[n]!=='png'||!atlas[n]||atlas[n].file!=='boss/'+n+'.png');
   check(`M1.24 ${st.fx.length} boss and effect strips (portals, lectern, signs, Hali, goo, the play script, 14 projectiles) load from assets/boss/*.png`,st.fx.length>=22&&!bad.length,bad.join(',')||st.fx.join(','));
   const cmp=await G(page,async(names)=>{const px=async url=>{const im=new Image();im.src=url;await im.decode();const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);return {w:im.width,h:im.height,u:new Uint32Array(cx.getImageData(0,0,im.width,im.height).data.buffer)};};
     const out=[];for(const n of names){const a=await px(__game.embedded(n)),b=await px(__game.atlasPng(n));let d=a.w!==b.w||a.h!==b.h?1e9:0;if(!d)for(let i=0;i<a.u.length;i++){const p=a.u[i]>>>24>=128?a.u[i]|0xff000000:0,q=b.u[i]>>>24>=128?b.u[i]|0xff000000:0;if(p!==q)d++;}if(d)out.push(n+':'+d);}return out;},st.fx);
@@ -973,6 +974,14 @@ async function m130Tests(){
   check('M1.30 the title remembers the start floor you picked last',rem.includes('START FLOOR: < 11 > (+5 ITEMS)'),JSON.stringify(rem));
   await page.screenshot({path:`${SHOTS}/m130_title_start_floor.png`});
   await G(page,()=>localStorage.clear());
+  await ctx.close();
+}
+
+async function m143Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m143'});
+  const r=await G(page,()=>{const G=__game,h=[0,1,2,3].map(i=>{const d=G.atlasPng('hand');return d.length;}),st=G.assetState();
+    const hs=['idle','windup','throw','empty'].map(f=>G.frameSig(f));return {embedded:{hand:!!G.embedded('hand'),balloon:!!G.embedded('balloon')},state:st,sigs:hs,uniq:new Set(hs).size,k:[G.fxK('hand'),G.fxK('balloon')]};});
+  check('M1.43 the arm (4 frames) and the balloon come from assets/hand.png and assets/balloon.png, embedded in the game, all 4 arm frames distinct',r.embedded.hand&&r.embedded.balloon&&r.uniq===4&&r.k.join()==='1.5,1.5'&&r.state.hand==='png'&&r.state.balloon==='png',JSON.stringify(r));
   await ctx.close();
 }
 
@@ -1159,6 +1168,7 @@ if(V137&&want('m137')){ await m137Tests(); }
 if(V139&&want('m139')){ await m139Tests(); }
 if(V140&&want('m140')){ await m140Tests(); }
 if(V141&&want('m141')){ await m141Tests(); }
+if(V143&&want('m143')){ await m143Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

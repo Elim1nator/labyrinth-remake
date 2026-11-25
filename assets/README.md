@@ -9,6 +9,8 @@ game stays a single file that runs by double-click. **Edit the PNGs, never the l
 |---|---|
 | `walls.png` | All 20 wall textures (see below). |
 | `doors.png` | A door for each wall style, plus the gold lock for locked doors (see below). |
+| `hand.png` | Your arm holding a water balloon: 4 frames of 46 x 40 (idle, wind-up, throw, empty hand). |
+| `balloon.png` | The thrown water balloon (8 x 9). |
 | `items.png` | All item icons (run items, balloon colours, use-items), a grid of 24 x 24 tiles. |
 | `mobs/<name>.png` | One file per monster or boss: its animation frames side by side, all the same width. |
 | `boss/<name>.png` | Boss props and effects: portals, the lectern, signs, Hali, goo, the play script, and every projectile (`shot_*.png`). |
@@ -46,6 +48,16 @@ Notes:
 
 - Each door tile is the door leaf: paint it inside the box x 6-57, y 7-63. The game stretches that box to fill the whole door (M1.37), so nothing outside it shows; leave the rest see-through. A door takes the style of the wall cell next to it.
 - `lock` is laid over a door to make the locked version (the gold plate, keyhole and bands). Paint only the lock; everything else stays see-through.
+- Then run `node tools/assets.mjs pack`.
+
+## Editing the arm and balloons
+
+`hand.png` is 184 x 40: four 46 x 40 frames side by side, in this order: idle (holding a balloon), wind-up, throw (open hand,
+balloon gone), empty hand. `balloon.png` is the 8 x 9 balloon you throw (also the HUD icon).
+
+- Paint the balloon **blue**. The other balloon colours (red, green, yellow, black, purple, pink) are made in code by recolouring the
+  blue pixels, so keep the balloon in blues and the hand, glove and sleeve out of them.
+- The frames are drawn at 2x on screen, anchored at the bottom right; keep the arm reaching off the bottom-right corner.
 - Then run `node tools/assets.mjs pack`.
 
 ## Editing boss props, portals and projectiles

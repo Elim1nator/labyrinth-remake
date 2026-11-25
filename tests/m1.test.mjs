@@ -43,6 +43,7 @@ const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle
 const V144=atLeast('1.44'); // M1.44+: every balloon colour (thrown and in hand) is its own art in the PNGs
 const V151=atLeast('1.51'); // M1.51+: wall tiles are 128x128
 const V147=atLeast('1.47'); // M1.47+: the Hexeye (floor 12+); more and bigger pits deeper down; pit rooms from floor 14
+const V158=atLeast('1.58'); // M1.58+: the item screen (I)
 const V157=atLeast('1.57'); // M1.57+: the Spirit Slate (Slate Halls)
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
@@ -987,6 +988,27 @@ async function m130Tests(){
 }
 
 
+async function m158Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m158'});
+  const ico=await G(page,()=>{const G=__game;const ids=Object.keys(G.items).concat(G.puIds||[]);return ids.map(k=>[k,G.itemIcoPx(k)]).filter(([k,n])=>n<20);});
+  check('M1.58 every item and use-item has a drawn icon (no blank tiles)',ico.length===0,JSON.stringify(ico));
+  await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(5);G.startLevel(3,{hearts:5,coins:0});G.clearMobs();['shoes','shoes','dumbbell','clover','duck'].forEach(k=>G.give(k));G.give('veil');});
+  await page.keyboard.press('KeyI');
+  const o=await G(page,()=>{const G=__game;const st=G.state();const i=G.spawn('clunk',st.player.x+2,st.player.y,true,[]);const e0=G.state().enemies[i];G.advance(1);const e1=G.state().enemies[i];
+    return {mode:G.state().mode,list:G.invList(),still:Math.hypot(e1.x-e0.x,e1.y-e0.y)<1e-6};});
+  check('M1.58 I opens the item screen with every run item and carried use-item, and the game waits while it is open',o.mode==='inv'&&o.list.length===5&&o.list.find(x=>x.k==='shoes').n===2&&o.list.some(x=>x.k==='veil'&&x.kind==='use')&&o.still,JSON.stringify(o));
+  await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowRight');
+  const k=await G(page,()=>__game.invSel());
+  const c=await G(page,()=>{const G=__game,r=G.invCell(3),cv=document.querySelector('canvas').getBoundingClientRect();return {x:cv.left+(r[0]+r[2]/2)/480*cv.width,y:cv.top+(r[1]+r[3]/2)/300*cv.height};});
+  await page.mouse.click(c.x,c.y);await G(page,()=>{__game.advance(0.05);__game.render();});
+  const k2=await G(page,()=>({sel:__game.invSel(),item:__game.invList()[__game.invSel()]}));
+  check('M1.58 arrows and clicks pick an item, and its name and description are shown',k===2&&k2.sel===3&&!!k2.item.name&&!!k2.item.desc,JSON.stringify({k,k2}));
+  await page.screenshot({path:`${SHOTS}/m158_items.png`});
+  await page.keyboard.press('KeyI');const m=await G(page,()=>__game.state().mode);
+  check('M1.58 I closes it again',m==='play',m);
+  await ctx.close();
+}
+
 async function m157Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m157'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
@@ -1441,6 +1463,7 @@ if(V152&&want('m152')){ await m152Tests(); }
 if(V153&&want('m153')){ await m153Tests(); }
 if(V156&&want('m156')){ await m156Tests(); }
 if(V157&&want('m157')){ await m157Tests(); }
+if(V158&&want('m158')){ await m158Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

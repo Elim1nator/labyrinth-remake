@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.41: a real stairwell; the Screamer King's ears
+- The exit is now an actual hole in the floor: a stone-lipped stairwell with 5 steps going down along one side, stone walls around it and a dark passage at the bottom, drawn by the floor renderer like the pits. You go down from the side with open floor. Only the EXIT sign remains as a sprite, floating over the hole (green; red while a boss lives, when an iron grate covers the well). The sign art is `assets/boss/portal.png` / `portalS.png` (now 36 x 12 per frame).
+- The Screamer King's ears now shear up and down from the joint instead of rotating, so the skull and ears meet exactly in every frame (no bits of head poking out under an ear).
+- QA build `m1.41-qa` (debug hook on).
+
 ## M1.40: boss arenas, stairs down, the Screamer King's ears
 - Boss floors get a fixed arena design, 13 x 11 (bigger than any random room), set against the left or right edge of the map: THE ROTUNDA (a round room with four pillars), THE PILLAR HALL (2x2 pillar blocks to hide behind), THE PIT RING (a ring of deadly pits around the portal) or THE CROSSROADS (L-shaped walls and pits). The boss and the exit sit where the design puts them; you start as far from the arena as the floor allows. The arena keeps all its doors (they all slam shut when the fight starts) and the exit opens when the boss falls. Designs are in `ARENAS` in the game.
 - The exit is now a round staircase spiralling down, with the EXIT sign over it on an iron post (green when open, red with an iron grate over the well while a boss lives). Messages say "THE STAIRS" instead of "THE PORTAL". The art is still `assets/boss/portal.png` / `portalS.png`.

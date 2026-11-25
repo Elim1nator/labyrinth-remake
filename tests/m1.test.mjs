@@ -40,6 +40,7 @@ const V128=atLeast('1.28'); // M1.28+: Infernal mobs (40 powers, player status e
 const V129=atLeast('1.29'); // M1.29+: lost-input safety, knight corner fix, map marker shapes
 const V130=atLeast('1.30'); // M1.30+: start on the floor after any boss you have beaten (+1 run item per 2 floors skipped)
 const V138=atLeast('1.38'); // M1.38+: the pillar variation stands in the middle of the wall
+const V141=atLeast('1.41'); // M1.41+: the exit is a stairwell in the floor; the King's ears shear instead of rotating
 const V140=atLeast('1.40'); // M1.40+: fixed boss-arena designs; the King's ears stay attached; his screamers are small
 const V139=atLeast('1.39'); // M1.39+: rooms get their monsters first; stat items stack without a limit; masks rock
 const V137=atLeast('1.37'); // M1.37+: doors are the leaf only (no wall frame); wall variations are just pillars and runes
@@ -974,6 +975,17 @@ async function m130Tests(){
   await ctx.close();
 }
 
+async function m141Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m141'});
+  const sw=await G(page,()=>{const G=__game,out={};for(const [f,k] of [[2,'open'],[5,'sealed']]){G.manual=true;G.setSeed(3);G.startLevel(f-1,{hearts:9,coins:0});G.clearMobs();const e=G.exitAt();let ok=false;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=e.x+.5+dx*2,y=e.y+.5+dy*2;if(!G.solidAt(x,y)&&G.clearPath(x,y,e.x+.5,e.y+.5)){G.teleport(x,y,Math.atan2(-dy,-dx));ok=true;break;}}G.setPitch(-60);const s=G.advance(0.05).stats;out[k]={ok,stair:s.stairPx,grate:s.gratePx};}
+    return out;});
+  check(`M1.41 the exit is a hole in the floor with stairs going down (${sw.open.stair} px drawn below the floor) under a floating EXIT sign; while a boss lives an iron grate covers it (${sw.sealed.grate} px)`,sw.open.ok&&sw.open.stair>2000&&sw.open.grate===0&&sw.sealed.grate>2000&&sw.sealed.stair===0,JSON.stringify(sw));
+  const sg=await G(page,()=>[0,1].map(i=>{const d=__game.spriteData('portal',i);return [d.w,d.h];}));
+  check('M1.41 the exit sprite is just the EXIT sign (36 x 12)',sg.every(([w,h])=>w===36&&h===12),JSON.stringify(sg));
+  await ctx.close();
+}
+
 async function m140Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m140'});
   const ar=await G(page,()=>{const G=__game,o={floors:0,designs:{},bad:[],fallback:0};const W=new Set('#SWTMKRCVOABEIZ+='.split(''));
@@ -1145,6 +1157,7 @@ if(V136&&want('m136')){ await m136Tests(); }
 if(V137&&want('m137')){ await m137Tests(); }
 if(V139&&want('m139')){ await m139Tests(); }
 if(V140&&want('m140')){ await m140Tests(); }
+if(V141&&want('m141')){ await m141Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

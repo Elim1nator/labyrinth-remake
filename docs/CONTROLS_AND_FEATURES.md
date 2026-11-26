@@ -109,7 +109,7 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 - **Use-items** go in the item slot and are used with Q / Y / ITEM: Healing Herb (+2 hearts),
   Warding Bell (stuns monsters around you), Flare (lights up the dark), Freeze Pop (monsters slow
   down for the floor), Firecracker (3 damage to everything near you), Mourner's Veil (blinds every
-  mob in view for 5 s), Plunger (drop to the next floor through a black hole; only found on Baths floors). Elites drop them. The
+  mob in view for 5 s), Plunger (drop to the next floor through a black hole; only found on Baths floors), Music Box (plays a tune that opens every door for the floor; only found on Timber Attic floors). Elites drop them. The
   Backpack (a shop item) adds a second slot, switched with F / RB / a tap on the bar.
 - **Vaults** (from level 4): a second locked room with a spare key and a heart.
 - Item icons are in `assets/items.png` (see `assets/README.md`).
@@ -141,6 +141,7 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
   in your view for 5 s; blinded mobs wander and show a dark mark.
 - **The Bather** (M1.57) slowly chases you on Tiled Baths floors (4 HP, marble statue art; at least one per Baths floor, two from floor 5) and leaves slick, pool-water-blue damaging puddles (flyers and Rubber Boots ignore them). **Plunger** opens a black hole at your feet and drops you to the next floor, then is used up (blocked on a sealed boss floor or the last floor). It only appears as loot or in the shop on floors labeled Baths; a Plunger you already hold still works on any floor.
 - **The Slick Man** (M1.57) lumbers toward you on Slate Halls floors (10 HP; at least one per Slate floor, two from floor 5). It reflects about 30% of your balloons back at you, and while it is within 10 cells the fog thickens to 5 blocks no matter what sight items you have.
+- **The Rafter Doll** (M1.62) is a small, fast cracked porcelain doll on Timber Attic floors (5 HP, half a normal mob's size; at least one per Timber floor, two from floor 5). It dashes in, bites, and runs away. The bite Rusts you for 15 s: your throws are slower and don't go far. **Music Box** plays an eerie tune for the rest of the level and permanently opens every door, including locked doors and hidden walls, then is used up. It only appears as loot or in the shop on Timber Attic floors; a Music Box you already hold still works on any floor.
 
 ## Treasure Knight, masks and items (M1.11)
 

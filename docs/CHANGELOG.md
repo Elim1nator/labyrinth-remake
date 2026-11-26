@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.73: the Broodmother comes for you
+- **Pit rule change**: once **100 coins** have gone into the pits, the **next boss floor you reach** is the Broodmother's, however deep you are (before, only floor 15 could be hers). It happens once per run: the floor is remembered with the run (so CONTINUE meets her again), and later boss floors are back to normal. The King in Yellow keeps floor 20 (she takes the next one after). Floor 15 is still the Grand Masque if the pits have had fewer than 100 coins by then.
+- Icy Prison floors keep their pit spiders and the Treasure Knight (unchanged, confirmed).
+- All test groups pass.
+- QA build `m1.73-qa` (debug hook on).
+
 ## M1.72: only ice monsters in the Icy Prison
 - On an Icy Prison floor every regular monster is now a **Snowman** (60%) or a **Frozen Screamer** (40%), alongside the Ice Wizard and his ice spikes. Monsters that appear during the floor (pit spiders' swarm, shrine curses and the like) are ice monsters there too, and floor 3 no longer adds its extra Kettlegrump when it is icy. The **Treasure Knight** still visits: he is the floor's loot chase rather than a regular monster, and an armoured knight fits a prison. Tuning: `ICY_MOBS`.
 - Tests that expect particular monsters on floors 3 and 6 (Springle, Kettlegrump, Rattlebone) and the "floor 3 is never easier than floor 2" check now skip icy floors.

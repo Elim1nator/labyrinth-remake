@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V173=atLeast('1.73'); // M1.73+: 100 pit coins make the next boss floor the Broodmother
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
@@ -581,7 +582,7 @@ async function m112Tests(){
   check('M1.12 at 50 coins big Brood Spiders (8 HP) also climb out of the pits and attack, alongside the skitters',sp.lvl===2&&sp.skitt&&sp.big&&sp.bigHp===8,JSON.stringify(sp));
   // ---- floor 15
   const f15=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:99}});const a=G.bossType(),an=G.state().msg;G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});const b=G.bossType(),bn=G.state().msg;G.startLevel(29,{hearts:5,coins:0,perm:{pit:100}});return {a,b,an,bn,f30:G.bossType()};});
-  check('M1.12 floor 15: the Grand Masque, or the Broodmother if 100 coins went into the pits by then (Coghoot moves to floor 30)',f15.a==='masque'&&f15.b==='brood'&&/GRAND MASQUE/.test(f15.an)&&/BROODMOTHER/.test(f15.bn)&&f15.f30==='owl',JSON.stringify(f15));
+  check('M1.12 floor 15: the Grand Masque, or the Broodmother if 100 coins went into the pits by then (Coghoot moves to floor 30)',f15.a==='masque'&&f15.b==='brood'&&/GRAND MASQUE/.test(f15.an)&&/BROODMOTHER/.test(f15.bn)&&f15.f30===(V173?'brood':'owl'), /* M1.73: a fresh 100-coin run meets her on its next boss floor */JSON.stringify(f15));
   const mq=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:0}});G.faceBoss(3);G.advance(0.1);let happyHit=null,sadHit=null,gold=0,minions=0,bar=0,tStart=null;
     for(let k=0;k<400;k++){G.setHearts(5);const s=G.advance(0.1),b=G.boss().ent,hp=b.hp;const eh=s.enemies[G.boss().i];
       s.eshots.forEach(q=>{if(q.kind==='goldball')gold++;});minions=Math.max(minions,s.enemies.filter(e=>e.type==='zapfly'&&e.spawned&&!e.gone).length);
@@ -1753,6 +1754,16 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m173Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m173'});
+  const r=await G(page,()=>{const G=__game;G.manual=true;G.freeze=true;const at=(f,perm)=>{G.setSeed(4242);G.startLevel(f-1,{hearts:5,coins:0,perm});return {boss:G.bossTypeNow(),perm:G.permNow()};};
+    const o={};o.f15none=at(15,{pit:0}).boss;o.f15pit=at(15,{pit:100}).boss;
+    const a=at(25,{pit:100});o.f25=a.boss;o.f30after=at(30,a.perm).boss;o.f25again=at(25,a.perm).boss;
+    o.f20=at(20,{pit:100}).boss;o.f35none=at(35,{pit:60}).boss;return o;});
+  check('M1.73 after 100 coins in the pits the next boss floor (any depth, not the King in Yellow\'s) is the Broodmother, once per run; floor 15 is the Grand Masque otherwise',r.f15none==='masque'&&r.f15pit==='brood'&&r.f25==='brood'&&r.f30after!=='brood'&&r.f25again==='brood'&&r.f20==='yellow'&&r.f35none!=='brood',JSON.stringify(r));
+  await ctx.close();
+}
+
 async function m172Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m172'});
   const r=await G(page,()=>{const G=__game,c={};let fl=0,crit=[];for(let sd=1;sd<=80&&fl<20;sd++)for(let f=3;f<=30&&fl<20;f++){if(!G.icyAt(sd,f))continue;fl++;G.manual=true;G.setSeed(sd);G.startLevel(f-1,{hearts:5,coins:0});G.state().enemies.forEach(e=>{c[e.type]=(c[e.type]||0)+1;});}
@@ -2856,6 +2867,7 @@ if(V169&&want('m169')){ await m169Tests(); }
 if(V170&&want('m170')){ await m170Tests(); }
 if(V171&&want('m171')){ await m171Tests(); }
 if(V172&&want('m172')){ await m172Tests(); }
+if(V173&&want('m173')){ await m173Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 

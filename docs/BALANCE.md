@@ -355,3 +355,6 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 
 ## Icy Prison monsters (M1.72)
 - Every regular monster on an Icy Prison floor is re-rolled as Snowman (3/5) or Frozen Screamer (2/5) with its own RNG, after all other placement; then the Snowman (1, 2 from floor 5) and Frozen Screamer (1) minimums and the Ice Wizard are placed. Mid-floor spawns use the same 3:2 pool. Bosses never appear (icy floors are never boss floors); the Treasure Knight is kept.
+
+## Broodmother (M1.73)
+- Trigger: run pit coins >= 100 (PITS.milestones[2]). The first boss floor loaded after that (not the King in Yellow's floor 20) becomes the Broodmother's; `perm.broodFloor` records it for the rest of the run.

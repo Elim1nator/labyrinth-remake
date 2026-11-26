@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.70: the Snowman
+- New monster, **the Snowman** (Icy Prison floors only: featured, at least 1, 2 from floor 5; 4 base HP, speed 1.05): an angry snowman from the supplied 3-frame sheet (`assets/mobs/snowman.png`). Frame 1 is idle/walk and he bobs up and down as he moves; frame 2 winds up a snowball (0.45 s) and frame 3 throws it (`assets/boss/shot_snowball.png`, 1 heart). Like the Screamer he always throws (every ~2.7 s when you are 1.4-8 cells away and in sight), and he bites if you get close. Tuning: `RANGED.snowman`.
+- All test groups pass.
+- QA build `m1.70-qa` (debug hook on).
+
 ## M1.69: the Ice Wizard and the Frozen Wand
 - New boss, **the Ice Wizard** (from the supplied 5-frame sheet: frame 1 casts, frames 2-5 walk; `assets/mobs/icewiz.png`). He is on **every Icy Prison floor**, waiting in the room farthest from the start, with a boss bar once he has seen you. HP 30 + 4 per floor. He keeps 3-6 cells away and every 1.6-2.4 s casts either a fan of 3 small fast **ice orbs** or one slow **big ice orb** that bursts into a **blue explosion** (1 heart and a brief chill within 1.3 cells) when it hits a wall, reaches you or runs out. Every 14-22 s he calls a **blizzard**: the fog closes to 3 tiles for 5-10 s.
 - At **75%, 50% and 25%** health he raises a **shield bubble** and summons **2-5 ice spikes** (flying minions from the supplied art, 2 HP, `assets/mobs/icespike.png`) that circle round to bite you from behind. Until every spike is gone his bubble holds and balloons clank off; he keeps attacking. Killing him ends the blizzard and shatters any spikes left.

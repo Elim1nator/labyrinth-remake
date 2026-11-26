@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
 const V169=atLeast('1.69'); // M1.69+: the Ice Wizard, his ice spikes and the Frozen Wand
 const V168=atLeast('1.68'); // M1.68+: the Icy Prison (3 more wall tiles, 23 in all)
 const V165=atLeast('1.65'); // M1.65+: the Debt Collector (Old Vaults)
@@ -196,7 +197,7 @@ const G=(page,fn,arg)=>page.evaluate(fn,arg);
   check('continue restores level 2 with saved coins',st.mode==='play'&&st.level===1&&st.player.coins===coinsAtL2,`coins=${st.player.coins}`);
 
   // death + retry
-  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&x.type!=='mortar'&&x.type!=='gargoyle'&&x.type!=='collector'&&!(x.type==='zapfly'&&x.face==='comedy')) /* M1.53: the Mortared Man never bites */:s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
+  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&x.type!=='mortar'&&x.type!=='gargoyle'&&x.type!=='collector'&&x.type!=='icewiz'&&!(x.type==='zapfly'&&x.face==='comedy')) /* M1.53: the Mortared Man never bites */:s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
   check('touching enemies costs hearts until death screen',st.mode==='dead'&&st.player.hearts===0);
   await page.screenshot({path:`${SHOTS}/desktop_1280x720_death.png`});
   st=await G(page,()=>{__game.advance(0.6);__game.confirm();return __game.advance(0.05);});
@@ -1750,6 +1751,24 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m170Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m170'});
+  const art=await G(page,()=>{const G=__game,sig=[];for(let i=0;i<3;i++)sig.push(G.frameSig('snowman',i));return {st:G.assetState().snowman,ball:G.assetState().shot_snowball,sig:new Set(sig).size,m:G.mobs.snowman};});
+  check('M1.70 the Snowman art (walk + 2 throw frames) and snowball are packed',art.st==='png'&&art.ball==='png'&&art.sig===3&&art.m&&art.m.name==='SNOWMAN',JSON.stringify(art));
+  const gen=await G(page,()=>{const G=__game;let icy=0,ok=0,other=0,first=null;
+    for(let sd=1;sd<=60&&icy<20;sd++)for(let f=3;f<=24;f++){if(f%5===0)continue;const n=[...G.genMap(sd,f).map.join('')].filter(c=>c==='j').length;if(G.icyAt(sd,f)){icy++;if(n>=(f>=5?2:1))ok++;if(!first)first={sd,f};}else other+=n;}
+    return {icy,ok,other,first};});
+  check('M1.70 Snowmen only live on Icy Prison floors (at least 1, 2 from floor 5)',gen.icy>0&&gen.ok===gen.icy&&gen.other===0,JSON.stringify(gen));
+  const fx=await G(page,(k)=>{const G=__game;G.manual=true;G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});G.clearMobs();const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-7&&!spot;x++){let ok=true;for(let q=0;q<7;q++)if(G.solidAt(x+q+.5,y+.5))ok=false;if(ok)spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);const i=G.spawn('snowman',spot.x+5,spot.y,true,[]);G.freeze=false;const frames=new Set(),zs=new Set();let balls=0;
+    for(let t=0;t<120;t++){G.setHearts&&G.setHearts(99);G.placeEnemy(i,spot.x+5,spot.y);G.advance(.05);const e=G.state().enemies[i];frames.add(e.frame);if(e.frame===0)zs.add(Math.round(e.z*100));balls=Math.max(balls,G.state().eshots.filter(q=>q.kind==='snowball').length);}
+    G.freeze=true;G.render();return {frames:[...frames],bob:zs.size,balls};},gen.first);
+  check('M1.70 the Snowman bobs as he walks and winds up (frame 2) and throws (frame 3) snowballs',fx.frames.includes(0)&&fx.frames.includes(1)&&fx.frames.includes(2)&&fx.bob>=3&&fx.balls>=1,JSON.stringify(fx));
+  await page.screenshot({path:`${SHOTS}/m170_snowman.png`});
+  await ctx.close();
+}
+
 async function m169Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m169'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
@@ -2806,6 +2825,7 @@ async function m166Tests(){
 
 if(V168&&want('m168')){ await m168Tests(); }
 if(V169&&want('m169')){ await m169Tests(); }
+if(V170&&want('m170')){ await m170Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 
@@ -3318,7 +3338,7 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V163?['gargoyle']:[]),...(V162?['rafterdoll']:[]),...(V165?['collector']:[])].sort()),types.join(','));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V163?['gargoyle']:[]),...(V162?['rafterdoll']:[]),...(V165?['collector']:[]),...(V170?['snowman']:[])].sort()),types.join(','));
     const hp=types.map(t=>mobs[t].hp),sp=types.filter(t=>t!=='gargoyle').map(t=>mobs[t].speed) /* M1.62: the gargoyle never moves */,vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name),hpTank=types.filter(t=>t!=='slickman').map(t=>mobs[t].hp);
     check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===sp.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hpTank)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));
@@ -3610,7 +3630,7 @@ async function m14Tests(){
     const lv=await G(page,()=>{const run=()=>{__game.setSeed(31337);__game.startLevel(7);const s=__game.state();return {sig:s.enemies.map(e=>e.type+':'+e.mods.join('+')).join(' '),n:s.enemies.filter(e=>e.mods.length).length};};const a=run(),b=run();__game.startLevel(0);const t=__game.state();return {a,b,tut:t.enemies.filter(e=>e.mods.length).length};});
     check('M1.4 elite rolls are deterministic per seed; tutorial has no elites',lv.a.sig===lv.b.sig&&lv.a.n>0&&lv.tut===0,`floor 8 seed 31337: ${lv.a.n} elites; tutorial ${lv.tut}`);
     // RANGED: each mob gets its own projectile, telegraphed first
-    const kinds={kettle:'steam',zapfly:'zap',clunk:'laser',screamer:'sonic',wisp:'wisp',springle:'fluff',bigspider:'web',...(V153?{mortar:'mortar'}:{})} /* M1.12: brood spiders spit webs */;
+    const kinds={kettle:'steam',zapfly:'zap',clunk:'laser',screamer:'sonic',wisp:'wisp',springle:'fluff',bigspider:'web',...(V153?{mortar:'mortar'}:{}),...(V170?{snowman:'snowball'}:{})} /* M1.12: brood spiders spit webs */;
     const rr=await G(page,(FR)=>{const FRESH=eval(FR);const out={};for(const t of Object.keys(__game.ranged)){FRESH();__game.teleport(7.5,3.5,0);__game.spawn(t,13.5,3.5,true,['ranged']);let tele=-1,fire=-1,kind=null,still=true,lastX=null;const f0=__game.state().stats.eshotsFired;
         for(let i=0;i<240;i++){if(!(__game.state().enemies[0].tele>0))__game.placeEnemy(0,13.5,3.5); /* hold range so melee/charges can't pre-empt the shot */const s=__game.advance(0.05),e=s.enemies[0];if(e.tele>0&&tele<0)tele=i;if(tele>=0&&fire<0&&e.tele>0){if(lastX!==null&&t!=='zapfly'&&Math.abs(e.x-lastX)>1e-6)still=false;lastX=e.x;}
           if(s.stats.eshotsFired>f0&&fire<0){fire=i;kind=s.eshots[0]&&s.eshots[0].kind;break;}}

@@ -187,6 +187,11 @@
       "frames": 3,
       "k": 1.5
     },
+    "snowman": {
+      "file": "mobs/snowman.png",
+      "frames": 3,
+      "k": 1.5
+    },
     "icewiz": {
       "file": "mobs/icewiz.png",
       "frames": 5,
@@ -387,6 +392,7 @@
       "frames": 1,
       "k": 1
     },
+    "shot_snowball": { "file": "boss/shot_snowball.png", "frames": 1, "k": 1 },
     "shot_iceorb": { "file": "boss/shot_iceorb.png", "frames": 1, "k": 1 },
     "shot_icebig": { "file": "boss/shot_icebig.png", "frames": 1, "k": 1 },
     "shot_mortar": {

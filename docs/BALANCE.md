@@ -346,3 +346,6 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 ## Ice Wizard and Frozen Wand (M1.69)
 - Ice Wizard: 1 per Icy Prison floor (farthest room), HP 30 + 4 x floor, speed 0.9, keeps 3-6 cells away; casts every 1.6-2.4 s (0.45 s wind-up): 65% three small orbs (speed 6, 1 heart), 35% one big orb (speed 3.2, bursts for 1 heart within 1.3 cells + 0.8 s slow). Blizzard every 14-22 s for 5-10 s (view 3 tiles). Shields at 75/50/25% HP with 2-5 ice spikes (2 HP, speed 2.6, bite 1 heart every 1.4 s, aim 1.2 cells behind you); no damage to him while any spike lives.
 - Frozen Wand: dropped by the Ice Wizard (8 coins instead if you already have it). Balloons +1 damage; they bounce (35% speed back off monsters/walls, 45% forward off the floor) and roll for 2.6 s, harmless.
+
+## Snowman (M1.70)
+- Icy Prison only (featured + pool; guaranteed 1, 2 from floor 5). 4 base HP, speed 1.05. Natural ranged like the Screamer: snowball speed 6, 1 heart, 0.45 s wind-up, cooldown 1.9 x 1.4 s; normal contact bite.

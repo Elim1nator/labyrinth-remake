@@ -133,3 +133,4 @@ Notes:
 - `mobs/collector.png` (M1.65): the Debt Collector, 3 walk frames of 64 x 112 (feet on the bottom), cut from the supplied sheet.
 - `walls.png` (M1.68): a third row with the Icy Prison walls (icetile, frostwall, icebrick) in its first three slots; the sheet is 1280 x 384.
 - `mobs/icewiz.png` (M1.69): the Ice Wizard, 5 frames of 84 x 104 (cast, then 4 walk); `mobs/icespike.png`: his ice spike, 48 x 48; `boss/shot_iceorb.png` / `shot_icebig.png`: his orbs; `items.png` gained a fifth row for the Frozen Wand.
+- `mobs/snowman.png` (M1.70): the Snowman, 3 frames of 108 x 100 at the supplied size (walk, wind-up, throw); `boss/shot_snowball.png`: his snowball.

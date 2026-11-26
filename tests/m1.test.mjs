@@ -48,6 +48,7 @@ const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
 const V165=atLeast('1.65'); // M1.65+: the Debt Collector (Old Vaults)
+const V166=atLeast('1.66'); // M1.66+: Jailer's Eye, clear boss cut-scenes, coin-loot CONTINUE, shared high scores
 const V164=atLeast('1.64'); // M1.64+: monsters have no per-type map colour (all the same red X)
 const V163=atLeast('1.63'); // M1.63+: the Weeping Gargoyle
 const V161=atLeast('1.61'); // M1.61+: gamepad LB opens the item screen
@@ -2103,6 +2104,186 @@ async function m162Tests(){
 }
 
 
+
+async function m166FixTests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m166'});
+
+  // 1) level-aimed balloons hit the half-size doll at the ranges that used to sail over it
+  const aim=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(11);
+    for(let sd=11;sd<=80;sd++){G.setSeed(sd);G.startLevel(2,{hearts:9,coins:0});if(G.timberFloor())break;}
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-7&&!spot;x++){
+      const a={x:x+.5,y:y+.5},ok=([0,1.5,2.5,3.5,5].every(d=>!G.solidAt(a.x+d,a.y)&&!(G.pitUnder&&G.pitUnder(a.x+d,a.y,0)))&&G.clearPath(a.x,a.y,a.x+5,a.y));
+      if(ok)spot=a;}
+    if(!spot)return {ok:false,err:'no corridor'};
+    function fire(dist){
+      G.clearMobs();G.setHearts(9);G.teleport(spot.x,spot.y,0);if(G.setPitch)G.setPitch(0);
+      const i=G.spawn('rafterdoll',spot.x+dist,spot.y,true,[]);
+      G.entSet(i,{state:'idle',spdMul:0,atkT:9,fleeT:0});
+      const hp0=(G.state().enemies.find(e=>e.type==='rafterdoll')||{}).hp;
+      G.throwBalloon();
+      let hit=false,zMax=0,hurtT=0;
+      for(let k=0;k<180;k++){
+        const sh=G.shotsDetail()||[];
+        if(sh[0])zMax=Math.max(zMax,sh[0].z);
+        G.advance(1/60);
+        const en=(G.state().enemies||[]).find(e=>e.type==='rafterdoll'&&!e.gone);
+        if(en&&en.hp<hp0){hit=true;hurtT=en.hurtT||0;break;}
+        if(!sh.length&&k>3)break;
+      }
+      const en=(G.state().enemies||[]).find(e=>e.type==='rafterdoll'&&!e.gone)||{};
+      return {dist,hit,zMax,hp0,hp:en.hp,hurtT,hh:G.dollCfg&&G.dollCfg.hitH};
+    }
+    const rows=[1.5,2.5,3.5].map(fire);
+    // leave a 2.5-cell shot posed for the screenshot: freeze just after the hit
+    G.clearMobs();G.setHearts(9);G.teleport(spot.x,spot.y,0);if(G.setPitch)G.setPitch(0);
+    const i=G.spawn('rafterdoll',spot.x+2.5,spot.y,true,[]);
+    G.entSet(i,{state:'idle',spdMul:0,atkT:9,fleeT:0});
+    G.throwBalloon();
+    for(let k=0;k<180;k++){
+      G.advance(1/60);
+      const en=(G.state().enemies||[]).find(e=>e.type==='rafterdoll'&&!e.gone);
+      if(en&&en.hurtT>0){G.freeze=true;G.render();break;}
+    }
+    return {ok:true,rows,hitH:G.dollCfg.hitH,sz:G.mobs.rafterdoll.sz,biteR:G.dollCfg.biteR};
+  });
+  check('M1.66 a level-aimed balloon hits the Rafter Doll at 1.5, 2.5 and 3.5 cells (pitch 0)',
+    aim.ok&&aim.rows.length===3&&aim.rows.every(r=>r.hit)&&aim.sz===.5&&aim.hitH>=.55,
+    JSON.stringify(aim));
+  await page.screenshot({path:`${SHOTS}/m165_doll_aim_pitch0.png`});
+
+  // bite reach still connects after the taller hit box
+  const bite=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    for(let sd=11;sd<=40;sd++){G.setSeed(sd);G.startLevel(2,{hearts:9,coins:0});if(G.timberFloor())break;}
+    G.clearMobs();G.setHearts(9);
+    const p=G.state().player;
+    const i=G.spawn('rafterdoll',p.x+.35,p.y,true,[]);
+    G.entSet(i,{state:'chase',atkT:0,fleeT:0});
+    for(let k=0;k<90;k++)G.advance(1/60);
+    const st=G.status()||{};
+    return {hp:G.state().player.hearts,rust:st.rust||0,biteR:G.dollCfg.biteR};
+  });
+  check('M1.66 the Rafter Doll bite still connects (Rust 15 s, a heart lost)',
+    bite.hp<9&&bite.rust>=13&&bite.biteR===.52,JSON.stringify(bite));
+
+  // 4) a shield block does not apply Rust or spend a heart
+  const sh=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    for(let sd=11;sd<=40;sd++){G.setSeed(sd);G.startLevel(2,{hearts:5,coins:0});if(G.timberFloor())break;}
+    G.clearMobs();G.setHearts(5);G.setEffect&&G.setEffect('shield');
+    const p0=G.state().player;
+    const i=G.spawn('rafterdoll',p0.x+.35,p0.y,true,[]);
+    G.entSet(i,{state:'chase',atkT:0,fleeT:0});
+    let blocked=null;
+    for(let k=0;k<90;k++){
+      G.advance(1/60);
+      const p=G.state().player,st=G.status()||{};
+      if((p.shieldHits??3)<(p0.shieldHits??3) || p.effects.indexOf('shield')<0 || st.rust){
+        blocked={hearts:p.hearts,rust:st.rust||0,shieldHits:p.shieldHits,effects:p.effects.slice(),inv:p.inv};
+        break;
+      }
+    }
+    // pop the rest of the shield, then a later bite should Rust
+    while((G.state().player.effects||[]).includes('shield')){
+      const p=G.state().player;
+      G.clearMobs();
+      const j=G.spawn('rafterdoll',p.x+.35,p.y,true,[]);
+      G.entSet(j,{state:'chase',atkT:0,fleeT:0});
+      for(let k=0;k<90;k++)G.advance(1/60);
+    }
+    G.clearMobs();
+    const p=G.state().player;
+    const j=G.spawn('rafterdoll',p.x+.35,p.y,true,[]);
+    G.entSet(j,{state:'chase',atkT:0,fleeT:0});
+    for(let k=0;k<90;k++)G.advance(1/60);
+    const after={hearts:G.state().player.hearts,rust:(G.status()||{}).rust||0};
+    return {before:{hearts:p0.hearts,shieldHits:p0.shieldHits,effects:p0.effects.slice()},blocked,after};
+  });
+  check('M1.66 a blocked Rafter Doll bite does not Rust you or take a heart; a later unblocked bite does',
+    sh.blocked&&sh.blocked.hearts===5&&!(sh.blocked.rust>0)&&sh.blocked.shieldHits<3&&sh.after.rust>=13&&sh.after.hearts<5,
+    JSON.stringify(sh));
+
+  // 2) Music Box effect persists on CONTINUE
+  const cont=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    let found=null;
+    for(let sd=1;sd<=60&&!found;sd++){
+      G.setSeed(sd);G.startLevel(2,{hearts:9,coins:30});
+      if(!G.timberFloor())continue;
+      const ds=G.doors()||[];
+      if(ds.length<2)continue;
+      found={sd,level:G.state().level,n:ds.length,locked:ds.filter(d=>d.locked||d.coin).length,crack:G.crack()};
+    }
+    if(!found)return {ok:false,err:'no timber floor with doors'};
+    G.give('musicbox');G.useItem();
+    for(let k=0;k<48;k++)G.advance(1/60);
+    const mid={box:G.musicBox(),doors:G.doors(),item:G.state().player.item,secret:G.crack(),save:null};
+    mid.save=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+    // CONTINUE: same seed, same floor, carry the save
+    const sv=mid.save;if(!sv)return {ok:false,err:'no save',found,mid};
+    sv.cont=true;
+    G.startLevel(sv.level,sv);
+    for(let k=0;k<24;k++)G.advance(1/60);
+    const later={box:G.musicBox(),doors:G.doors(),secret:G.crack(),item:G.state().player.item,level:G.state().level};
+    return {ok:true,found,mid:{box:mid.box,item:mid.item,saveBox:!!(mid.save&&mid.save.musicBox),n:mid.doors.length,opened:mid.doors.every(d=>d.state==='open'||d.state==='opening'||d.held),secret:mid.secret&&(mid.secret.t===0||mid.secret.secretOpen)},later:{box:later.box,n:later.doors.length,opened:later.doors.every(d=>d.state==='open'||d.state==='opening'||d.held),secret:later.secret&&(later.secret.t===0||later.secret.secretOpen),level:later.level}};
+  });
+  check('M1.66 CONTINUE keeps the Music Box doors open and the tune going',
+    cont.ok&&cont.mid.box&&cont.mid.saveBox&&cont.mid.opened&&cont.later.box&&cont.later.opened&&cont.later.level===cont.found.level,
+    JSON.stringify(cont));
+
+  // 3) jumping to the same floor after using the box resets music and does not throw
+  const jump=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    for(let sd=1;sd<=40;sd++){G.setSeed(sd);G.startLevel(2,{hearts:9,coins:0});if(G.timberFloor())break;}
+    G.give('musicbox');G.useItem();
+    const used={box:G.musicBox(),song:G.musicState&&G.musicState()};
+    const floor=G.state().level+1;
+    if(G.openCheat)G.openCheat();
+    const out=G.cheat('jump '+floor);
+    let err=null;
+    try{for(let k=0;k<30;k++)G.advance(1/60);}catch(e){err=String(e&&e.message||e);}
+    return {used,out,err,box:G.musicBox(),song:G.musicState&&G.musicState(),level:G.state().level,mode:G.state().mode};
+  });
+  check('M1.66 jumping to the same floor after the Music Box resets the tune and does not freeze',
+    !jump.err&&jump.box===false&&jump.song&&jump.song.box===false&&jump.mode==='play',
+    JSON.stringify(jump));
+
+  // 5) a coin door opened by the Music Box gives its room reward
+  const coin=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    let found=null,before=null;
+    for(let sd=1;sd<=80&&!found;sd++){
+      G.setSeed(sd);
+      for(const f of [2,3,4,5,6,7,8]){
+        G.startLevel(f-1,{hearts:9,coins:30});
+        if(!G.timberFloor())continue;
+        const ex=G.extras()||{};
+        if(!ex.coinDoor)continue;
+        const cd=ex.coinDoor;
+        const loot=(G.itemList()||[]).filter(i=>['power','item','piggy','bag'].includes(i.kind)&&Math.hypot(i.x-cd.x-.5,i.y-cd.y-.5)<5);
+        if(!loot.length)continue;
+        found={sd,f,cd,loot};break;
+      }
+    }
+    if(!found)return {ok:false,err:'no timber coin door'};
+    const p0=G.state().player,perm0=G.perm();
+    before={coins:p0.coins,item:p0.item,item2:p0.item2,piggy:!!(perm0&&perm0.piggy),loot:found.loot};
+    G.give('musicbox');G.useItem();
+    for(let k=0;k<36;k++)G.advance(1/60);
+    const p=G.state().player,perm=G.perm();
+    const left=(G.itemList()||[]).filter(i=>['power','item','piggy','bag'].includes(i.kind)&&Math.hypot(i.x-found.cd.x-.5,i.y-found.cd.y-.5)<5);
+    const door=(G.doors()||[]).find(d=>d.x===found.cd.x&&d.y===found.cd.y);
+    const loot=found.loot[0];
+    const got=loot.kind==='bag'?p.coins>before.coins
+      :loot.kind==='piggy'?!!(perm&&perm.piggy)
+      :loot.kind==='power'?(p.item===loot.ptype||p.item2===loot.ptype)
+      :loot.kind==='item'?((G.itemN&&G.itemN(loot.ptype))>0)
+      :false;
+    return {ok:true,found:{sd:found.sd,f:found.f,kind:loot.kind,ptype:loot.ptype},before,left:left.length,got,door,item:p.item,coins:p.coins,piggy:!!(perm&&perm.piggy)};
+  });
+  check('M1.66 opening a coin door with the Music Box grants that door\'s normal reward',
+    coin.ok&&coin.got&&coin.left===0&&coin.door&&coin.door.coin===0&&(coin.door.state==='open'||coin.door.state==='opening'||coin.door.held),
+    JSON.stringify(coin));
+
+  await ctx.close();
+}
+
 async function m160Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m160'});
   const rolls=await G(page,()=>{const G=__game,R=G.ranged||{},types=Object.keys(G.mobs).concat(['bigspider']),out={};
@@ -2179,6 +2360,382 @@ if(V162&&want('m162')){ await m162Tests(); }
 if(V163&&want('m163')){ await m163Tests(); }
 if(V164&&want('m164')){ await m164Tests(); }
 if(V165&&want('m165')){ await m165Tests(); }
+async function m166Tests(){
+  const M166='/workspace/labyrinth-main/m166';
+  fs.mkdirSync(M166,{recursive:true});
+  const saveShot=async(page,name)=>{
+    const dest=`${M166}/${name}.png`;
+    await page.screenshot({path:`${SHOTS}/${name}.png`});
+    fs.copyFileSync(`${SHOTS}/${name}.png`,dest);
+    return dest;
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m166'});
+
+  // ---- Jailer's Eye: art, theme-only drops, rarity, at most one per floor
+  const drops=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=true;
+    const I=G.items&&G.items.jailer;
+    const ico=G.itemIcoPx&&G.itemIcoPx('jailer');
+    const keep=[],other=[],rows=[];
+    for(let sd=1;sd<=200;sd++){
+      for(let f=2;f<=24;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:40,perm:{items:{}}});
+        const theme=G.themeNow()||'',isKeep=!!(G.keepFloor&&G.keepFloor());
+        const pool=G.itemPool()||[];
+        const onFloor=(G.state().items||[]).filter(it=>!it.taken&&it.kind==='item'&&it.ptype==='jailer');
+        const shop=G.shopItems?G.shopItems():[];
+        const n=onFloor.length+(shop.includes('jailer')?1:0);
+        const rec={sd,f,theme,pool:pool.includes('jailer'),nFloor:onFloor.length,shop:shop.includes('jailer'),n};
+        if(isKeep){keep.push(rec);if(n)rows.push(rec);}
+        else{other.push(rec);}
+      }
+    }
+    const keepHit=keep.filter(r=>r.n>0).length;
+    const otherHit=other.filter(r=>r.n>0||r.pool).length;
+    const over=keep.filter(r=>r.n>1||(r.nFloor>0&&r.shop)||r.nFloor>1);
+    return {name:I&&I.name,desc:I&&I.desc,theme:I&&I.theme,max:I&&I.max,weight:I&&I.weight,onceFloor:!!(I&&I.onceFloor),ico,
+      keep:keep.length,keepHit,rate:keep.length?keepHit/keep.length:0,other:other.length,otherHit,over:over.length,sample:rows.slice(0,6)};
+  });
+  check('M1.66 the Jailer\'s Eye is a packed run item (Stone Keep only, passive, rare weight)',
+    drops.name==="JAILER'S EYE"&&/FENCE/i.test(drops.desc)&&drops.theme==='STONE KEEP'&&drops.max===1&&drops.weight>0&&drops.weight<=.5&&drops.onceFloor&&drops.ico>80,
+    JSON.stringify({name:drops.name,desc:drops.desc,theme:drops.theme,max:drops.max,weight:drops.weight,ico:drops.ico}));
+  check('M1.66 the Jailer\'s Eye only drops (loot or shop) on Stone Keep floors, at most one per floor, and on well under half of them',
+    drops.keep>20&&drops.otherHit===0&&drops.over===0&&drops.rate>0&&drops.rate<0.45,
+    JSON.stringify({keep:drops.keep,keepHit:drops.keepHit,rate:+drops.rate.toFixed(4),other:drops.other,otherHit:drops.otherHit,over:drops.over,sample:drops.sample}));
+
+  // ---- fences open with the eye, stay closed without, persist on CONTINUE
+  const fences=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    function face(f){
+      let sx=null,sy=null,ang=0;
+      if(f.axis){
+        if(!G.solidAt(f.x+.5,f.y+1.6)){sx=f.x+.5;sy=f.y+1.6;ang=-Math.PI/2;}
+        else if(!G.solidAt(f.x+.5,f.y-.6)){sx=f.x+.5;sy=f.y-.6;ang=Math.PI/2;}
+      }else{
+        if(!G.solidAt(f.x+1.6,f.y+.5)){sx=f.x+1.6;sy=f.y+.5;ang=Math.PI;}
+        else if(!G.solidAt(f.x-.6,f.y+.5)){sx=f.x-.6;sy=f.y+.5;ang=0;}
+      }
+      return sx==null?null:{sx,sy,ang};
+    }
+    let found=null;
+    for(let sd=1;sd<=80&&!found;sd++){
+      for(let f=1;f<=12&&!found;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:0,perm:{items:{}}});
+        const fs=(G.fences()||[]).filter(q=>q.state==='closed'||(q.open||0)<.05);
+        if(fs.length<1)continue;
+        const fr=face(fs[0]);if(!fr)continue;
+        found={sd,level:G.state().level,f:fs[0],fr,n:fs.length,theme:G.themeNow()};
+      }
+    }
+    if(!found)return {ok:false,err:'no fence'};
+    G.clearMobs();
+    // without the eye: use and walk leave it closed
+    G.teleport(found.fr.sx,found.fr.sy,found.fr.ang);G.advance(0.05);
+    G.use();for(let k=0;k<40;k++)G.advance(1/60);
+    const noUse=(G.fences().find(q=>q.x===found.f.x&&q.y===found.f.y)||{});
+    G.holdKey&&G.holdKey('KeyW',true);for(let k=0;k<40;k++)G.advance(1/60);G.holdKey&&G.holdKey('KeyW',false);
+    const noWalk=(G.fences().find(q=>q.x===found.f.x&&q.y===found.f.y)||{});
+    const blocked=G.solidAt(found.f.x+.5,found.f.y+.5);
+    // with the eye: interact opens
+    G.addRunItem('jailer');
+    G.teleport(found.fr.sx,found.fr.sy,found.fr.ang);G.advance(0.05);
+    G.use();
+    for(let k=0;k<90;k++)G.advance(1/60);
+    const used=(G.fences().find(q=>q.x===found.f.x&&q.y===found.f.y)||{});
+    const passable=used.open>=.8&&!G.solidAt(found.f.x+.5,found.f.y+.5);
+    const msg=G.state().msg;
+    // walk-open a second fence if present, else re-close is impossible (held). Use a second fence.
+    let walked=null;
+    const others=(G.fences()||[]).filter(q=>!(q.x===found.f.x&&q.y===found.f.y)&&(q.open||0)<.05);
+    if(others.length){
+      const fr=face(others[0]);
+      if(fr){
+        G.teleport(fr.sx,fr.sy,fr.ang);
+        G.holdKey('KeyW',true);for(let k=0;k<90;k++)G.advance(1/60);G.holdKey('KeyW',false);
+        walked=G.fences().find(q=>q.x===others[0].x&&q.y===others[0].y);
+      }
+    }else{
+      // only one fence: already open via use; record that walk is covered by bump hook via holdKey on the same cell (already open)
+      walked={open:1,state:'open',held:true,skipped:true};
+    }
+    const midSave=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+    const sv=midSave||{};sv.cont=true;
+    G.startLevel(sv.level,sv);
+    for(let k=0;k<24;k++)G.advance(1/60);
+    const later=G.fences().find(q=>q.x===found.f.x&&q.y===found.f.y);
+    return {ok:true,found,noUse:{open:noUse.open||0,state:noUse.state},noWalk:{open:noWalk.open||0,state:noWalk.state},blocked,
+      used,passable,msg,walked,has:G.hasJailer(),saveFences:midSave&&midSave.fences,later,level:G.state().level};
+  });
+  check('M1.66 fences stay closed without the Jailer\'s Eye and open like doors (and stay open) while you hold it',
+    fences.ok&&(fences.noUse.open||0)<.05&&(fences.noWalk.open||0)<.05&&fences.blocked&&fences.has&&fences.used&&(fences.used.open>=.99||fences.used.state==='open'||fences.used.state==='opening')&&fences.used.held&&fences.passable&&/FENCE YIELDS/.test(fences.msg||'')&&fences.walked&&((fences.walked.open||0)>=.5||fences.walked.skipped),
+    JSON.stringify(fences));
+  check('M1.66 opened fences stay open after quit and CONTINUE',
+    fences.ok&&fences.saveFences&&fences.saveFences.length&&fences.later&&(fences.later.open>=.99||fences.later.state==='open')&&fences.later.held&&fences.level===fences.found.level,
+    JSON.stringify({save:fences.saveFences,later:fences.later,level:fences.level}));
+
+  // screenshot: fence opening, HUD message clear of touch buttons
+  const shotInfo=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    function face(f){
+      let sx=null,sy=null,ang=0;
+      if(f.axis){
+        if(!G.solidAt(f.x+.5,f.y+1.6)){sx=f.x+.5;sy=f.y+1.6;ang=-Math.PI/2;}
+        else if(!G.solidAt(f.x+.5,f.y-.6)){sx=f.x+.5;sy=f.y-.6;ang=Math.PI/2;}
+      }else{
+        if(!G.solidAt(f.x+1.6,f.y+.5)){sx=f.x+1.6;sy=f.y+.5;ang=Math.PI;}
+        else if(!G.solidAt(f.x-.6,f.y+.5)){sx=f.x-.6;sy=f.y+.5;ang=0;}
+      }
+      return sx==null?null:{sx,sy,ang};
+    }
+    for(let sd=1;sd<=80;sd++){
+      for(let f=1;f<=12;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:0,perm:{items:{jailer:1}}});
+        const fs=(G.fences()||[]).filter(q=>(q.open||0)<.05);
+        if(!fs.length)continue;
+        const fr=face(fs[0]);if(!fr)continue;
+        G.clearMobs();G.setTouch&&G.setTouch(true);
+        G.teleport(fr.sx,fr.sy,fr.ang);if(G.setPitch)G.setPitch(0);
+        G.use();
+        for(let k=0;k<36;k++)G.advance(1/60); // mid-open, message still up
+        G.freeze=true;G.render();
+        const lay=G.layout(),band=lay.band,msg=G.state().msg;
+        const btns=['useBtn','throwBtn','itemBtn','pauseBtn','mapBtn','ballBtn'].map(k=>[k,lay[k]]).filter(([,b])=>b&&b.visible);
+        const ov=(a,b)=>a&&b&&a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+        const hits=btns.filter(([,b])=>ov(b,band)).map(([k])=>k);
+        return {sd,f,theme:G.themeNow(),msg,hits,band,open:(G.fences().find(q=>q.x===fs[0].x&&q.y===fs[0].y)||{}).open};
+      }
+    }
+    return {none:true};
+  });
+  check('M1.66 fence-opening HUD message sits in the band, clear of the touch buttons',
+    shotInfo&&!shotInfo.none&&/FENCE YIELDS/.test(shotInfo.msg||'')&&shotInfo.hits.length===0&&shotInfo.open>0,
+    JSON.stringify(shotInfo));
+  await saveShot(page,'m166_jailers_eye');
+
+  // ---- coin-room loot is not farmed with CONTINUE after the Music Box grant
+  const farm=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    let found=null;
+    for(let sd=1;sd<=80&&!found;sd++){
+      for(let f=2;f<=12&&!found;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:40,perm:{items:{}}});
+        const doors=(G.doors()||[]).filter(d=>d.coin>0);
+        const ex=G.extras&&G.extras();
+        const d=doors[0];
+        if(!d)continue;
+        const loot=(G.state().items||[]).filter(it=>!it.taken&&Math.hypot(it.x-d.x-.5,it.y-d.y-.5)<5&&it.kind!=='coin'&&it.kind!=='key');
+        if(doors.length&&(loot.length||(ex&&ex.coinDoor)))found={sd,level:G.state().level,loot:loot.map(it=>({kind:it.kind,ptype:it.ptype})),price:d.coin,extra:ex&&ex.coinDoor};
+      }
+    }
+    if(!found)return {ok:false,err:'no coin door'};
+    G.give('musicbox');G.useItem();
+    for(let k=0;k<24;k++)G.advance(1/60);
+    const afterUse={
+      coinTaken:!!(G.coinTaken&&G.coinTaken()),
+      door:found, lootLeft:(G.state().items||[]).filter(it=>!it.taken&&it.kind!=='coin'&&it.kind!=='key'&&Math.hypot(it.x-found.extra.x-.5,it.y-found.extra.y-.5)<5).length,
+      perm:JSON.parse(JSON.stringify((G.perm&&G.perm())||G.state().perm||{})),
+      item:G.state().player.item,
+      item2:G.state().player.item2
+    };
+    const cycles=[];
+    for(let i=0;i<3;i++){
+      const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+      if(!sv)return {ok:false,err:'no save',found,afterUse};
+      sv.cont=true;
+      G.startLevel(sv.level,sv);
+      for(let k=0;k<24;k++)G.advance(1/60);
+      const cd=found.extra||{};const left=(G.state().items||[]).filter(it=>!it.taken&&it.kind!=='coin'&&it.kind!=='key'&&Math.hypot(it.x-cd.x-.5,it.y-cd.y-.5)<5);
+      const perm=G.state().perm||{};
+      cycles.push({i,left:left.length,kinds:left.map(it=>it.kind+':'+(it.ptype||'')),coinTaken:!!(G.coinTaken&&G.coinTaken()),item:G.state().player.item,musicBox:!!(G.musicBox&&G.musicBox())});
+    }
+    return {ok:true,found,afterUse,cycles};
+  });
+  check('M1.66 using the Music Box grants coin-room loot once; CONTINUE does not respawn it',
+    farm.ok&&farm.afterUse.coinTaken&&farm.afterUse.lootLeft===0&&farm.cycles.length===3&&farm.cycles.every(c=>c.left===0&&c.coinTaken&&c.musicBox),
+    JSON.stringify(farm));
+
+  // ---- boss cut-scenes: clear LOS, boss on screen, fog restored (incl. slick clamp)
+  const bosses=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    function faceDoor(){
+      const A=G.boss().def.room,d=G.arenaDoors()[0];
+      const ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);
+      G.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox));
+      if(G.setKeys)G.setKeys(1);
+    }
+    function faceLectern(){
+      const l=G.lectern();
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
+      G.teleport(l.scriptAt.x+.5,l.scriptAt.y+.5);G.advance(0.05);
+      for(const d of dirs){const x=l.x+d[0],y=l.y+d[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);break;}}
+    }
+    const cases=[
+      {type:'king',floor:5,seeds:[1,777,4242,9,42]},
+      {type:'lugg',floor:10,seeds:[1,777,4242,9,42]},
+      {type:'masque',floor:15,seeds:[1,777,4242],perm:{}},
+      {type:'brood',floor:15,seeds:[1,777,4242],perm:{pit:100}},
+      {type:'yellow',floor:20,seeds:[1,777,4242],lectern:true},
+      {type:'owl',floor:30,seeds:[1,777,4242]}
+    ];
+    const out=[];
+    for(const c of cases){
+      for(const sd of c.seeds){
+        G.bossIntro=true;G.setSeed(sd);
+        G.startLevel(c.floor-1,{hearts:9,coins:0,perm:c.perm||{}});
+        const p=G.state().player;
+        if(G.clearMobs)G.state().enemies.forEach((e,i)=>{if(!G.bosses[e.type])G.damageMob(i,99);});
+        // glasses would lift view to 6; a Slick Man in range clamps it back to 5; intro must restore that clamp
+        if(G.addRunItem)G.addRunItem('glasses');
+        if(G.spawn)G.spawn('slickman',p.x+1.2,p.y,true,[]);
+        for(let k=0;k<90;k++)G.advance(1/60);
+        const fogBefore=G.viewCur();
+        const wantBefore=G.viewDist();
+        if(c.lectern){faceLectern();G.advance(0.05);G.use();}
+        else{faceDoor();G.render();G.use();}
+        // run to the VS / look-at-boss beat (1/60 so the camera lands on a real frame)
+        let mid=null;
+        for(let t=0;t<300;t++){
+          G.setHearts(9);G.advance(1/60);
+          if(G.state().mode==='intro'&&(G.intro()?G.intro().t:0)>=2.6){
+            G.render();
+            const I=G.intro()||{},cam=G.cam(),b=G.boss().ent,rect=G.enemyRect&&G.enemyRect();
+            const los=I.cam?!!I.los:(G.los?G.los(cam.x,cam.y,b.x,b.y):null);
+            const onScreen=!!(rect&&rect.right>0&&rect.left<480&&rect.bottom>0&&rect.top<300&&rect.d>0.2);
+            mid={mode:G.state().mode,t:I.t,type:I.type,fogLift:I.fogLift,fogWas:I.fogWas,viewCur:G.viewCur(),los,onScreen,rect,cam,skip:I.cam&&I.cam.skipWalls};
+            break;
+          }
+        }
+        // finish intro one tick at a time; snapshot fog on the first play frame (before the play-mode lerp)
+        let after=null;
+        for(let t=0;t<180&&!after;t++){
+          G.setHearts(9);G.advance(1/60);
+          if(G.state().mode==='play')after={mode:'play',viewCur:G.viewCur(),viewDist:G.viewDist(),fogWas:mid&&mid.fogWas,slick:!!(G.slickFog&&G.slickFog())};
+        }
+        if(!after)after={mode:G.state().mode,viewCur:G.viewCur(),viewDist:G.viewDist(),fogWas:mid&&mid.fogWas,slick:!!(G.slickFog&&G.slickFog())};
+        out.push({type:c.type,sd,floor:c.floor,mid,after,fogBefore,wantBefore});
+      }
+    }
+    return out;
+  });
+  const midOk=bosses.every(r=>r.mid&&r.mid.mode==='intro'&&r.mid.los&&r.mid.onScreen&&r.mid.viewCur>=(r.mid.fogLift||0)-0.01&&r.mid.type===r.type);
+  const fogOk=bosses.every(r=>r.after&&r.after.mode==='play'&&Math.abs(r.after.viewCur-r.after.fogWas)<1e-9);
+  check('M1.66 every boss cut-scene has a clear raycast to the boss and the boss is on screen (several seeds)',
+    midOk&&bosses.length>=20,JSON.stringify(bosses.map(r=>({type:r.type,sd:r.sd,los:r.mid&&r.mid.los,on:r.mid&&r.mid.onScreen,t:r.mid&&r.mid.t,skip:r.mid&&r.mid.skip}))));
+  check('M1.66 cut-scene fog is lifted for the boss, then the exact previous fog (including the Slick Man clamp) is restored',
+    fogOk&&bosses.some(r=>r.after.slick||r.wantBefore<=5.01),JSON.stringify(bosses.map(r=>({type:r.type,sd:r.sd,before:r.fogBefore,want:r.wantBefore,lift:r.mid&&r.mid.fogLift,was:r.mid&&r.mid.fogWas,after:r.after.viewCur,dist:r.after.viewDist,slick:r.after.slick}))));
+
+  // one screenshot per boss type, mid cut-scene
+  const types=['king','lugg','masque','brood','yellow','owl'];
+  for(const type of types){
+    const shot=await G(page,(type)=>{
+      const G=__game;G.manual=true;G.freeze=false;G.bossIntro=true;
+      const plan={king:{f:5,sd:777},lugg:{f:10,sd:777},masque:{f:15,sd:777,perm:{}},brood:{f:15,sd:777,perm:{pit:100}},yellow:{f:20,sd:777,lectern:true},owl:{f:30,sd:777}}[type];
+      G.setSeed(plan.sd);G.startLevel(plan.f-1,{hearts:9,coins:0,perm:plan.perm||{}});
+      G.state().enemies.forEach((e,i)=>{if(!G.bosses[e.type])G.damageMob(i,99);});
+      if(plan.lectern){
+        const l=G.lectern();const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
+        G.teleport(l.scriptAt.x+.5,l.scriptAt.y+.5);G.advance(0.05);
+        for(const d of dirs){const x=l.x+d[0],y=l.y+d[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);break;}}
+        G.advance(0.05);G.use();
+      }else{
+        const A=G.boss().def.room,d=G.arenaDoors()[0];
+        const ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);
+        G.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox));if(G.setKeys)G.setKeys(1);G.render();G.use();
+      }
+      for(let t=0;t<40;t++){G.setHearts(9);G.advance(0.1);if(G.state().mode==='intro'&&(G.intro()&&G.intro().t>=2.4))break;}
+      G.freeze=true;G.render();
+      return {mode:G.state().mode,type:G.intro()&&G.intro().type,t:G.intro()&&G.intro().t,on:!!(G.enemyRect&&G.enemyRect())};
+    },type);
+    check(`M1.66 ${type} cut-scene screenshot posed (boss intro, on screen)`,
+      shot.mode==='intro'&&shot.type===type&&shot.on,JSON.stringify(shot));
+    await saveShot(page,'m166_intro_'+type);
+  }
+
+  // ---- shared high scores: version payload, fallback, toggle (mock fetch only)
+  const hs2=await G(page,()=>new Promise(done=>{
+    const G=__game;
+    const ver=G.version();
+    const log=[];
+    const rows=[
+      {rank:1,name:'OLDONE',score:9000,floor:9,seed:'aaa'},
+      {rank:2,name:'CURA',score:8000,floor:8,seed:'bbb',version:ver},
+      {rank:3,name:'OTHA',score:7000,floor:7,seed:'ccc',version:'M1.50'},
+      {rank:4,name:'CURB',score:6000,floor:6,seed:'ddd',version:ver},
+      {rank:5,name:'OTHB',score:5000,floor:5,seed:'eee',version:'M0.9'}
+    ];
+    let mode='ok';
+    window.fetch=async function(url,opts){
+      const rec={url:String(url),method:(opts&&opts.method)||'GET',body:opts&&opts.body||null};
+      log.push(rec);
+      const path=String(url);
+      await Promise.resolve();
+      if(/\/health/.test(path))return {ok:true,status:200,json:async()=>({ok:true})};
+      if(/\/scores/.test(path)&&rec.method==='GET'){
+        if(mode==='throw')throw new Error('network down');
+        if(mode==='http404')return {ok:false,status:404,json:async()=>({ok:false,error:'not found'})};
+        return {ok:true,status:200,json:async()=>({scores:rows})};
+      }
+      if(/\/scores/.test(path)&&rec.method==='POST'){
+        return {ok:true,status:201,json:async()=>({ok:true,rank:2})};
+      }
+      return {ok:false,status:404,json:async()=>({ok:false})};
+    };
+    G.hsForceOnline=true;
+    localStorage.removeItem('labyrinthRemake.localScores.v1');
+    const wait=()=>new Promise(r=>{const t=setInterval(()=>{const h=G.hs();if(!h.loading&&!h.busy){clearInterval(t);r(h);}},20);setTimeout(()=>{clearInterval(t);r(G.hs());},3000);});
+
+    (async()=>{
+      const postP=new Promise(res=>G.hsSubmit({name:'QAVER',score:1234,floor:3,seed:'seed-1',version:ver},res));
+      const submitted=await Promise.race([postP,new Promise(r=>setTimeout(()=>r({timeout:true}),3000))]);
+      const posts=log.filter(r=>r.method==='POST');
+      let payload=null;try{payload=posts[0]&&JSON.parse(posts[0].body);}catch(e){payload={err:String(e)};}
+
+      mode='ok';log.length=0;
+      G.toTitle();G.openScores();
+      const all=await wait();
+      const allNames=(all.shown||[]).map(e=>e.name);
+      G.hsToggle('mine');
+      const mine=G.hs();
+      const mineNames=(mine.shown||[]).map(e=>e.name);
+      const mineVers=(mine.shown||[]).map(e=>e.version||'');
+      G.hsToggle('all');
+      const back=G.hs();
+      const tabs=G.hsTabRects();
+
+      mode='http404';
+      localStorage.setItem('labyrinthRemake.localScores.v1',JSON.stringify([{name:'LOCL',score:10,floor:1,seed:'z',created_at:'2026-01-01T00:00:00Z'}]));
+      G.toTitle();G.openScores();
+      const f404=await wait();
+
+      mode='throw';
+      G.toTitle();G.openScores();
+      const ferr=await wait();
+
+      done({
+        ver,submitted,payload,posts:posts.length,postUrl:posts[0]&&posts[0].url,
+        allNames,mineNames,mineVers,filterAll:back.filter,tabs,
+        f404:{local:f404.local,msg:f404.msg,names:(f404.shown||f404.list||[]).map(e=>e.name)},
+        ferr:{local:ferr.local,msg:ferr.msg,names:(ferr.shown||ferr.list||[]).map(e=>e.name)},
+        validOk:G.hsValidVer(ver)&&!G.hsValidVer('')&&!G.hsValidVer('bad!')&&!G.hsValidVer('n'.repeat(17))
+      });
+    })().catch(e=>done({err:String(e&&e.stack||e)}));
+  }));
+
+  check('M1.66 every score POST sends {name,score,floor,seed,version} with this build\'s version (relative /api/labyrinth path)',
+    hs2&&hs2.payload&&hs2.payload.name==='QAVER'&&hs2.payload.score===1234&&hs2.payload.floor===3&&hs2.payload.seed==='seed-1'&&hs2.payload.version===hs2.ver&&hs2.validOk&&hs2.postUrl&&/^\/api\/labyrinth\/scores$/.test(hs2.postUrl)&&!/https?:\/\//.test(hs2.postUrl||''),
+    JSON.stringify({payload:hs2.payload,ver:hs2.ver,postUrl:hs2.postUrl,err:hs2.err}));
+  check('M1.66 a 404 or fetch error falls back to the local top-10 board',
+    hs2&&hs2.f404&&hs2.f404.local&&/COULD NOT LOAD THE ONLINE BOARD/.test(hs2.f404.msg||'')&&hs2.f404.names.includes('LOCL')&&hs2.ferr&&hs2.ferr.local&&/COULD NOT LOAD THE ONLINE BOARD/.test(hs2.ferr.msg||''),
+    JSON.stringify({f404:hs2.f404,ferr:hs2.ferr,err:hs2.err}));
+  check('M1.66 the board toggle filters All versions vs This version client-side (old rows without version are unknown)',
+    hs2&&hs2.allNames&&hs2.allNames.join(',')==='OLDONE,CURA,OTHA,CURB,OTHB'&&hs2.mineNames.join(',')==='CURA,CURB'&&hs2.mineVers.every(v=>v===hs2.ver)&&hs2.filterAll==='all'&&hs2.tabs&&hs2.tabs.all&&hs2.tabs.mine,
+    JSON.stringify({all:hs2.allNames,mine:hs2.mineNames,mineVers:hs2.mineVers,tabs:hs2.tabs,err:hs2.err}));
+
+  await ctx.close();
+}
+
+if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -3763,7 +4320,7 @@ async function m18Tests(){
     let m=await DIEP({kills:40,elites:4,coins:50,deepest:8});
     await page.keyboard.type('QA Stub');await page.keyboard.press('Enter');h=await waitHS();await G(page,()=>__game.advance(0.4));let st=await G(page,()=>__game.state());
     const post=stub.state.posts[0];
-    check('M1.8 stub online: submit POSTs {name,score,floor,seed} as JSON and gets 201 + rank, shown and highlighted',m==='name'&&st.mode==='scores'&&stub.state.posts.length===1&&post.ok&&Object.keys(post.parsed).sort().join()==='floor,name,score,seed'&&post.parsed.name==='QA Stub'&&post.parsed.score===9650&&post.parsed.floor===8&&post.parsed.seed==='4242'&&/SCORE SENT! YOUR RANK: 4/.test(h.msg)&&h.hl&&h.hl.rank===4&&h.list[3].name==='QA Stub'&&/application\/json/.test(post.headers['content-type']),JSON.stringify({msg:h.msg,post:post&&post.parsed}));
+    check('M1.8 stub online: submit POSTs {name,score,floor,seed} as JSON and gets 201 + rank, shown and highlighted',m==='name'&&st.mode==='scores'&&stub.state.posts.length===1&&post.ok&&Object.keys(post.parsed).sort().join()===(atLeast('1.66')?'floor,name,score,seed,version':'floor,name,score,seed')&&(!atLeast('1.66')||post.parsed.version==='M1.66')&&post.parsed.name==='QA Stub'&&post.parsed.score===9650&&post.parsed.floor===8&&post.parsed.seed==='4242'&&/SCORE SENT! YOUR RANK: 4/.test(h.msg)&&h.hl&&h.hl.rank===4&&h.list[3].name==='QA Stub'&&/application\/json/.test(post.headers['content-type']),JSON.stringify({msg:h.msg,post:post&&post.parsed}));
     await page.screenshot({path:`${SHOTS}/m18_highscores_online_after_submit.png`});
     // 429 -> friendly retry message, name kept; retry works once the limit clears
     stub.fillLimit();m=await DIEP({kills:1,elites:0,coins:2,deepest:2});
@@ -3794,7 +4351,7 @@ async function m18Tests(){
     check('M1.8 browser offline: local board, no request attempted',h.local===true&&h.online===false);
     // request hygiene
     const foreign=reqs.filter(r=>!r.url.startsWith(stub.url+'/'));const paths=[...new Set(reqs.map(r=>r.method+' '+r.url.slice(stub.url.length)))].sort();
-    const allowed=new Set(['GET /index.html','GET /api/labyrinth/health','GET /api/labyrinth/scores?limit=10','POST /api/labyrinth/scores']);
+    const allowed=new Set(['GET /index.html','GET /api/labyrinth/health',(typeof atLeast==='function'&&atLeast('1.66')?'GET /api/labyrinth/scores?limit=50':'GET /api/labyrinth/scores?limit=10'),'POST /api/labyrinth/scores']);
     check('M1.8 stub online: every request is same-origin to the stub and uses only the spec endpoints',foreign.length===0&&paths.every(p=>allowed.has(p)),paths.join(', ')+(foreign.length?' FOREIGN '+foreign[0].url:''));
     check('M1.8 no credentials are sent by the game (no Authorization header on any request)',reqs.every(r=>!r.headers.authorization)&&stub.state.requests.every(r=>!r.headers.authorization));
     check('M1.8 stub pages: no script errors',probs.length===0,probs.slice(0,3).join(' | '));

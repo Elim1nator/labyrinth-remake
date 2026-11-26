@@ -12,6 +12,7 @@ export function validateEntry(b){
   if(!Number.isInteger(b.floor)||b.floor<1||b.floor>10000)return 'invalid floor';
   if(!Number.isInteger(b.score)||b.score<0||b.score>10000000||b.score>b.floor*100000)return 'invalid score';
   if(typeof b.seed!=='string'||!SEED_RE.test(b.seed))return 'invalid seed';
+  if(b.version!=null&&b.version!==''){if(typeof b.version!=='string'||b.version.length>16||!/^[A-Za-z0-9._-]+$/.test(b.version))return 'invalid version';}
   return '';
 }
 export function startStub({root,port=0,host='127.0.0.1'}={}){
@@ -28,7 +29,7 @@ export function startStub({root,port=0,host='127.0.0.1'}={}){
       if(ep==='/scores'){
         if(req.method==='GET'){if(st.mode.scores==='error')return send(res,500,{ok:false,error:'boom'});
           let lim=u.searchParams.has('limit')?Number(u.searchParams.get('limit')):10;if(!Number.isInteger(lim)||lim<1)return send(res,400,{ok:false,error:'invalid limit'});lim=Math.min(100,lim);
-          return send(res,200,{scores:ranked().slice(0,lim).map(s=>({rank:s.rank,name:s.name,score:s.score,floor:s.floor,seed:s.seed,created_at:s.created_at}))});}
+          return send(res,200,{scores:ranked().slice(0,lim).map(s=>({rank:s.rank,name:s.name,score:s.score,floor:s.floor,seed:s.seed,version:s.version||undefined,created_at:s.created_at}))});}
         if(req.method==='POST'){let body='',big=false;req.on('data',c=>{body+=c;if(body.length>2048){big=true;}});req.on('end',()=>{
             const ip=req.socket.remoteAddress||'?';
             if(st.mode.post==='reject')return send(res,400,{ok:false,error:'rejected by stub'});
@@ -39,7 +40,7 @@ export function startStub({root,port=0,host='127.0.0.1'}={}){
             const bad=validateEntry(b);(st.hits[ip]=st.hits[ip]||[]).push(Date.now());
             st.posts.push({body,parsed:b,ok:!bad,headers:{...req.headers}});
             if(bad)return send(res,400,{ok:false,error:bad});
-            const s={id:st.nextId++,name:b.name.trim(),score:b.score,floor:b.floor,seed:b.seed,created_at:new Date().toISOString()};st.scores.push(s);
+            const s={id:st.nextId++,name:b.name.trim(),score:b.score,floor:b.floor,seed:b.seed,version:b.version||undefined,created_at:new Date().toISOString()};st.scores.push(s);
             const rank=ranked().find(x=>x.id===s.id).rank;return send(res,201,{ok:true,id:s.id,rank});});return;}
         return send(res,405,{ok:false,error:'method not allowed'});}
       return send(res,404,{ok:false,error:'not found'});}

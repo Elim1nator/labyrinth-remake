@@ -318,6 +318,21 @@ The Rafter Doll has 5 base HP (`5 + (L-1)` like other regular mobs), speed 2.3, 
 
 The Music Box is a use-item: it plays an eerie, slightly detuned music-box melody for the rest of the level (WebAudio sine bells a few cents sharp and flat) and permanently opens every door on that floor, including locked and coin doors and the hidden cracked wall. It is used up. It only appears on floors whose theme label says Timber (Timber Attic). Every drop source (normal loot, elite drops, coin doors, secret rooms, shrines, the slot machine, boss loot and Old Murkle's shop) rerolls it to another use-item on any other theme. A Music Box you already hold still works on any floor. On Timber floors it is uncommon (about a third the weight of other use-items) and at most one is placed per floor.
 
+From M1.65 the doll keeps its half-size sprite, but balloon hit height is at least 0.58 (`DOLL.hitH`) so a level-aimed throw lands at mid range (the scaled 0.31 height sat under the balloon). Bite reach is unchanged (0.52). A shield block skips the Rust as well as the damage. The Music Box effect (open doors, cracked wall, tune) is written into the floor save and restored on CONTINUE. Jumping to the same floor resets the music. Opening a coin door with the box grants the item that was in that room (the same run item, power-up, piggy bank or bag you would have picked up inside).
+From M1.66, once that coin-room reward has been taken, CONTINUE does not place it again (`coinTaken` is saved for that floor). Doll balance is unchanged.
+
+## Stone Keep: the Jailer's Eye (M1.66)
+The Jailer's Eye is a run item (max 1): while you hold it, iron fences (tile type 3, map letter F) open like doors on walk or use, stay open, and remain open on CONTINUE. It only appears on Stone Keep floors, from every usual source including the shop, at most one per floor, at weight 0.4 (16/199 = 8.04% of Stone Keep floors on seeds 1–200 × L2–24; never off-theme, never two on one floor). The slot machine does not drop run items, so it will not award the Eye.
+
+## Boss cut-scenes (M1.66)
+The intro camera prefers a vantage with a clear line of sight to the boss; if none is found it keeps the view and skips wall rendering between the camera and the boss. Fog is lifted for the cut-scene, then the exact previous fog is restored, including item and Slick Man clamps. A new floor no longer inherits the previous floor's fog distance.
+
+## Shared high scores (M1.66)
+Each POST includes a `version` field (the build string, at most 16 characters from `[A-Za-z0-9._-]`). The board can show All versions or This version (client-side filter; a missing version on an old row is unknown). GET still uses `/api/labyrinth/scores?limit=N` (the client asks for 50, then shows the top 10 after filtering). A 404, error, or unreachable API still falls back to the local top 10.
+
+
+
+
 ## Weeping Gargoyle (M1.63)
 - Statue: 10% of rooms with 40+ cells (not the start, shop, arena or pit room), centred. Separate RNG, so other floor layouts are unchanged.
 - Stone Keep: each statue in a monster room is alive 50% of the time; each other regular monster (not featured, theme, boss or Treasure Knight) becomes a gargoyle 10% of the time. 6 base HP (scales), wake 3 cells with line of sight, sleep past 8 cells, bursts of 3 Screamer rings 0.3 s apart, 2.4-3.4 s recharge.

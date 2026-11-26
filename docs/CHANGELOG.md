@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.65: the Debt Collector
+- New monster, **the Debt Collector** (Old Vaults floors only, exactly one per floor; 6 base HP): a dark hooded figure in a smiling gold mask (3-frame walk from the supplied art, `assets/mobs/collector.png`). It chases you, and its hit **steals 3 coins** instead of hurting you (the coins fly to it). If you have no coins, its hit costs **2 hearts**. Once it has taken **12 coins** it is paid off: it stops, can no longer be hurt, and works like a shopkeeper (face it and press E / X / USE to open the floor's shop). Kill it before then and the coins it took spill back out. It never gets Infernal modifiers. Tuning: `COLLECTOR` in the game.
+- All test groups pass.
+- QA build `m1.65-qa` (debug hook on).
+
 ## M1.64: no per-monster map colours
 - Removed the per-type map colour (`dot`) from every regular monster. In play every monster has been the same red X on the minimap and full map since M1.29, so the colours only fed the debug map preview (now the same red) and two old colour-distance tests (retired from this build on).
 - All test groups pass.

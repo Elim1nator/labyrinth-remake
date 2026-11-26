@@ -321,3 +321,6 @@ The Music Box is a use-item: it plays an eerie, slightly detuned music-box melod
 ## Weeping Gargoyle (M1.63)
 - Statue: 10% of rooms with 40+ cells (not the start, shop, arena or pit room), centred. Separate RNG, so other floor layouts are unchanged.
 - Stone Keep: each statue in a monster room is alive 50% of the time; each other regular monster (not featured, theme, boss or Treasure Knight) becomes a gargoyle 10% of the time. 6 base HP (scales), wake 3 cells with line of sight, sleep past 8 cells, bursts of 3 Screamer rings 0.3 s apart, 2.4-3.4 s recharge.
+
+## Debt Collector (M1.65)
+- Old Vaults only, 1 per floor (featured + guaranteed). 6 base HP (scales), speed 1.35, contact every 1.5 s: steal 3 coins (or 2 hearts at 0 coins). Paid off at 12 coins: passive, unhurtable, opens the floor's shop within 1.6 cells when faced. Killed while owed: drops what it took.

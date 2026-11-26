@@ -130,3 +130,4 @@ Notes:
 - `mobs/rafterdoll.png` (M1.62): the Rafter Doll, 2 walk frames at 120 px tall, cut from the supplied sheet (white background flood-filled out from the edges, black outline kept, feet-centred and bottom-aligned; corners fully transparent).
 - `items.png` (M1.62): Music Box icon added in the next free 24 x 24 slot after the Spirit Slate.
 - `mobs/gargoyle.png` (M1.63): the Weeping Gargoyle, 3 frames of 72 x 108 (asleep, awake, screaming); frame 1 is also the statue decoration.
+- `mobs/collector.png` (M1.65): the Debt Collector, 3 walk frames of 64 x 112 (feet on the bottom), cut from the supplied sheet.

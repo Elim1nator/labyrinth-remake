@@ -61,7 +61,8 @@ on the inspiration are kept out of this repository.
 | M1.61 | done | Gamepad LB opens the item screen. |
 | M1.62 | done | Timber Attic: the Music Box and the Rafter Doll. |
 | M1.63 | done | The Weeping Gargoyle. |
-| M1.64 | done | Per-monster map colours removed (all the same red X). Current release is M1.64. |
+| M1.64 | done | Per-monster map colours removed (all the same red X). |
+| M1.65 | done | The Debt Collector (Old Vaults). Current release is M1.65. |
 | M1.59 | done | The Spirit Slate and the item screen (I). |
 | Next | planned | More weapon families, further polish |
 
@@ -70,5 +71,5 @@ on the inspiration are kept out of this repository.
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.64 release build is about 1.65 MB.
+- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.65 release build is about 1.7 MB.
 - Keeping the slot machine coin-only with printed odds.

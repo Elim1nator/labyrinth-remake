@@ -177,6 +177,11 @@
       "frames": 4,
       "k": 1.5
     },
+    "collector": {
+      "file": "mobs/collector.png",
+      "frames": 3,
+      "k": 1.5
+    },
     "gargoyle": {
       "file": "mobs/gargoyle.png",
       "frames": 3,

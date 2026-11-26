@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V165=atLeast('1.65'); // M1.65+: the Debt Collector (Old Vaults)
 const V164=atLeast('1.64'); // M1.64+: monsters have no per-type map colour (all the same red X)
 const V163=atLeast('1.63'); // M1.63+: the Weeping Gargoyle
 const V161=atLeast('1.61'); // M1.61+: gamepad LB opens the item screen
@@ -191,7 +192,7 @@ const G=(page,fn,arg)=>page.evaluate(fn,arg);
   check('continue restores level 2 with saved coins',st.mode==='play'&&st.level===1&&st.player.coins===coinsAtL2,`coins=${st.player.coins}`);
 
   // death + retry
-  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&x.type!=='mortar'&&x.type!=='gargoyle'&&!(x.type==='zapfly'&&x.face==='comedy')) /* M1.53: the Mortared Man never bites */:s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
+  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&x.type!=='mortar'&&x.type!=='gargoyle'&&x.type!=='collector'&&!(x.type==='zapfly'&&x.face==='comedy')) /* M1.53: the Mortared Man never bites */:s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
   check('touching enemies costs hearts until death screen',st.mode==='dead'&&st.player.hearts===0);
   await page.screenshot({path:`${SHOTS}/desktop_1280x720_death.png`});
   st=await G(page,()=>{__game.advance(0.6);__game.confirm();return __game.advance(0.05);});
@@ -1745,6 +1746,35 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m165Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m165'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{const G=__game,sig=[];for(let i=0;i<3;i++)sig.push(G.frameSig('collector',i));return {st:G.assetState().collector,sig:new Set(sig).size,m:G.mobs.collector};});
+  check('M1.65 the Debt Collector art is packed (3 walk frames)',art.st==='png'&&atlas.collector&&atlas.collector.frames===3&&art.sig===3&&art.m.name==='DEBT COLLECTOR',JSON.stringify(art));
+  const gen=await G(page,()=>{const G=__game,ch=G.mobs.collector.ch;const st={vaults:0,vaultsWith:0,maxOn:0,other:0,firstVault:null};
+    for(let sd=1;sd<=30;sd++)for(const f of [2,3,4,5,6,7,8]){const nm=G.themeFor(sd,f).name,n=[...G.genMap(sd,f).map.join('')].filter(c=>c===ch).length;
+      if(/OLD VAULTS/.test(nm)){st.vaults++;if(n)st.vaultsWith++;st.maxOn=Math.max(st.maxOn,n);if(!st.firstVault)st.firstVault={sd,f};}else st.other+=n;}return st;});
+  check('M1.65 the Debt Collector only appears on Old Vaults floors (one per floor)',gen.vaults>0&&gen.vaultsWith===gen.vaults&&gen.maxOn===1&&gen.other===0,JSON.stringify(gen));
+  const r=await G(page,(k)=>{const G=__game;G.manual=true;G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:9,coins:14});G.clearMobs();const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-4&&!spot;x++){if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.5,y+.5)&&!G.solidAt(x+2.5,y+.5))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);const i=G.spawn('collector',spot.x+.4,spot.y,true,[]);G.freeze=false;const o={hits:[]};
+    for(let t=0;t<200&&!G.collectors()[0].paid;t++){G.placeEnemy(i,spot.x+.4,spot.y);G.advance(.05);const st=G.state();const c=G.collectors()[0];if(o.hits.length===0||o.hits[o.hits.length-1].owed!==c.owed)o.hits.push({coins:st.player.coins,hearts:st.player.hearts,owed:c.owed});}
+    o.paid=G.collectors()[0];o.coins=G.state().player.coins;o.hearts=G.state().player.hearts;
+    const h0=G.state().player.hearts;for(let t=0;t<40;t++){G.advance(.05);}o.heartsAfter=G.state().player.hearts;o.moved=Math.hypot(G.collectors()[0].x-spot.x-.4,G.collectors()[0].y-spot.y);
+    const hp0=G.collectors()[0].hp;G.damageMob(i,1);o.hpPaid=G.collectors()[0].hp-hp0;
+    G.placeEnemy(i,spot.x+1.2,spot.y);G.teleport(spot.x,spot.y,0);G.advance(.05);o.near=G.nearCollector();
+    window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyE'}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyE'}));G.advance(.05);o.mode=G.state().mode;return o;},gen.firstVault);
+  check('M1.65 its hits take 3 coins (no heart lost) until it has 12, then it stops attacking',r.hits.length===4&&r.hits[0].coins===11&&r.hits[0].owed===3&&r.hits.every(h=>h.hearts===r.hearts)&&r.paid.paid&&r.paid.owed===12&&r.coins===2&&r.heartsAfter===r.hearts,JSON.stringify(r));
+  check('M1.65 paid off, it waits like a shopkeeper: no damage, and using it opens the shop',r.hpPaid===0&&r.near===true&&r.mode==='shop',JSON.stringify({hpPaid:r.hpPaid,near:r.near,mode:r.mode}));
+  const broke=await G(page,(k)=>{const G=__game;G.manual=true;G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:9,coins:0});G.clearMobs();const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-4&&!spot;x++){if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.5,y+.5))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);const i=G.spawn('collector',spot.x+.4,spot.y,true,[]);G.freeze=false;const h0=G.state().player.hearts;let h=h0;for(let t=0;t<30&&h===h0;t++){G.placeEnemy(i,spot.x+.4,spot.y);G.advance(.05);h=G.state().player.hearts;}
+    const after=h;G.damageMob(i,1);G.damageMob(i,1);
+    return {h0,hearts:after};},gen.firstVault);
+  check('M1.65 with no coins left, its hit costs 2 hearts',broke.hearts===broke.h0-2,JSON.stringify(broke));
+  await ctx.close();
+}
+
 async function m164Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m164'});
   const r=await G(page,()=>({withDot:Object.keys(__game.mobs).filter(k=>__game.mobs[k].dot!==undefined)}));
@@ -2148,6 +2178,7 @@ if(V161&&want('m161')){ await m161Tests(); }
 if(V162&&want('m162')){ await m162Tests(); }
 if(V163&&want('m163')){ await m163Tests(); }
 if(V164&&want('m164')){ await m164Tests(); }
+if(V165&&want('m165')){ await m165Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2538,7 +2569,7 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V163?['gargoyle']:[]),...(V162?['rafterdoll']:[])].sort()),types.join(','));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V163?['gargoyle']:[]),...(V162?['rafterdoll']:[]),...(V165?['collector']:[])].sort()),types.join(','));
     const hp=types.map(t=>mobs[t].hp),sp=types.filter(t=>t!=='gargoyle').map(t=>mobs[t].speed) /* M1.62: the gargoyle never moves */,vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name),hpTank=types.filter(t=>t!=='slickman').map(t=>mobs[t].hp);
     check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===sp.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hpTank)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));

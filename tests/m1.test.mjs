@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V162=atLeast('1.62'); // M1.62+: the Weeping Gargoyle
 const V161=atLeast('1.61'); // M1.61+: gamepad LB opens the item screen
 const V160=atLeast('1.60'); // M1.60+: ranged elite only on mobs with a RANGED entry; theme mobs skipped by L3/Rattlebone swaps
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
@@ -188,7 +189,7 @@ const G=(page,fn,arg)=>page.evaluate(fn,arg);
   check('continue restores level 2 with saved coins',st.mode==='play'&&st.level===1&&st.player.coins===coinsAtL2,`coins=${st.player.coins}`);
 
   // death + retry
-  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&x.type!=='mortar'&&!(x.type==='zapfly'&&x.face==='comedy')) /* M1.53: the Mortared Man never bites */:s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
+  st=await G(page,(V145)=>{__game.wakeAll();for(let i=0;i<(V145?40:14);i++){const s=__game.state();if(s.mode!=='play')break;const en=V145?s.enemies.find(x=>!x.gone&&x.state!=='dead'&&x.type!=='eggsac'&&x.type!=='mortar'&&x.type!=='gargoyle'&&!(x.type==='zapfly'&&x.face==='comedy')) /* M1.53: the Mortared Man never bites */:s.enemies.find(x=>!x.gone);if(!en)break;let tx=en.x+0.3;if(V145&&__game.solidAt(tx,en.y))tx=en.x-0.3; /* M1.45: a biting mob, and never into a wall */__game.teleport(tx,en.y,Math.PI);__game.advance(1.55);}return __game.state();},V145);
   check('touching enemies costs hearts until death screen',st.mode==='dead'&&st.player.hearts===0);
   await page.screenshot({path:`${SHOTS}/desktop_1280x720_death.png`});
   st=await G(page,()=>{__game.advance(0.6);__game.confirm();return __game.advance(0.05);});
@@ -1742,6 +1743,36 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m162Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m162'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{const G=__game,st=G.assetState(),sig=[];for(let i=0;i<3;i++)sig.push(G.frameSig('gargoyle',i));return {st:st.gargoyle,sig:new Set(sig).size,m:G.mobs.gargoyle};});
+  check('M1.62 the Weeping Gargoyle art is packed (asleep, awake, screaming)',art.st==='png'&&atlas.gargoyle&&atlas.gargoyle.frames===3&&art.sig===3&&art.m.name==='WEEPING GARGOYLE',JSON.stringify(art));
+  const gen=await G(page,()=>{const G=__game;const st={keep:0,keepAlive:0,other:0,otherStat:0,otherAlive:0,floors:0,withStat:0,small:0,firstKeep:null};
+    for(let sd=1;sd<=30;sd++)for(const f of [2,3,4,5,6,7,8,10,14]){const nm=G.themeFor(sd,f).name,d=G.genMap(sd,f),m=d.map.join(''),a=[...m].filter(c=>c==='q').length,s9=[...m].filter(c=>c==='9').length;st.floors++;if(s9)st.withStat++;
+      if(/STONE KEEP/.test(nm)){st.keep++;st.keepAlive+=a;(st.keeps=st.keeps||[]).push({sd,f});if(!st.firstKeep&&a)st.firstKeep={sd,f};}else{st.other++;st.otherStat+=s9;st.otherAlive+=a;}}
+    return st;});
+  check('M1.62 gargoyle statues are a rare decoration (big rooms only, on some floors); live ones only on Stone Keep floors',gen.otherStat>0&&gen.withStat<gen.floors*.35&&gen.otherAlive===0&&gen.keepAlive>0,JSON.stringify(gen));
+  const live=await G(page,(K)=>{const G=__game;G.manual=true;let spot=null;
+    for(const k of K){G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});G.viewOverride=14;G.clearMobs();const s=G.state();
+      for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-10&&!spot;x++){let ok=true;for(let k2=0;k2<10;k2++)if(G.solidAt(x+k2+.5,y+.5)||(G.pitUnder&&G.pitUnder(x+k2+.5,y+.5,0)))ok=false;if(ok)spot={x:x+.5,y:y+.5};}
+      if(spot)break;}
+    if(!spot)return {err:'no 10-cell straight line on any Stone Keep floor'};
+    const i=G.spawn('gargoyle',spot.x+6,spot.y,false,[]);G.teleport(spot.x,spot.y,0);G.freeze=false;const o={};
+    G.advance(.6);o.far=G.gargs()[0];G.damageMob(i,1);o.hpAsleep=G.gargs()[0].hp;
+    G.teleport(spot.x+3.6,spot.y,0);G.advance(.2);o.woke=G.gargs()[0];let fired=0,f0=G.state().stats.gargShots|0;
+    const bursts=[];let last=f0;for(let t=0;t<120;t++){G.advance(.05);const n=G.state().stats.gargShots|0;if(n>last){bursts.push(+(t*.05).toFixed(2));last=n;}}
+    o.shots=last-f0;o.times=bursts.slice(0,7);G.damageMob(i,1);o.hpAwake=G.gargs()[0].hp;
+    G.teleport(spot.x-2.5,spot.y,0);G.advance(.3);o.slept=G.gargs()[0];return o;},gen.keeps);
+  check('M1.62 a live gargoyle is stone (no damage) while asleep and wakes only when you come within 3 cells',live.far.awake===false&&live.far.frame===0&&live.hpAsleep===live.far.hp&&live.woke.awake===true,JSON.stringify(live));
+  const gaps=[];for(let i=1;i<live.times.length;i++)gaps.push(+(live.times[i]-live.times[i-1]).toFixed(2));
+  check('M1.62 awake, it screams and fires bursts of 3 sonic rings, then recharges; it can be hurt',live.shots>=3&&gaps.length>=3&&gaps[0]<.5&&gaps[1]<.5&&gaps[2]>1.5&&live.hpAwake<live.far.hp,JSON.stringify({gaps,shots:live.shots,hp:live.hpAwake}));
+  check('M1.62 walk far enough away and it closes its eyes and goes back to sleep',live.slept.awake===false&&live.slept.frame===0,JSON.stringify(live.slept));
+  await G(page,(k)=>{const G=__game;G.freeze=true;const s=G.state();const g=G.gargs()[0];G.teleport(g.x-2.6,g.y,0);G.freeze=false;G.advance(.3);G.freeze=true;G.render();},gen.firstKeep);
+  await page.screenshot({path:`${SHOTS}/m162_gargoyle.png`});
+  await ctx.close();
+}
+
 async function m161Tests(){
   const ctx=await browser.newContext({viewport:{width:1280,height:800}});
   await ctx.addInitScript(()=>{window.__pad={axes:[0,0,0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0})),connected:true,mapping:'standard',id:'test pad'};navigator.getGamepads=()=>[window.__pad];});
@@ -1825,6 +1856,7 @@ if(V158&&want('m158')){ await m158Tests(); }
 if(V159&&want('m159')){ await m159SlateTests(); await m159InvTests(); }
 if(V160&&want('m160')){ await m160Tests(); }
 if(V161&&want('m161')){ await m161Tests(); }
+if(V162&&want('m162')){ await m162Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2215,9 +2247,9 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[])].sort()),types.join(','));
-    const hp=types.map(t=>mobs[t].hp),sp=types.map(t=>mobs[t].speed),vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name),hpTank=types.filter(t=>t!=='slickman').map(t=>mobs[t].hp);
-    check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===types.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V162?['gargoyle']:[])].sort()),types.join(','));
+    const hp=types.map(t=>mobs[t].hp),sp=types.filter(t=>t!=='gargoyle').map(t=>mobs[t].speed) /* M1.62: the gargoyle never moves */,vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name),hpTank=types.filter(t=>t!=='slickman').map(t=>mobs[t].hp);
+    check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===sp.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hpTank)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));
     // animation frames + hit-flash frames
     const fr=await G(page,(all)=>all.map(t=>{const s=new Set();for(let i=0;i<4;i++)s.add(__game.frameSig(t,i));return s.size;}),ALL);

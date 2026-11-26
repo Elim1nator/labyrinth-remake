@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.62: the Weeping Gargoyle
+- New decoration: a **gargoyle statue** (from the supplied art) on a pedestal, rare: about 1 in 10 big rooms (40+ cells) gets one, on any floor.
+- On **Stone Keep** floors half of those statues are alive, and about 1 in 10 of the floor's other monsters spawns as one. A live **Weeping Gargoyle** (6 base HP) never moves. Asleep it is stone: eyes shut, balloons clank off. Come within **3 cells** (in sight) and it wakes with red eyes and screams like the Screamer, then fires **bursts of 3 sonic rings** (0.3 s apart), closes its mouth and recharges for 2.4-3.4 s. Get more than **8 cells** away and it shuts its eyes and goes back to sleep. It never bites and never gets Infernal modifiers. Art: `assets/mobs/gargoyle.png` (asleep, awake, screaming). Tuning: `GARG` in the game.
+- All test groups pass.
+- QA build `m1.62-qa` (debug hook on).
+
 ## M1.61: item screen on LB
 - Gamepad **LB** opens and closes the item screen (D-pad up still opens it). Balloon colours are permanent run items and no longer cycle, so LB was free.
 - All test groups pass.

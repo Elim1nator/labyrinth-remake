@@ -310,3 +310,7 @@ From M1.60 the L3 kettle-swap and the L6+ Rattlebones swap themselves skip every
 
 ## Spirit Slate (M1.59)
 - Run item, max 1, 40 coins; in the item pool only on Slate Halls floors (deep theme, floor 17+). Shows every live monster on both maps regardless of fog of war.
+
+## Weeping Gargoyle (M1.62)
+- Statue: 10% of rooms with 40+ cells (not the start, shop, arena or pit room), centred. Separate RNG, so other floor layouts are unchanged.
+- Stone Keep: each statue in a monster room is alive 50% of the time; each other regular monster (not featured, theme, boss or Treasure Knight) becomes a gargoyle 10% of the time. 6 base HP (scales), wake 3 cells with line of sight, sleep past 8 cells, bursts of 3 Screamer rings 0.3 s apart, 2.4-3.4 s recharge.

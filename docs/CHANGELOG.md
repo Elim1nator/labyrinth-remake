@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.74: the Snowball and the Ferryman's Coin
+- New run item, the **Snowball** (max 1, never sold or found in the usual pool). A **Snowman** drops it rarely (**7%** per kill, at most one per run). While you hold it, thrown balloons use Jacob's snowball sprite and the snowball hand; they still carry every balloon colour you own, and the Frozen Wand's +1 damage and bounce still apply. A hit **slows** the target for **1 second** (the existing `slowT` chill, 55% speed on regular monsters, 50% on the Mortared Man / Ice Wizard / ice spikes) and makes a **white snow puff** (and puff sound) instead of the water splash. Frozen Wand bounce still skips the puff, the same way it skipped the splash.
+- New run item, the **Ferryman's Coin** (max 1, never in the usual loot pool). A **Debt Collector** drops it **30%** of the time on an Old Vaults floor (skipped if you already hold it, one is already on the floor, or the shop already stocks it). Every Old Vaults shop always stocks it for **40 coins** (a normal mid-shop price, same as the Jailer's Eye). Once you own it the shop still lists it but marks it sold ("SOLD OUT, WANDERER."), which is how the shop already treats a maxed run item. While you hold it, opening a locked door (with a key) or a coin door (by paying) gives **+3 coins**. The Music Box also pays +3 for each locked or coin door it opens; fences (including the Jailer's Eye) and a Treasure Knight smash do not. A coin door restored by CONTINUE (`sv.coinPaid`) does not pay out again.
+- Art: `assets/hand_snow.png` (4 frames: idle/windup from Jacob's held-snowball hand, throw/empty from the existing glove), `assets/snowball.png` (12x14 projectile, matching a balloon frame), and two new tiles in `assets/items.png` (the snowball and the Ferryman's Coin, keyed from Jacob's art). The first-person hand and the HUD balloon box show the snowball while that item is active.
+- Both items are saved with the other run items, so CONTINUE keeps them. Old saves without the new fields still load.
+- All test groups pass.
+- QA build `m1.74-qa` (debug hook on).
+
 ## M1.73: the Broodmother comes for you
 - **Pit rule change**: once **100 coins** have gone into the pits, the **next boss floor you reach** is the Broodmother's, however deep you are (before, only floor 15 could be hers). It happens once per run: the floor is remembered with the run (so CONTINUE meets her again), and later boss floors are back to normal. The King in Yellow keeps floor 20 (she takes the next one after). Floor 15 is still the Grand Masque if the pits have had fewer than 100 coins by then.
 - Icy Prison floors keep their pit spiders and the Treasure Knight (unchanged, confirmed).

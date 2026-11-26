@@ -350,6 +350,16 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 ## Snowman (M1.70)
 - Icy Prison only (featured + pool; guaranteed 1, 2 from floor 5). 4 base HP, speed 1.05. Natural ranged like the Screamer: snowball speed 6, 1 heart, 0.45 s wind-up, cooldown 1.9 x 1.4 s; normal contact bite.
 
+## Snowball (M1.74)
+- Rare Snowman drop only (`noPool`, max 1 per run): 7% per kill (`SNOWBALL.drop`), skipped if you already hold one or one is already on the floor. Isolated 1000-roll checks and an Icy Prison seed sweep are in the M1.74 tests.
+- While held, player shots set `snow`: sprite is Jacob's snowball (not a coloured balloon or the Frozen Wand ice tint), colour flags and damage are unchanged, Frozen Wand still adds +1 and bounce (bounce skips the puff, as it skipped the splash).
+- On hit: `e.slowT = max(slowT, 1)` (`ITEM_FX.snow`). Regular monsters move at `SPIDERS.goldWebMul` = 55% speed; the Mortared Man, Ice Wizard and ice spikes already use 50% when `slowT>0`. White `snowPuff` particles and `SFX.puff` replace `splash`.
+
+## Ferryman's Coin (M1.74)
+- Not in the general item pool (`noPool`, max 1). A Debt Collector kill has a 30% chance to drop it (`FERRY.drop`), skipped if you already hold it, one is already on the floor, or the shop already stocks it this floor.
+- Every Old Vaults shop always stocks it at price 40. If a kill-drop is sitting on the floor, the shop hides it so only one copy is offered. Once you own it the shop still lists it but `shopRows` marks it owned ("SOLD OUT, WANDERER.").
+- Held effect: +3 coins (`FERRY.coins`) when you key-unlock a locked door or pay a coin door, and for each locked or coin door the Music Box opens (not fences, not Treasure Knight smashes, not `applyPaidCoinDoors` on CONTINUE).
+
 ## Frozen Screamer (M1.71)
 - Icy Prison only (featured, guaranteed 1, pool). 4 base HP, speed 1.45, flies; natural sonic rings like the Screamer (2 hearts), bite 2 hearts. On death: a regular Screamer (scaled to the floor) spawns where it was; the Frozen Screamer itself drops nothing.
 

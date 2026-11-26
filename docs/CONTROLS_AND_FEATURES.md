@@ -94,6 +94,9 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 | Ice Cube | balloons chill monsters (slower for 1.5 s) | 1 |
 | Rubber Boots | webs, frost, goo, Lichen Face spores and Bather puddles can't touch you | 1 |
 | Jailer's Eye | fences open like doors; Stone Keep only, rare (M1.66) | 1 |
+| Frozen Wand | frozen balloons: +1 damage, they bounce off (Ice Wizard drop, M1.69) | 1 |
+| Snowball | thrown balloons become snowballs: 1 s slow and a puff (rare Snowman drop, M1.74) | 1 |
+| Ferryman's Coin | +3 coins when you open a locked or coin door (Debt Collector drop / Old Vaults shop, M1.74) | 1 |
 
 - **Balloon colours** are run items too, and they stack: every colour you own is on every balloon
   (the HUD balloon box shows a dot per colour).
@@ -144,6 +147,11 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **The Slick Man** (M1.57) lumbers toward you on Slate Halls floors (10 HP; at least one per Slate floor, two from floor 5). It reflects about 30% of your balloons back at you, and while it is within 10 cells the fog thickens to 5 blocks no matter what sight items you have.
 - **The Rafter Doll** (M1.62) is a small, fast cracked porcelain doll on Timber Attic floors (5 HP, half a normal mob's size; at least one per Timber floor, two from floor 5). It dashes in, bites, and runs away. The bite Rusts you for 15 s: your throws are slower and don't go far. **Music Box** plays an eerie tune for the rest of the level and permanently opens every door, including locked doors and hidden walls, then is used up. CONTINUE keeps the doors open and the tune; a coin door opened this way still gives its room reward. It only appears as loot or in the shop on Timber Attic floors; a Music Box you already hold still works on any floor.
 - **The Jailer's Eye** (M1.66) is a rare Stone Keep run item (at most one per floor). While you hold it, iron fences open like doors on walk or USE, stay open, and stay open on CONTINUE. It does not appear on other themes.
+- **The Frozen Wand** (M1.69) is dropped only by the Ice Wizard (never sold or found elsewhere). Your balloons are frozen, do +1 damage, and bounce instead of splashing.
+- **The Snowball** (M1.74) is a rare Snowman drop (7% per kill, at most one per run, never sold or found in the usual pool). While you hold it, thrown balloons become snowballs: they use the snowball sprite and hand, still carry every balloon colour you own, slow a target for 1 second on hit, and puff instead of splashing. CONTINUE keeps it.
+- **The Ferryman's Coin** (M1.74) is a run item (max 1). A Debt Collector has a 30% chance to drop it; every Old Vaults shop always stocks it for 40 coins, and marks it sold once you own it. While you hold it, opening a locked or coin door (including those the Music Box opens) gives +3 coins. Fences and a CONTINUE-restored paid coin door do not pay out. CONTINUE keeps it.
+
+
 
 
 ## Treasure Knight, masks and items (M1.11)

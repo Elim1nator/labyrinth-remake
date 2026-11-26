@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.68: the Icy Prison
+- New floor type, **the Icy Prison**: it can replace the theme of any generated floor from floor 3 (never the tutorial or a boss floor such as the King in Yellow's). The chance grows with depth (6% on floor 3, +2% a floor, at most 45%), and after one appears the next 4 floors can't be icy. It uses only three new wall textures (cracked ice tiles, frozen stone with icicles and snow, icy brick; `assets/walls.png` is now 10 x 3 tiles), white fog, a whitish floor and a grey ceiling, a faint frost tint, and slate doors.
+- **The cold**: on an Icy Prison floor you move at 85% speed and wait 25% longer between throws. Tuning: `ICY` in the game.
+- All test groups pass.
+- QA build `m1.68-qa` (debug hook on).
+
 ## M1.67: paid coin doors stay open on CONTINUE
 - Paying a coin door is saved (`coinPaid`, keyed like `coinTaken`). CONTINUE restores that door as open and does not charge for it again. Music Box coin-door loot is unchanged. Old saves without the field still load.
 - All test groups pass.

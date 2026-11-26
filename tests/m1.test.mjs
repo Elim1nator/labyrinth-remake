@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V168=atLeast('1.68'); // M1.68+: the Icy Prison (3 more wall tiles, 23 in all)
 const V165=atLeast('1.65'); // M1.65+: the Debt Collector (Old Vaults)
 const V166=atLeast('1.66'); // M1.66+: Jailer's Eye, clear boss cut-scenes, coin-loot CONTINUE, shared high scores
 const V167=atLeast('1.67'); // M1.67+: paid coin doors stay open on CONTINUE and are not charged again
@@ -753,7 +754,7 @@ async function m120Tests(){
   const w=await G(page,(V151)=>{const G=__game,W=[0,1,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19],vd=[];for(const ti of W)for(const k of [1,2,3])vd.push(G.variantDiff(ti,k));
     const tiers=[29,33,37,41,45,49,53].map(f=>{const tr=G.texTier(f);return G.deepThemes[tr-1].name+':'+G.deepThemes[tr-1].base;});
     return {count:G.texCount(),names:G.deepThemes.map(d=>d.name),tiers,tf:G.tierFloors,vd,minD:Math.min(...vd.map(v=>v.diff)),ok:vd.every(v=>v.cached&&v.w===(V151?128:64)&&v.dark)};},V151);
-  check('M1.20 crystal and void walls replaced by blue slate and ember rock; 7 new stone styles (TEX has 20 entries)',w.count===20&&w.names[2]==='SLATE HALLS'&&w.names[4]==='THE EMBER CORE'&&!w.names.some(n=>/CRYSTAL|VOID/.test(n)),JSON.stringify(w.names));
+  check('M1.20 crystal and void walls replaced by blue slate and ember rock; 7 new stone styles (TEX has 20 entries)',w.count===(V168?23:20)&&w.names[2]==='SLATE HALLS'&&w.names[4]==='THE EMBER CORE'&&!w.names.some(n=>/CRYSTAL|VOID/.test(n)),JSON.stringify(w.names));
   check('M1.20 a new wall style every 4 floors from 29 to 53 (sandstone, granite, cobble, limestone, dripstone, chasm shale, ironbound)',w.tiers.join()==='SANDSTONE CRYPT:A,GRANITE HALLS:B,COBBLE WARRENS:E,LIMESTONE NAVE:I,DRIPPING GROTTO:Z,CHASM DEPTHS:+,IRON KEEP:=',w.tiers.join());
   check('M1.20 every wall style has damaged, structural and decorative variations (64x64, cached, with a dark side)',w.ok&&w.vd.length===51&&w.vd.every((v,i)=>v.diff>=(i%3===0?(V125?.8:1.5):(V125?6:10))),`mean difference from the plain wall (damaged/structural/decorative): ${w.vd.map(v=>v.diff.toFixed(1)).join(' ')}`);
   const d=await G(page,()=>{const G=__game;G.manual=true;const n=[0,0,0,0];let doors=0;for(const f of [1,10,30,50]){G.setSeed(900+f);G.startLevel(f-1);const s=G.state();for(let y=0;y<s.mapH;y++)for(let x=0;x<s.mapW;x++){const v=G.cellVariant(x,y);if(v>0||G.solidAt(x+.5,y+.5))n[v<0?0:v]++;}}
@@ -772,11 +773,11 @@ async function m121Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m121'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets.walls;
   const a=await G(page,()=>({st:__game.assetState(),n:__game.texCount(),names:__game.texNames,emb:__game.embedded('walls'),png:__game.atlasPng('walls')}));
-  check('M1.21 the walls load from the embedded PNG sheet (20 tiles, named as in assets/atlas.json)',a.st.walls==='png'&&a.n===20&&JSON.stringify(a.names)===JSON.stringify(atlas.tiles)&&a.emb.startsWith('data:image/png;base64,'),JSON.stringify(a.st)+' '+a.names.join(','));
+  check('M1.21 the walls load from the embedded PNG sheet (20 tiles, named as in assets/atlas.json)',a.st.walls==='png'&&a.n===(V168?23:20)&&JSON.stringify(a.names)===JSON.stringify(atlas.tiles)&&a.emb.startsWith('data:image/png;base64,'),JSON.stringify(a.st)+' '+a.names.join(','));
   const cmp=await G(page,async(url)=>{const im=new Image();im.src=url;await im.decode();const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);const u=new Uint32Array(cx.getImageData(0,0,im.width,im.height).data.buffer);
     const b=await new Promise(r=>{const i2=new Image();i2.onload=()=>r(i2);i2.src=__game.atlasPng('walls');});const cv2=document.createElement('canvas');cv2.width=b.width;cv2.height=b.height;const c2=cv2.getContext('2d');c2.drawImage(b,0,0);const v=new Uint32Array(c2.getImageData(0,0,b.width,b.height).data.buffer);
     let diff=0;for(let i=0;i<u.length;i++){const p=u[i]>>>24>=128?u[i]|0xff000000:0,q=v[i]>>>24>=128?v[i]|0xff000000:0;if(p!==q)diff++;}return {w:im.width,h:im.height,diff};},a.emb);
-  check('M1.21 the walls in game are exactly the pixels of the PNG (export round-trips)',cmp.w===(V151?1280:640)&&cmp.h===(V151?256:128)&&cmp.diff===0,JSON.stringify(cmp));
+  check('M1.21 the walls in game are exactly the pixels of the PNG (export round-trips)',cmp.w===(V151?1280:640)&&cmp.h===(V168?384:V151?256:128)&&cmp.diff===0,JSON.stringify(cmp));
   await ctx.close();
   // a build whose art is missing still runs (magenta check walls), instead of crashing
   const tmp=`${OUT}/m121_noart.html`;fs.writeFileSync(tmp,fs.readFileSync(FILE,'utf8').replace(/var ASSETS=\{.*\};/,'var ASSETS={};'));
@@ -1294,14 +1295,14 @@ async function m141Tests(){
 
 async function m140Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m140'});
-  const ar=await G(page,()=>{const G=__game,o={floors:0,designs:{},bad:[],fallback:0};const W=new Set('#SWTMKRCVOABEIZ+='.split(''));
+  const ar=await G(page,()=>{const G=__game,o={floors:0,designs:{},bad:[],fallback:0};const W=new Set('#SWTMKRCVOABEIZ+=$@;'.split(''));
     for(let sd=1;sd<=30;sd++)for(const f of [5,10,15,20,25,30]){const d=G.genMap(sd,f);o.floors++;if(d.fallback){o.fallback++;continue;}const B=d.boss;if(!B||!B.design){o.bad.push(sd+':'+f+' no design');continue;}
       o.designs[B.design]=(o.designs[B.design]|0)+1;const D=G.arenas.find(a=>a.name===B.design),A=B.room,m=d.map;if(A.w!==D.rows[0].length||A.h!==D.rows.length){o.bad.push(sd+':'+f+' size');continue;}
       for(let ty=0;ty<A.h;ty++)for(let tx=0;tx<A.w;tx++){const t=D.rows[ty][tx],c=m[A.y+ty][A.x+tx];
         if((t==='#'&&!W.has(c))||(t==='x'&&!W.has(c)&&!/[.c]/.test(c)))o.bad.push(sd+':'+f+' '+t+'@'+tx+','+ty+'='+c);if(t==='o'&&c!=='P')o.bad.push(sd+':'+f+' pit@'+tx+','+ty+'='+c);if(t==='X'&&c!=='X')o.bad.push(sd+':'+f+' exit');}
       const bx=D.rows.findIndex(r=>r.includes('B')),by=D.rows[bx].indexOf('B');if(B.x!==A.x+by||B.y!==A.y+bx)o.bad.push(sd+':'+f+' boss spot');}
     return o;});
-  const lk=await G(page,()=>{const G=__game,bad=[];let n=0;const WALL=new Set('#SWTMKRCVOABEIZ+=F'.split(''));
+  const lk=await G(page,()=>{const G=__game,bad=[];let n=0;const WALL=new Set('#SWTMKRCVOABEIZ+=F$@;'.split(''));
     for(let sd=1;sd<=30;sd++)for(const f of [2,3,4,6,7,8,9,11,13,17,24,31]){const d=G.genMap(sd,f),m=d.map;if(d.boss)continue;const A=G.genRooms(sd,f).find(r=>r.tag==='exit');if(!A){bad.push(sd+':'+f+' no exit room');continue;}n++;let doors=[],keys=0,locks=0,p=null;
       for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++){const c=m[y][x];if(c==='k')keys++;if(c==='L')locks++;if(c==='p')p=[x,y];const ring=(y===A.y-1||y===A.y+A.h)!==(x===A.x-1||x===A.x+A.w)&&x>=A.x-1&&x<=A.x+A.w&&y>=A.y-1&&y<=A.y+A.h;if(ring&&!WALL.has(c))doors.push(c);}
       if(doors.length!==1||doors[0]!=='L')bad.push(sd+':'+f+' doors '+doors.join(''));
@@ -1376,7 +1377,7 @@ async function m135Tests(){
     for(const f of [1,2,3,4,6,9,12,20,30,40,50,57]){G.setSeed(31);G.startLevel(f-1,{hearts:99,coins:0});const s=G.state();
       for(let y=0;y<s.mapH;y++)for(let x=0;x<s.mapW;x++){const c=G.cellAt(x,y);if(c&&c.t===2&&!c.coin){const k=(c.doorStyle||'default')+(c.locked?'_locked':'');styles[k]=(styles[k]||0)+1;sigs[G.doorTexSig(x,y)]=1;}}}
     return {styles,n:Object.keys(styles).filter(k=>!/_locked|default/.test(k)).length,looks:Object.keys(sigs).length,names:G.doorTexNames.length,state:G.assetState()};});
-  check(`M1.35 doors match the wall they sit in: ${st.n} wall styles' doors seen across 12 floors, ${st.looks} different door looks (assets/doors.png has a door and a locked door for all 17 wall styles)`,st.names===34&&st.n>=10&&st.looks>=10&&!st.styles.default,JSON.stringify(st.styles));
+  check(`M1.35 doors match the wall they sit in: ${st.n} wall styles' doors seen across 12 floors, ${st.looks} different door looks (assets/doors.png has a door and a locked door for all 17 wall styles)`,st.names===(V168?40:34)&&st.n>=10&&st.looks>=10&&!st.styles.default,JSON.stringify(st.styles));
   const sm=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;
     const test=(t)=>{for(let seed=1;seed<60;seed++){G.setSeed(seed);G.startLevel(3,{hearts:99,coins:0});G.clearMobs();const s=G.state();
       for(let y=1;y<s.mapH-1;y++)for(let x=1;x<s.mapW-1;x++){const c=G.cellAt(x,y);if(!c||c.t!==t)continue;
@@ -1747,6 +1748,32 @@ async function m158Tests(){
 }
 
 if(V157&&want('m157')){ await m157Tests(); }
+
+async function m168Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m168'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const w=await G(page,()=>{const G=__game;const n=G.texNames;return {names:n.slice(20),i:[20,21,22].map(i=>G.texInfo(i)),st:G.assetState().walls};});
+  check('M1.68 three Icy Prison wall tiles are packed (ice tile, frozen stone, icy brick)',w.st==='png'&&JSON.stringify(w.names)==='["icetile","frostwall","icebrick"]'&&atlas.walls.tiles.length===23&&w.i.every(t=>t.w===128&&t.mean[2]>t.mean[0]),JSON.stringify(w));
+  const r=await G(page,()=>{const G=__game;const by={},bad=[],boss=[];let n=0,first=null,early=0,deep=0,eN=0,dN=0;
+    for(let sd=1;sd<=150;sd++){let last=-99;for(let f=1;f<=40;f++){const ic=G.icyAt(sd,f);if(f<=10){eN++;if(ic)early++;}if(f>=26){dN++;if(ic)deep++;}if(!ic)continue;n++;if(f-last<=4)bad.push(sd+':'+f);last=f;if(f%5===0)boss.push(sd+':'+f);if(f<3)bad.push('early '+sd+':'+f);if(!first&&f>=3&&f<=12)first={sd,f};}}
+    return {n,bad,boss,first,early:early/eN,deep:deep/dN};});
+  check('M1.68 the Icy Prison replaces some floors (never the tutorial or a boss floor), more often deeper, and never again within 4 floors',r.n>0&&r.bad.length===0&&r.boss.length===0&&r.deep>r.early*1.5,JSON.stringify(r));
+  const f=await G(page,(k)=>{const G=__game;const th=G.themeFor(k.sd,k.f);G.manual=true;G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:5,coins:0});
+    const m=G.currentMap().join(''),walls=new Set([...m].filter(c=>'#SWTMKRCVOABEIZ+=$@;'.includes(c)));G.render();const fog=G.fogColor?G.fogColor():null;
+    const icy=G.isIcy(),cd=G.throwCdNow(),msg=G.state().msg;
+    G.setSeed(k.sd);G.startLevel(k.f,{hearts:5,coins:0});const cd2=G.throwCdNow(),icy2=G.isIcy();
+    return {name:th.name,walls:[...walls],icy,icy2,cd,cd2,msg,fog};},r.first);
+  check('M1.68 on an Icy Prison floor every wall is one of the three ice textures, with white fog and a cold message',/ICY PRISON/.test(f.name)&&f.walls.every(c=>'$@;'.includes(c))&&f.walls.length>=2&&f.icy&&/COLD/.test(f.msg)&&f.fog&&f.fog.r>200&&f.fog.g>200&&f.fog.b>200,JSON.stringify(f));
+  check('M1.68 the cold slows your throws (and the next floor is back to normal)',f.cd>f.cd2*1.2&&!f.icy2,JSON.stringify(f));
+  const mv=await G(page,(k)=>{const G=__game;const run=(fl)=>{G.setSeed(k.sd);G.startLevel(fl,{hearts:5,coins:0});G.freeze=true;G.clearMobs();const s=G.state();let spot=null;
+      for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){let ok=true;for(let q=0;q<6;q++)if(G.solidAt(x+q+.5,y+.5))ok=false;if(ok)spot={x:x+.5,y:y+.5};}
+      G.teleport(spot.x,spot.y,0);G.freeze=false;G.holdKey('KeyW',true);G.advance(.6);G.holdKey('KeyW',false);return G.state().player.x-spot.x;};
+    return {icy:run(k.f-1),normal:run(k.f)};},r.first);
+  check('M1.68 the cold slows you down a bit',mv.icy<mv.normal*.92&&mv.icy>mv.normal*.7,JSON.stringify(mv));
+  await G(page,(k)=>{const G=__game;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:5,coins:0});G.freeze=true;G.render();},r.first);
+  await page.screenshot({path:`${SHOTS}/m168_icy_prison.png`});
+  await ctx.close();
+}
 
 async function m165Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m165'});
@@ -2736,6 +2763,7 @@ async function m166Tests(){
   await ctx.close();
 }
 
+if(V168&&want('m168')){ await m168Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 
@@ -3328,7 +3356,7 @@ async function m13Tests(){
     const maps=await G(page,(V19)=>{const seal=(d)=>{if(!V19)return d.map;const S=d.secret;return d.map.map((r,y)=>[...r].map((c,x)=>(S&&x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h)||c==='P'||c==='N'?'#':(/[1-8GU]/.test(c)?'.':c)).join(''));}; /* M1.9: pits + merchant act as walls, the sealed secret room is left out */
       const out=[];for(let s=1;s<=525;s++){const lvl=2+(s%7);const d=__game.genMap(s,lvl);out.push({seed:s,lvl,map:seal(d),map18:d.map18,fallback:d.fallback,locks:d.locks,rooms:d.rooms});}for(let s=9001;s<=9030;s++)for(let lvl=2;lvl<=8;lvl++){const d=__game.genMap(s,lvl);out.push({seed:s,lvl,map:seal(d),map18:d.map18,fallback:d.fallback,locks:d.locks,rooms:d.rooms});}return out;},V19);
     const mobCh={e:'screamer',b:'springle',t:'kettle',g:'wisp',r:'clunk',z:'zapfly',...(V19?{s:'skeleton'}:{})};
-    const WALL=new Set(['#','S','W','T','M']);
+    const WALL=new Set(['#','S','W','T','M',...(V168?['$','@',';']:[])]); /* M1.68 Icy Prison walls */
     function analyse(m){const rows=m.map,h=rows.length,w=rows[0].length;const at=(x,y)=>rows[y][x];let sx=-1,sy=-1;
       for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(at(x,y)==='p'){sx=x;sy=y;}
       const problems=[];if(sx<0)problems.push('no start');
@@ -3488,7 +3516,7 @@ async function m13Tests(){
     st=await G(page,()=>__game.state());
     check('M1.1-A1 tap on the phone letterbox bar resumes',lay.canvas.x>20&&was==='pause'&&st.mode==='play',`bar ${lay.canvas.x.toFixed(0)} px, ${was} -> ${st.mode}`);
     // phone screenshots on a generated level
-    await G(page,()=>{__game.manual=true;__game.freeze=true;__game.setSeed(9001);__game.startLevel(4);const s=__game.state(),m=__game.currentMap(),open=(x,y)=>{const c=(m[Math.floor(y)]||'')[Math.floor(x)];return c&&!'#SWTMFDL'.includes(c);};
+    await G(page,()=>{__game.manual=true;__game.freeze=true;__game.setSeed(9001);__game.startLevel(4);const s=__game.state(),m=__game.currentMap(),open=(x,y)=>{const c=(m[Math.floor(y)]||'')[Math.floor(x)];return c&&!'#SWTMFDL$@;'.includes(c);};
       let best=null;for(let gy=1;gy<m.length-1;gy++)for(let gx=1;gx<m[0].length-1;gx++){if(!open(gx+.5,gy+.5))continue;for(let k=0;k<4;k++){const a=k*Math.PI/2,dx=Math.round(Math.cos(a)),dy=Math.round(Math.sin(a));let n=0;const px=-dy,py=dx;while(open(gx+.5+dx*(n+1),gy+.5+dy*(n+1))&&open(gx+.5+dx*(n+1)+px,gy+.5+dy*(n+1)+py)&&n<9)n++;if(n>=5&&(!best||n>best.n))best={x:gx+.5,y:gy+.5,a,dx,dy,n};}}
       __game.clearMobs();__game.teleport(best.x,best.y,best.a);for(const [t,d,l] of [['kettle',2.0,0.1],['springle',3.3,0.85],['zapfly',2.7,-0.3]])__game.spawn(t,best.x+best.dx*d-best.dy*l,best.y+best.dy*d+best.dx*l,false);__game.advance(0.05);});
     await page.screenshot({path:`${SHOTS}/m13_phone_844x390_generated_level.png`});
@@ -3661,7 +3689,7 @@ async function m14Tests(){
     const lvl=await G(page,(V19)=>{__game.setSeed(777);const r=[];for(let i=0;i<8;i++){__game.startLevel(i);const sec=V19&&i>0?__game.secret():null;r.push(__game.state().items.filter(t=>t.kind==='power'||t.kind==='perm').length-(sec&&sec.def.treasure==='power'?1:0)); /* M1.11: a secret power-up can be a permanent item */}return r;},V19); // M1.9: a secret-room power-up is extra
     check('M1.4 power-ups are placed in every level (1 in the tutorial, 2-3 in generated floors)',lvl[0]===1&&lvl.slice(1).every((n,i)=>n===(i+2>=5?3:2)),lvl.join(','));
     // ---------- perf: many enemy shots + puddles ----------
-    const perf=await G(page,async()=>{__game.setSeed(9001);__game.startLevel(7);__game.setHearts(999);__game.wakeAll();__game.setEffect(null);const m=__game.currentMap(),open=[];for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++)if(!'#SWTMFDL'.includes(m[y][x]))open.push([x+.5,y+.5]);
+    const perf=await G(page,async()=>{__game.setSeed(9001);__game.startLevel(7);__game.setHearts(999);__game.wakeAll();__game.setEffect(null);const m=__game.currentMap(),open=[];for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++)if(!'#SWTMFDL$@;'.includes(m[y][x]))open.push([x+.5,y+.5]);
       const p=__game.state().player,near=open.filter(o=>Math.hypot(o[0]-p.x,o[1]-p.y)<7&&Math.hypot(o[0]-p.x,o[1]-p.y)>1.2);for(let i=0;i<40;i++){const o=near[i%near.length];__game.addPuddle(o[0]+(i%3-1)*.2,o[1]);}
       const fill=()=>{const s=__game.state();for(let i=s.eshots.length;i<40;i++){const o=near[(Math.random()*near.length)|0],a=Math.random()*6.28;__game.addShot(['steam','zap','laser','sonic','wisp','fluff'][i%6],o[0],o[1],Math.cos(a)*1.2,Math.sin(a)*1.2);}};
       fill();const iv=setInterval(fill,100);__game.manual=false;await new Promise(r=>setTimeout(r,400));const f0=__game.state().stats.frames;let mx=0;const t0=performance.now();await new Promise(r=>setTimeout(r,2000));const fps=(__game.state().stats.frames-f0)/((performance.now()-t0)/1000);
@@ -3690,7 +3718,7 @@ async function m14Tests(){
     await page.screenshot({path:`${SHOTS}/m14_phone_844x390_active_effect.png`});
     // phone perf with 4x throttle and the same load
     await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
-    const ph=await G(page,async()=>{__game.freeze=false;__game.setSeed(9001);__game.startLevel(4);__game.setHearts(999);__game.wakeAll();const m=__game.currentMap(),open=[];for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++)if(!'#SWTMFDL'.includes(m[y][x]))open.push([x+.5,y+.5]);
+    const ph=await G(page,async()=>{__game.freeze=false;__game.setSeed(9001);__game.startLevel(4);__game.setHearts(999);__game.wakeAll();const m=__game.currentMap(),open=[];for(let y=0;y<m.length;y++)for(let x=0;x<m[0].length;x++)if(!'#SWTMFDL$@;'.includes(m[y][x]))open.push([x+.5,y+.5]);
       const p=__game.state().player,near=open.filter(o=>Math.hypot(o[0]-p.x,o[1]-p.y)<7&&Math.hypot(o[0]-p.x,o[1]-p.y)>1.2);for(let i=0;i<40;i++){const o=near[i%near.length];__game.addPuddle(o[0],o[1]);}
       const fill=()=>{const s=__game.state();for(let i=s.eshots.length;i<40;i++){const o=near[(Math.random()*near.length)|0],a=Math.random()*6.28;__game.addShot(['steam','zap','laser','sonic','wisp','fluff'][i%6],o[0],o[1],Math.cos(a)*1.2,Math.sin(a)*1.2);}};
       fill();const iv=setInterval(fill,150);__game.manual=false;await new Promise(r=>setTimeout(r,400));const f0=__game.state().stats.frames,t0=performance.now();await new Promise(r=>setTimeout(r,2000));const fps=(__game.state().stats.frames-f0)/((performance.now()-t0)/1000);clearInterval(iv);__game.manual=true;
@@ -4275,7 +4303,7 @@ async function m18Tests(){
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m18-endless'});
     let r=await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.startLevel(7);__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);let s=__game.advance(0.3);const m1=s.mode;__game.advance(0.6);__game.confirm();s=__game.advance(0.05);return {m1,mode:s.mode,level:s.level,name:s.levelName,save:s.save};});
-    check('M1.8 no final win: clearing level 8 starts floor 9 (deep theme) and saves it',r.m1==='clear'&&r.mode==='play'&&r.level===8&&/^LEVEL 9: BASALT DEPTHS/.test(r.name)&&r.save&&r.save.level===8,JSON.stringify(r));
+    check('M1.8 no final win: clearing level 8 starts floor 9 (deep theme) and saves it',r.m1==='clear'&&r.mode==='play'&&r.level===8&&(V168?/^LEVEL 9: (BASALT DEPTHS|ICY PRISON)/:/^LEVEL 9: BASALT DEPTHS/).test(r.name)&&r.save&&r.save.level===8,JSON.stringify(r));
     r=await G(page,()=>{const out=[];for(const f of [50,200,1000]){__game.startLevel(f-1);if(__game.hitBoss){__game.hitBoss(9999);__game.advance(1.5);} /* M1.10: these are boss floors; the portal opens once the boss falls */__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);__game.advance(0.3);__game.advance(0.6);__game.confirm();const s=__game.advance(0.05);out.push(s.mode+':'+s.level);}return out;});
     check('M1.8 clears on floors 50, 200 and 1000 lead on to the next floor (never a win screen)',r.join()==='play:50,play:200,play:1000',r.join());
     await G(page,()=>{__game.setRun({kills:12,elites:3,coins:40,deepest:199});__game.startLevel(199,{hearts:4,coins:33,item:__game.pu.shield?'shield':'herb'});});
@@ -4294,7 +4322,7 @@ async function m18Tests(){
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m18-gen'});
     const FLOORS=[9,10,12,13,16,17,20,21,25,30,50,100,200,500,1000,2500,5000,9999],SEEDS=[1,777,4242,99991,123456,2026];
-    const g=await G(page,({FLOORS,SEEDS,V19,V139})=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));const MOB=new Set('ebtgrz'.split(''));
+    const g=await G(page,({FLOORS,SEEDS,V19,V139})=>{const WALL=new Set('#SWTMKRCVOABEIZ+=$@;'.split(''));const MOB=new Set('ebtgrz'.split(''));
       const mobCh=new Set(Object.values(__game.mobs).map(m=>m.ch));
       const res=[];let maxMs=0,bad=[];const per={};
       for(const f of FLOORS)for(const sd of SEEDS){const t=__game.genTime(sd,f);maxMs=Math.max(maxMs,t.ms);(per[f]=per[f]||[]).push(t.ms);const m=t.map,h=m.length,w=m[0].length;let p=null,x0=0,nk=0,nx=0,ny=0,nm=0,nc=0,err='';
@@ -4332,14 +4360,14 @@ async function m18Tests(){
       const W=[0,1,2,3,4,8,9,10,11,12];let md=1e9,mp='';for(const i of [8,9,10,11,12])for(const j of W){if(j===i||(j>=8&&j<i))continue;const d=__game.texDiff(i,j);if(d<md){md=d;mp=i+'/'+j;}}
       return {tiers,info,base,tierOf,count:__game.texCount(),same:__game.texSame(),deep:__game.deepThemes.map(d=>d.base),md,mp};});
     check('M1.8 depth tiers: new wall style every 4 floors past 8 (L9, L13, L17, L21, L25), tier 5 from L25 on',t.tiers.join()===(V120?'0,0,1,1,2,2,3,3,4,4,5,12,12':'0,0,1,1,2,2,3,3,4,4,5,5,5'),t.tiers.join());
-    const oldSet=new Set('#SWTM'.split('')),okTier=(f,b)=>{const tier=t.tierOf[f];return Object.keys(b).every(c=>tier===0?oldSet.has(c):t.deep.slice(0,tier).includes(c));};
+    const oldSet=new Set('#SWTM'.split('')),okTier=(f,b)=>{const tier=t.tierOf[f];return Object.keys(b).filter(c=>!(V168&&c==='$')).every(c=>tier===0?oldSet.has(c):t.deep.slice(0,tier).includes(c));};
     const tierOk=Object.entries(t.base).every(([f,b])=>okTier(+f,b));
     const newestShare=[9,13,17,21,25].map(f=>{const tier=f>=25?5:f>=21?4:f>=17?3:f>=13?2:1;return (t.base[f][t.deep[tier-1]]||0)/60;});
     check('M1.8 floors 1-8 use the M1.7 walls; deeper floors always use an unlocked deep wall as the base, the newest about half the time',tierOk&&newestShare.every(x=>x>=.4),`newest share at L9/13/17/21/25: ${newestShare.map(x=>x.toFixed(2)).join(' ')}; L13 bases ${JSON.stringify(t.base[13])}`);
     const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);const walls=[0,1,2,3,4,8,9,10,11,12];let minD=1e9,pair='';
     for(const i of [8,9,10,11,12])for(const j of walls){if(i===j||(j>i&&j>=8&&walls.indexOf(j)<walls.indexOf(i)))continue;if(j===i)continue;const dd=dist(t.info[i].mean,t.info[j].mean);if(dd<minD){minD=dd;pair=i+'/'+j;}}
     const sigs=new Set(t.info.map(x=>x.sig));
-    check('M1.8 five new 64x64 wall textures, all distinct, cached once (TEX has 13 entries, same objects every frame)',t.count===(V120?20:13)&&t.same&&sigs.size===t.count&&t.info.slice(8).every(x=>x.w===(V151?128:64)&&x.h===(V151?128:64))&&t.md>=(V125?20:30),`smallest mean per-pixel difference ${t.mp}: ${t.md.toFixed(1)} of 255 (closest mean colours ${pair}: ${minD.toFixed(1)})`);
+    check('M1.8 five new 64x64 wall textures, all distinct, cached once (TEX has 13 entries, same objects every frame)',t.count===(V168?23:V120?20:13)&&t.same&&sigs.size===t.count&&t.info.slice(8).every(x=>x.w===(V151?128:64)&&x.h===(V151?128:64))&&t.md>=(V125?20:30),`smallest mean per-pixel difference ${t.mp}: ${t.md.toFixed(1)} of 255 (closest mean colours ${pair}: ${minD.toFixed(1)})`);
     savePng('m18_textures_all_4x.png',await G(page,()=>__game.textures(4)));
     // in-game views per tier
     // in-game views per tier: stand in front of a stretch of the floor's base wall (the newest unlocked style), 1.6 cells away
@@ -4750,7 +4778,7 @@ async function m19Tests(){
   // ---- 5. secret rooms
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-secret'});
-    const gen=await G(page,()=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));let n=0,ok=0,mob=0,bag=0,pw=0;const bad=[];
+    const gen=await G(page,()=>{const WALL=new Set('#SWTMKRCVOABEIZ+=$@;'.split(''));let n=0,ok=0,mob=0,bag=0,pw=0;const bad=[];
       for(let sd=1;sd<=60;sd++)for(const f of [2,3,4,5,6,7,8,9,10,12,15,20,50,200]){const d=__game.genMap(sd,f),m=d.map,S=d.secret,h=m.length,w=m[0].length;n++;if(!S){bad.push(sd+':'+f+' none');continue;}
         const inS=(x,y)=>x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;let p=null;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y][x]==='p')p=[x,y];
         const flood=(open)=>{const seen=new Set([p[1]*w+p[0]]),q=[p];while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy,k=Y*w+X;if(seen.has(k))continue;const c=(X===S.cx&&Y===S.cy&&open)?'.':m[Y][X];if(WALL.has(c)||c==='F'||c==='Y'||c==='N'||c==='P')continue;seen.add(k);q.push([X,Y]);}}return seen;};
@@ -4807,7 +4835,7 @@ async function m19Tests(){
       const avg={};for(const f in cnt)avg[f]=(cnt[f].reduce((a,b)=>a+b,0)/cnt[f].length).toFixed(1);return {maps,bad:bad.slice(0,6),nBad:bad.length,avg};},[V140,V147]);
     check(`M1.9 pits: none on floors 1-2, up to 1 + floor/2 (max 6) from floor 3${V147?' (M1.47: more and bigger deeper down, pit rooms aside)':''}; never on/next to the start, keys, doors, exit, slot, merchant or hearts (${pg.maps} maps)`,pg.nBad===0&&pg.avg[2]==='0.0'&&+pg.avg[8]>=3,JSON.stringify(pg));
     // solvability with pits: every lock order, any floor (M1.3 analysis covers 2-8; here floors 9-200 on 40 seeds, locks closed and open)
-    const sol=await G(page,()=>{const WALL=new Set('#SWTMKRCVOABEIZ+='.split(''));const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let maps=0,bad=[];
+    const sol=await G(page,()=>{const WALL=new Set('#SWTMKRCVOABEIZ+=$@;'.split(''));const mob=new Set(Object.values(__game.mobs).map(m=>m.ch));let maps=0,bad=[];
       for(let sd=1;sd<=40;sd++)for(const f of [3,5,7,9,11,14,18,25,60,200,999]){const d=__game.genMap(sd,f),m=d.map,S=d.secret,h=m.length,w=m[0].length;maps++;const inS=(x,y)=>S&&x>=S.x&&x<S.x+S.w&&y>=S.y&&y<S.y+S.h;let p;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y][x]==='p')p=[x,y];
         const flood=(locks)=>{const seen=new Set([p[1]*w+p[0]]),q=[p];while(q.length){const [x,y]=q.pop();for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy,k=Y*w+X;if(seen.has(k))continue;const c=m[Y][X];if(WALL.has(c)||c==='F'||c==='Y'||c==='N'||c==='P'||(!locks&&c==='L'))continue;seen.add(k);q.push([X,Y]);}}return seen;};
         const A=flood(true),B=flood(false);let keysB=0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=m[y][x];if(inS(x,y))continue;if(c==='k'&&B.has(y*w+x))keysB++;if(/[Xkch.GU1-8D]/.test(c)||mob.has(c)){if(!A.has(y*w+x)){bad.push(`${sd}:${f} ${c}@${x},${y}`);y=h;break;}}}

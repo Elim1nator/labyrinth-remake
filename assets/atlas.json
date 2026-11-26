@@ -24,7 +24,10 @@
         "limestone",
         "dripstone",
         "shale",
-        "ironbound"
+        "ironbound",
+        "icetile",
+        "frostwall",
+        "icebrick"
       ]
     },
     "doors": {

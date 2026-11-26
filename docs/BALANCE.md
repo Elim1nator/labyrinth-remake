@@ -339,3 +339,6 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 
 ## Debt Collector (M1.65)
 - Old Vaults only, 1 per floor (featured + guaranteed). 6 base HP (scales), speed 1.35, contact every 1.5 s: steal 3 coins (or 2 hearts at 0 coins). Paid off at 12 coins: passive, unhurtable, opens the floor's shop within 1.6 cells when faced. Killed while owed: drops what it took.
+
+## Icy Prison (M1.68)
+- Chance per generated non-boss floor >= 3: min(45%, 6% + 2% x (floor - 3)); none within 4 floors after an icy floor (deterministic per run seed). Cold: move x0.85, throw cooldown x1.25.

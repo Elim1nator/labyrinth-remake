@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V165=atLeast('1.65'); // M1.65+: Rafter Doll hittable at level aim; Music Box save, jump reset, shield, coin-door reward
 const V164=atLeast('1.64'); // M1.64+: monsters have no per-type map colour (all the same red X)
 const V163=atLeast('1.63'); // M1.63+: the Weeping Gargoyle
 const V161=atLeast('1.61'); // M1.61+: gamepad LB opens the item screen
@@ -2073,6 +2074,186 @@ async function m162Tests(){
 }
 
 
+
+async function m165Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m165'});
+
+  // 1) level-aimed balloons hit the half-size doll at the ranges that used to sail over it
+  const aim=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(11);
+    for(let sd=11;sd<=80;sd++){G.setSeed(sd);G.startLevel(2,{hearts:9,coins:0});if(G.timberFloor())break;}
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-7&&!spot;x++){
+      const a={x:x+.5,y:y+.5},ok=([0,1.5,2.5,3.5,5].every(d=>!G.solidAt(a.x+d,a.y)&&!(G.pitUnder&&G.pitUnder(a.x+d,a.y,0)))&&G.clearPath(a.x,a.y,a.x+5,a.y));
+      if(ok)spot=a;}
+    if(!spot)return {ok:false,err:'no corridor'};
+    function fire(dist){
+      G.clearMobs();G.setHearts(9);G.teleport(spot.x,spot.y,0);if(G.setPitch)G.setPitch(0);
+      const i=G.spawn('rafterdoll',spot.x+dist,spot.y,true,[]);
+      G.entSet(i,{state:'idle',spdMul:0,atkT:9,fleeT:0});
+      const hp0=(G.state().enemies.find(e=>e.type==='rafterdoll')||{}).hp;
+      G.throwBalloon();
+      let hit=false,zMax=0,hurtT=0;
+      for(let k=0;k<180;k++){
+        const sh=G.shotsDetail()||[];
+        if(sh[0])zMax=Math.max(zMax,sh[0].z);
+        G.advance(1/60);
+        const en=(G.state().enemies||[]).find(e=>e.type==='rafterdoll'&&!e.gone);
+        if(en&&en.hp<hp0){hit=true;hurtT=en.hurtT||0;break;}
+        if(!sh.length&&k>3)break;
+      }
+      const en=(G.state().enemies||[]).find(e=>e.type==='rafterdoll'&&!e.gone)||{};
+      return {dist,hit,zMax,hp0,hp:en.hp,hurtT,hh:G.dollCfg&&G.dollCfg.hitH};
+    }
+    const rows=[1.5,2.5,3.5].map(fire);
+    // leave a 2.5-cell shot posed for the screenshot: freeze just after the hit
+    G.clearMobs();G.setHearts(9);G.teleport(spot.x,spot.y,0);if(G.setPitch)G.setPitch(0);
+    const i=G.spawn('rafterdoll',spot.x+2.5,spot.y,true,[]);
+    G.entSet(i,{state:'idle',spdMul:0,atkT:9,fleeT:0});
+    G.throwBalloon();
+    for(let k=0;k<180;k++){
+      G.advance(1/60);
+      const en=(G.state().enemies||[]).find(e=>e.type==='rafterdoll'&&!e.gone);
+      if(en&&en.hurtT>0){G.freeze=true;G.render();break;}
+    }
+    return {ok:true,rows,hitH:G.dollCfg.hitH,sz:G.mobs.rafterdoll.sz,biteR:G.dollCfg.biteR};
+  });
+  check('M1.65 a level-aimed balloon hits the Rafter Doll at 1.5, 2.5 and 3.5 cells (pitch 0)',
+    aim.ok&&aim.rows.length===3&&aim.rows.every(r=>r.hit)&&aim.sz===.5&&aim.hitH>=.55,
+    JSON.stringify(aim));
+  await page.screenshot({path:`${SHOTS}/m165_doll_aim_pitch0.png`});
+
+  // bite reach still connects after the taller hit box
+  const bite=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    for(let sd=11;sd<=40;sd++){G.setSeed(sd);G.startLevel(2,{hearts:9,coins:0});if(G.timberFloor())break;}
+    G.clearMobs();G.setHearts(9);
+    const p=G.state().player;
+    const i=G.spawn('rafterdoll',p.x+.35,p.y,true,[]);
+    G.entSet(i,{state:'chase',atkT:0,fleeT:0});
+    for(let k=0;k<90;k++)G.advance(1/60);
+    const st=G.status()||{};
+    return {hp:G.state().player.hearts,rust:st.rust||0,biteR:G.dollCfg.biteR};
+  });
+  check('M1.65 the Rafter Doll bite still connects (Rust 15 s, a heart lost)',
+    bite.hp<9&&bite.rust>=13&&bite.biteR===.52,JSON.stringify(bite));
+
+  // 4) a shield block does not apply Rust or spend a heart
+  const sh=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    for(let sd=11;sd<=40;sd++){G.setSeed(sd);G.startLevel(2,{hearts:5,coins:0});if(G.timberFloor())break;}
+    G.clearMobs();G.setHearts(5);G.setEffect&&G.setEffect('shield');
+    const p0=G.state().player;
+    const i=G.spawn('rafterdoll',p0.x+.35,p0.y,true,[]);
+    G.entSet(i,{state:'chase',atkT:0,fleeT:0});
+    let blocked=null;
+    for(let k=0;k<90;k++){
+      G.advance(1/60);
+      const p=G.state().player,st=G.status()||{};
+      if((p.shieldHits??3)<(p0.shieldHits??3) || p.effects.indexOf('shield')<0 || st.rust){
+        blocked={hearts:p.hearts,rust:st.rust||0,shieldHits:p.shieldHits,effects:p.effects.slice(),inv:p.inv};
+        break;
+      }
+    }
+    // pop the rest of the shield, then a later bite should Rust
+    while((G.state().player.effects||[]).includes('shield')){
+      const p=G.state().player;
+      G.clearMobs();
+      const j=G.spawn('rafterdoll',p.x+.35,p.y,true,[]);
+      G.entSet(j,{state:'chase',atkT:0,fleeT:0});
+      for(let k=0;k<90;k++)G.advance(1/60);
+    }
+    G.clearMobs();
+    const p=G.state().player;
+    const j=G.spawn('rafterdoll',p.x+.35,p.y,true,[]);
+    G.entSet(j,{state:'chase',atkT:0,fleeT:0});
+    for(let k=0;k<90;k++)G.advance(1/60);
+    const after={hearts:G.state().player.hearts,rust:(G.status()||{}).rust||0};
+    return {before:{hearts:p0.hearts,shieldHits:p0.shieldHits,effects:p0.effects.slice()},blocked,after};
+  });
+  check('M1.65 a blocked Rafter Doll bite does not Rust you or take a heart; a later unblocked bite does',
+    sh.blocked&&sh.blocked.hearts===5&&!(sh.blocked.rust>0)&&sh.blocked.shieldHits<3&&sh.after.rust>=13&&sh.after.hearts<5,
+    JSON.stringify(sh));
+
+  // 2) Music Box effect persists on CONTINUE
+  const cont=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    let found=null;
+    for(let sd=1;sd<=60&&!found;sd++){
+      G.setSeed(sd);G.startLevel(2,{hearts:9,coins:30});
+      if(!G.timberFloor())continue;
+      const ds=G.doors()||[];
+      if(ds.length<2)continue;
+      found={sd,level:G.state().level,n:ds.length,locked:ds.filter(d=>d.locked||d.coin).length,crack:G.crack()};
+    }
+    if(!found)return {ok:false,err:'no timber floor with doors'};
+    G.give('musicbox');G.useItem();
+    for(let k=0;k<48;k++)G.advance(1/60);
+    const mid={box:G.musicBox(),doors:G.doors(),item:G.state().player.item,secret:G.crack(),save:null};
+    mid.save=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+    // CONTINUE: same seed, same floor, carry the save
+    const sv=mid.save;if(!sv)return {ok:false,err:'no save',found,mid};
+    sv.cont=true;
+    G.startLevel(sv.level,sv);
+    for(let k=0;k<24;k++)G.advance(1/60);
+    const later={box:G.musicBox(),doors:G.doors(),secret:G.crack(),item:G.state().player.item,level:G.state().level};
+    return {ok:true,found,mid:{box:mid.box,item:mid.item,saveBox:!!(mid.save&&mid.save.musicBox),n:mid.doors.length,opened:mid.doors.every(d=>d.state==='open'||d.state==='opening'||d.held),secret:mid.secret&&(mid.secret.t===0||mid.secret.secretOpen)},later:{box:later.box,n:later.doors.length,opened:later.doors.every(d=>d.state==='open'||d.state==='opening'||d.held),secret:later.secret&&(later.secret.t===0||later.secret.secretOpen),level:later.level}};
+  });
+  check('M1.65 CONTINUE keeps the Music Box doors open and the tune going',
+    cont.ok&&cont.mid.box&&cont.mid.saveBox&&cont.mid.opened&&cont.later.box&&cont.later.opened&&cont.later.level===cont.found.level,
+    JSON.stringify(cont));
+
+  // 3) jumping to the same floor after using the box resets music and does not throw
+  const jump=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    for(let sd=1;sd<=40;sd++){G.setSeed(sd);G.startLevel(2,{hearts:9,coins:0});if(G.timberFloor())break;}
+    G.give('musicbox');G.useItem();
+    const used={box:G.musicBox(),song:G.musicState&&G.musicState()};
+    const floor=G.state().level+1;
+    if(G.openCheat)G.openCheat();
+    const out=G.cheat('jump '+floor);
+    let err=null;
+    try{for(let k=0;k<30;k++)G.advance(1/60);}catch(e){err=String(e&&e.message||e);}
+    return {used,out,err,box:G.musicBox(),song:G.musicState&&G.musicState(),level:G.state().level,mode:G.state().mode};
+  });
+  check('M1.65 jumping to the same floor after the Music Box resets the tune and does not freeze',
+    !jump.err&&jump.box===false&&jump.song&&jump.song.box===false&&jump.mode==='play',
+    JSON.stringify(jump));
+
+  // 5) a coin door opened by the Music Box gives its room reward
+  const coin=await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;
+    let found=null,before=null;
+    for(let sd=1;sd<=80&&!found;sd++){
+      G.setSeed(sd);
+      for(const f of [2,3,4,5,6,7,8]){
+        G.startLevel(f-1,{hearts:9,coins:30});
+        if(!G.timberFloor())continue;
+        const ex=G.extras()||{};
+        if(!ex.coinDoor)continue;
+        const cd=ex.coinDoor;
+        const loot=(G.itemList()||[]).filter(i=>['power','item','piggy','bag'].includes(i.kind)&&Math.hypot(i.x-cd.x-.5,i.y-cd.y-.5)<5);
+        if(!loot.length)continue;
+        found={sd,f,cd,loot};break;
+      }
+    }
+    if(!found)return {ok:false,err:'no timber coin door'};
+    const p0=G.state().player,perm0=G.perm();
+    before={coins:p0.coins,item:p0.item,item2:p0.item2,piggy:!!(perm0&&perm0.piggy),loot:found.loot};
+    G.give('musicbox');G.useItem();
+    for(let k=0;k<36;k++)G.advance(1/60);
+    const p=G.state().player,perm=G.perm();
+    const left=(G.itemList()||[]).filter(i=>['power','item','piggy','bag'].includes(i.kind)&&Math.hypot(i.x-found.cd.x-.5,i.y-found.cd.y-.5)<5);
+    const door=(G.doors()||[]).find(d=>d.x===found.cd.x&&d.y===found.cd.y);
+    const loot=found.loot[0];
+    const got=loot.kind==='bag'?p.coins>before.coins
+      :loot.kind==='piggy'?!!(perm&&perm.piggy)
+      :loot.kind==='power'?(p.item===loot.ptype||p.item2===loot.ptype)
+      :loot.kind==='item'?((G.itemN&&G.itemN(loot.ptype))>0)
+      :false;
+    return {ok:true,found:{sd:found.sd,f:found.f,kind:loot.kind,ptype:loot.ptype},before,left:left.length,got,door,item:p.item,coins:p.coins,piggy:!!(perm&&perm.piggy)};
+  });
+  check('M1.65 opening a coin door with the Music Box grants that door\'s normal reward',
+    coin.ok&&coin.got&&coin.left===0&&coin.door&&coin.door.coin===0&&(coin.door.state==='open'||coin.door.state==='opening'||coin.door.held),
+    JSON.stringify(coin));
+
+  await ctx.close();
+}
+
 async function m160Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m160'});
   const rolls=await G(page,()=>{const G=__game,R=G.ranged||{},types=Object.keys(G.mobs).concat(['bigspider']),out={};
@@ -2148,6 +2329,7 @@ if(V161&&want('m161')){ await m161Tests(); }
 if(V162&&want('m162')){ await m162Tests(); }
 if(V163&&want('m163')){ await m163Tests(); }
 if(V164&&want('m164')){ await m164Tests(); }
+if(V165&&want('m165')){ await m165Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

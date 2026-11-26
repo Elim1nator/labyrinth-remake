@@ -63,12 +63,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.63. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.64. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, art, sounds, levels) is original. Wall, monster, item and other
    world art is packed from PNG sheets in assets/. Sounds, music, the pixel font and some
    HUD or decoration sprites are still generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.63'; /* set by tools/release.mjs */
+var VERSION='M1.64'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=128,TK=TS/64; /* M1.51: wall tiles are 128x128; the effects painted on them are laid out on a 64-grid and scaled by TK */
 var SAVE_KEY='labyrinthRemake.save.v1',UNLOCK_KEY='labyrinthRemake.unlocks.v1'; /* M1.30: floors you can start on, kept across runs */
 var MAX_HEARTS=5;
@@ -364,21 +364,21 @@ var SPR={hexeye:sheetFrames('hexeye'),worm:sheetFrames('worm'),screamer:sheetFra
   slot:[sprSlot(0),sprSlot(1),sprSlot(2)],sym:{coin:sprSym('coin'),bag:sprSym('bag'),heart:sprSym('heart'),star:sprSym('star'),moon:sprSym('moon'),skull:sprSym('skull')},skeleton:sheetFrames('skeleton'),bonePile:sheetFrames('bonePile'),merchant:[sprMerchant(0),sprMerchant(1),sprMerchant(2)],bag:sprBag(),ypud:[sprYPud(0),sprYPud(1)],spore:[sprSpore(0),sprSpore(1)],blindMark:sprBlindMark(),mote:sprMote(),deco:(function(){var o={};DECO_IDS.forEach(function(k){o[k]=sprDeco(k);});o.gargoyle=sheetFrames('gargoyle')[0];return o;})(),coin:sprCoin(),key:sprKey(),heart:sprHeart(true),heartE:sprHeart(false),boom:sheetFrames('boom'),balloon:sheetFrames('balloon')[0],balloonAll:sheetFrames('balloon'),puff:sprPuff(),spark:sprSpark(),drop:sprDrop(),portal:sheetFrames('portal'),portalS:sheetFrames('portalS'),knight:sheetFrames('knight'),yellow:sheetFrames('yellow'),lectern:sheetFrames('lectern'),ysign:sheetFrames('ysign'),groundCrack:sheetFrames('groundCrack')[0],hali:sheetFrames('hali'),faceSpider:sheetFrames('faceSpider'),skitter:sheetFrames('skitter'),bigspider:sheetFrames('bigspider'),brood:sheetFrames('brood'),eggsac:sheetFrames('eggsac'),masque:sheetFrames('masque'),masqueH:sheetFrames('masqueH'),shrine:[sprShrine(false),sprShrine(true)],king:sheetFrames('king'),lugg:sheetFrames('lugg'),owl:sheetFrames('owl'),handAll:sheetFrames('hand'),hand:null /* M1.43/M1.44: the arm and balloon art are assets/hand.png (4 frames per balloon colour) and assets/balloon.png (one per colour) */};
 var FLAP=[0,1,2,3,2,1];function flapFrame(ph){return FLAP[((ph*12)|0)%6];}
 /* mob table: hp, speed (cells/s), world height, hit radius, minimap colour, voice. Contact bites are the same for all (1 heart, 1.5 s). */
-var MOBS={
- screamer:{name:'SCREAMER',hp:3,speed:1.55,h:.38,hitR:.30,dot:'#7d92cc',voice:'scream',ch:'e'},
- springle:{name:'SPRINGLE',hp:2,speed:1.9,h:.6,hitR:.30,dot:'#ff7020',voice:'boing',ch:'b'},
- kettle:{name:'KETTLEGRUMP',hp:5,speed:1.1,charge:3.9,h:.56,hitR:.32,dot:'#2fd0c0',voice:'whistle',ch:'t'},
- wisp:{name:'HAZEWISP',hp:4,speed:.95,h:.7,hitR:.30,dot:'#f59ac0',voice:'wooo',ch:'g',ghost:true,alpha:.62},
- clunk:{name:'CLUNKBOT',hp:8,speed:.7,h:.62,hitR:.34,dot:'#c4cad6',voice:'beep',ch:'r'},
- zapfly:{name:'TRAGEDY MASK',hp:1,speed:2.6,h:.46,hitR:.27,dot:'#b6ff2e',voice:'sob',ch:'z'}, /* M1.11: the Zapfly became the Comedy and Tragedy masks (same slot, same map letter) */
- skeleton:{name:'RATTLEBONE',hp:4,speed:1.25,h:.62,hitR:.30,dot:'#28d838',voice:'rattle',ch:'s'},
- hexeye:{name:'HEXEYE',hp:5,speed:.85,h:.52,hitR:.30,dot:'#b070ff',voice:'hum',ch:'v'}, /* M1.47: a floating purple hexagon with one big eye; psychic attack (from floor 12) */
- lichen:{name:'LICHEN FACE',hp:3,speed:1.65,h:.52,hitR:.30,dot:'#8a9e4e',voice:'lichen',ch:'f'},
- gargoyle:{name:'WEEPING GARGOYLE',hp:6,speed:0,h:.9,hitR:.36,dot:'#c050c0',voice:'gargoyle',ch:'q'}, /* M1.62: a statue that wakes when you come close (Stone Keep) */
- mortar:{name:'MORTARED MAN',hp:4,speed:1.2,h:.7,hitR:.34,dot:'#c8a080',voice:'mortar',ch:'w'},
- bather:{name:'THE BATHER',hp:4,speed:1,h:.66,hitR:.32,dot:'#2080c8',voice:'bather',ch:'a'},
- slickman:{name:'THE SLICK MAN',hp:10,speed:.8,h:.66,hitR:.34,dot:'#3d5f9a',voice:'slickman',ch:'d'},
- rafterdoll:{name:'THE RAFTER DOLL',hp:5,speed:2.3,h:.62,hitR:.30,sz:.5,dot:'#b84e5e',voice:'rafterdoll',ch:'o'}}; /* M1.62: the Rafter Doll (Timber Attic; half-size, fast, hit-and-run, Rust bite) */ /* M1.57: the Bather (marble statue, Tiled Baths) and the Slick Man (old hunched art, Slate Halls, 10 HP) */ /* M1.53: a face that slides along the brick walls (Brick Halls only) */ /* M1.49: a pale cracked stone face ringed with tendrils; flies, leaves slowing spores */
+var MOBS={ /* M1.64: no per-type map colours - every monster shows as the same red X */
+ screamer:{name:'SCREAMER',hp:3,speed:1.55,h:.38,hitR:.30,voice:'scream',ch:'e'},
+ springle:{name:'SPRINGLE',hp:2,speed:1.9,h:.6,hitR:.30,voice:'boing',ch:'b'},
+ kettle:{name:'KETTLEGRUMP',hp:5,speed:1.1,charge:3.9,h:.56,hitR:.32,voice:'whistle',ch:'t'},
+ wisp:{name:'HAZEWISP',hp:4,speed:.95,h:.7,hitR:.30,voice:'wooo',ch:'g',ghost:true,alpha:.62},
+ clunk:{name:'CLUNKBOT',hp:8,speed:.7,h:.62,hitR:.34,voice:'beep',ch:'r'},
+ zapfly:{name:'TRAGEDY MASK',hp:1,speed:2.6,h:.46,hitR:.27,voice:'sob',ch:'z'}, /* M1.11: the Zapfly became the Comedy and Tragedy masks (same slot, same map letter) */
+ skeleton:{name:'RATTLEBONE',hp:4,speed:1.25,h:.62,hitR:.30,voice:'rattle',ch:'s'},
+ hexeye:{name:'HEXEYE',hp:5,speed:.85,h:.52,hitR:.30,voice:'hum',ch:'v'}, /* M1.47: a floating purple hexagon with one big eye; psychic attack (from floor 12) */
+ lichen:{name:'LICHEN FACE',hp:3,speed:1.65,h:.52,hitR:.30,voice:'lichen',ch:'f'},
+ gargoyle:{name:'WEEPING GARGOYLE',hp:6,speed:0,h:.9,hitR:.36,voice:'gargoyle',ch:'q'}, /* M1.62: a statue that wakes when you come close (Stone Keep) */
+ mortar:{name:'MORTARED MAN',hp:4,speed:1.2,h:.7,hitR:.34,voice:'mortar',ch:'w'},
+ bather:{name:'THE BATHER',hp:4,speed:1,h:.66,hitR:.32,voice:'bather',ch:'a'},
+ slickman:{name:'THE SLICK MAN',hp:10,speed:.8,h:.66,hitR:.34,voice:'slickman',ch:'d'},
+ rafterdoll:{name:'THE RAFTER DOLL',hp:5,speed:2.3,h:.62,hitR:.30,sz:.5,voice:'rafterdoll',ch:'o'}}; /* M1.62: the Rafter Doll (Timber Attic; half-size, fast, hit-and-run, Rust bite) */ /* M1.57: the Bather (marble statue, Tiled Baths) and the Slick Man (old hunched art, Slate Halls, 10 HP) */ /* M1.53: a face that slides along the brick walls (Brick Halls only) */ /* M1.49: a pale cracked stone face ringed with tendrils; flies, leaves slowing spores */
 /* M19: flyers cross pits (the Screamer, Zapfly and Hazewisp); everything else walks around them */
 MOBS.screamer.fly=true;MOBS.zapfly.fly=true;MOBS.wisp.fly=true;MOBS.hexeye.fly=true;MOBS.lichen.fly=true;
 /* M1.10 bosses: one guards the portal on every 5th floor, in turn King Gloop, Luggernaut, Coghoot (then again, tougher).
@@ -2832,7 +2832,7 @@ api.genMap=function(seed,lvl){var d=genLevelFor(seed,lvl);return {name:d.name,ma
 api.mapOverview=function(seed,lvl,scale){scale=scale||10;var d=lvl===1?LEVELS[0]:genLevelFor(seed,lvl),rows=d.map,h=rows.length,w=rows[0].length,c=document.createElement('canvas');c.width=w*scale;c.height=h*scale+18;var x=c.getContext('2d');x.fillStyle='#0d0a1e';x.fillRect(0,0,c.width,c.height);
   var col={'.':'#2a2640',D:'#7a9cff',L:'#ffc630',F:'#5fa64e',X:'#4ae0ff',p:'#2a2640'},wallc={'#':'#a04a30',S:'#6c7488',W:'#8a5a32',T:'#2f8f8a',M:'#5a7a48',K:'#4c4c62',R:'#9a5a2a',C:'#2fb8b0',V:'#b8945a',O:'#7a3a9a'};
   for(var yy=0;yy<h;yy++)for(var xx=0;xx<w;xx++){var ch=rows[yy][xx];x.fillStyle=wallc[ch]||col[ch]||'#2a2640';x.fillRect(xx*scale,yy*scale,scale,scale);
-    var mob=MOB_BY_CH[ch],mark=mob?MOBS[mob].dot:ch==='k'?'#ffe27a':ch==='c'?'#c89a20':ch==='h'?'#ff6070':ch==='p'?'#ffffff':ch==='Y'?'#ff5ad8':null;if(mark){x.fillStyle=mark;var r=ch==='c'?scale*.2:scale*.34;x.beginPath();x.arc(xx*scale+scale/2,yy*scale+scale/2,r,0,7);x.fill();}
+    var mob=MOB_BY_CH[ch],mark=mob?'#ff3020':ch==='k'?'#ffe27a':ch==='c'?'#c89a20':ch==='h'?'#ff6070':ch==='p'?'#ffffff':ch==='Y'?'#ff5ad8':null;if(mark){x.fillStyle=mark;var r=ch==='c'?scale*.2:scale*.34;x.beginPath();x.arc(xx*scale+scale/2,yy*scale+scale/2,r,0,7);x.fill();}
     if(ch==='F'){x.fillStyle='#0d0a1e';for(var q=0;q<scale;q+=3)x.fillRect(xx*scale+q,yy*scale+q%scale,1,1);}}
   x.fillStyle='#ffe27a';x.font='bold 12px monospace';x.fillText((d.name||'')+'  seed '+seed+(d.gen?'  rooms '+d.rooms+'  locks '+d.locks:''),4,h*scale+13);return c.toDataURL('image/png');};
 api.spawn=function(type,x,y,awake,mods){var e=newMob(type,x,y);applyMods(e,mods||[]);if(awake)e.state='chase';G.ents.push(e);if(hasMod(e,'mounted')){mountUp(e,G.levelIdx+1);if(awake)e.mount.state='chase';}G.dist=null;return G.ents.indexOf(e);};;
@@ -2947,7 +2947,7 @@ api.layoutTime=function(wd,ht,seed){var c=genCfg(10,0);c.width=wd;c.height=ht;c.
     for(var y=0;y<H;y++)for(var x=0;x<Wd;x++){if(!op(x,y))continue;V++;var n=(op(x+1,y)?1:0)+(op(x-1,y)?1:0)+(op(x,y+1)?1:0)+(op(x,y-1)?1:0);if(op(x+1,y))E++;if(op(x,y+1))E++;if(n===1)dead.push([x,y]);}
     var md=0;dead.forEach(function(t){var len=0,px=-1,py=-1,cx=t[0],cy=t[1];while(len<200){var nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(q){var nx=cx+q[0],ny=cy+q[1];return op(nx,ny)&&!(nx===px&&ny===py);});var deg=nb.length+(px>=0?1:0);if(deg!==2&&len>0)break;if(!nb.length)break;px=cx;py=cy;cx+=nb[0][0];cy+=nb[0][1];len++;}md=Math.max(md,len);});
     o.floors++;o.deadEnds+=dead.length;o.maxDead=Math.max(o.maxDead,md);o.loops+=E-V+1;o.cells+=V;});});o.deadPerFloor=o.deadEnds/o.floors;o.loopsPerFloor=o.loops/o.floors;return o;};api.unlocks=function(){return loadUnlocks();};api.setUnlocks=function(o){saveUnlocks(o||{floors:[],last:1});G.startPicked=false;buildMenu();};api.startFloors=function(){return startFloors();};api.startFloor=function(){return G.startFloor||1;};api.cycleStart=function(d){cycleStart(d);};api.entSet=function(i,o){var e=G.ents[i];if(e)Object.keys(o).forEach(function(k){e[k]=o[k];});};api.clearBody=function(a,b,c,d,r){return clearBody(a,b,c,d,r);};api.keyHeld=function(c){return !!keys[c];};api.watchdog=function(){inputWatchdog();};api.hitWith=function(i,src){hitEnemy(G.ents[i],src||{dmg:1,ball:'blue',hits:[]});};api.infWorld=function(){return {bolts:G.bolts.length,webs:G.webs.length,pots:G.pots.length,fires:G.fires.length};};api.mounted=function(i){var e=G.ents[i];return e&&e.mount?G.ents.indexOf(e.mount):-1;};api.entInfo=function(i){var e=G.ents[i];return e?{type:e.type,hp:e.hp,maxHp:e.maxHp,state:e.state,gone:!!e.gone,stolen:e.stolen||null,usedLife:!!e.usedLife,x:e.x,y:e.y,child:!!e.child,flying:!!e.flying}:null;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.63-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.64-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

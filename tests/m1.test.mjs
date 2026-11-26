@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V164=atLeast('1.64'); // M1.64+: monsters have no per-type map colour (all the same red X)
 const V163=atLeast('1.63'); // M1.63+: the Weeping Gargoyle
 const V161=atLeast('1.61'); // M1.61+: gamepad LB opens the item screen
 const V162=atLeast('1.62'); // M1.62+: Timber Attic (Music Box, the Rafter Doll)
@@ -478,7 +479,7 @@ async function m111Tests(){
   // ---- one monster mark on the maps
   const mm=await G(page,()=>{__game.setSeed(777);__game.startLevel(6);__game.clearMobs();const p=__game.state().player;['screamer','springle','kettle','zapfly','clunk','skeleton'].forEach((t,i)=>__game.spawn(t,p.x+(i%3-1)*.9,p.y+(i<3?-1:1),false,[]));__game.seeAll();__game.advance(0.05);__game.render();
     const R=__game.hudRects().map,cols={};for(let y=R[1];y<R[1]+R[3];y++)for(let x=R[0];x<R[0]+R[2];x++){const c=__game.pixelAt(x,y).join();cols[c]=(cols[c]||0)+1;}
-    const old=Object.values(__game.mobs).map(m=>m.dot).map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)].join());return {mon:cols['255,48,32']||0,oldHits:old.filter(c=>cols[c]).length};});
+    const old=Object.values(__game.mobs).filter(m=>m.dot).map(m=>m.dot).map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)].join());return {mon:cols['255,48,32']||0,oldHits:old.filter(c=>cols[c]).length};});
   check('M1.11 the minimap shows every monster with the same red mark (no per-type colours that spoil what is coming)',mm.mon>=9&&mm.oldHits===0,JSON.stringify(mm));
   // ---- Treasure Knight
   const kp=await G(page,()=>{const out={floors:0,with:0,hpOk:true,f1:null};for(const sd of [1,777,4242])for(const f of [2,3,4,5,8,10,12,20]){__game.setSeed(sd);__game.startLevel(f-1);const k=__game.knight();out.floors++;if(k){out.with++;if(k.maxHp!==__game.knightHp(f))out.hpOk=false;}}__game.startLevel(0);out.f1=__game.knight();
@@ -1744,6 +1745,13 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m164Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m164'});
+  const r=await G(page,()=>({withDot:Object.keys(__game.mobs).filter(k=>__game.mobs[k].dot!==undefined)}));
+  check('M1.64 monsters have no per-type map colours (every monster is the same red X)',r.withDot.length===0,JSON.stringify(r));
+  await ctx.close();
+}
+
 async function m163Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m163'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
@@ -2139,6 +2147,7 @@ if(V160&&want('m160')){ await m160Tests(); }
 if(V161&&want('m161')){ await m161Tests(); }
 if(V162&&want('m162')){ await m162Tests(); }
 if(V163&&want('m163')){ await m163Tests(); }
+if(V164&&want('m164')){ await m164Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -3054,12 +3063,14 @@ async function m15Tests(){
       return {avg:sum,spr2:spr2.filter(x=>x>0).length,spr3:spr3.filter(x=>x>0).length,cl5:cl5.filter(x=>x>0).length,N};});
     check(`M1.5 SPRINGLE first appears on level 3 (${bal.N} seeds: never on L2, always on L3)`,bal.spr2===0&&bal.spr3===bal.N,`L2 maps with springle ${bal.spr2}, L3 ${bal.spr3}/${bal.N}`);
     check(`M1.5 level 5 total mob HP is not lower than level 4 (mean of ${bal.N} seeds), L5 always has a Clunkbot`,bal.avg[5]>=bal.avg[4]&&bal.cl5===bal.N,Object.entries(bal.avg).map(([l,v])=>`L${l} ${v.toFixed(1)}`).join(', '));
-    // minimap colours
+    // minimap colours (retired in M1.64: every monster is the same red X)
+    if(!V164){
     const dots=await G(page,()=>{const o={};for(const k of Object.keys(__game.mobs))o[k]=__game.mobs[k].dot;return o;});
     const hx=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)],dist=(a,b)=>Math.hypot(...hx(a).map((v,i)=>v-hx(b)[i]));
     const marks={...dots,KEY:'#ffe27a',COIN:'#c89a20',HEART:'#ff6070',POWERUP:'#7dffb0',PLAYER:'#ffffff'};const pairs=[];const ks=Object.keys(marks);
     for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++)pairs.push([ks[i],ks[j],dist(marks[ks[i]],marks[ks[j]])]);pairs.sort((a,b)=>a[2]-b[2]);
     check('M1.5 minimap: Clunkbot and Screamer differ, and all mob/item/player colours are distinct (RGB distance >= 60)',dots.clunk!==dots.screamer&&pairs[0][2]>=60,`closest: ${pairs.slice(0,3).map(p=>`${p[0]}/${p[1]} ${p[2].toFixed(0)}`).join(', ')}; clunk ${dots.clunk}, screamer ${dots.screamer}, zapfly ${dots.zapfly}`);
+    }
     await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=true;__game.teleport(9.5,3.0,0);[['screamer',7.5,2],['springle',8.5,2],['kettle',10.5,2],['wisp',11.5,2],['clunk',12.5,4],['zapfly',8.5,4.5]].forEach(a=>__game.spawn(a[0],a[1]+.5,a[2]+.5,false));__game.advance(0.05);});
     await page.screenshot({path:`${SHOTS}/m15_minimap_colours_1280x800.png`});
     await page.screenshot({path:`${SHOTS}/m15_minimap_colours_zoom.png`,clip:{x:1280-260,y:0,width:260,height:240}});
@@ -4134,10 +4145,12 @@ async function m19Tests(){
     check('M1.9 a balloon on the bone pile smashes it for good: kill counted (+50 score), coin dropped; no score for knock-downs (no farming)',(sm.gone||sm.st==='dead')&&sm.kills===1&&sm.dScore===50&&sm.coins>=1&&sm.smashed===1,JSON.stringify(sm));
     const look=await G(page,()=>{const a=__game.spriteCols('bonePile',0),b=__game.spriteCols('deco','bones');const ka=Object.keys(a),kb=new Set(Object.keys(b));const shared=ka.filter(c=>kb.has(c));return {shared:shared.length,na:ka.length,nb:kb.size};});
     check('M1.9 the bone pile looks like the pile-of-bones decoration (shared palette)',look.shared>=Math.min(look.na,look.nb)*0.5,JSON.stringify(look));
+    if(!V164){ /* retired in M1.64 */
     const dots=await G(page,()=>{const o={};for(const k of Object.keys(__game.mobs))o[k]=__game.mobs[k].dot;return o;});
     const hx=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)),dd=(a,b)=>Math.hypot(...hx(a).map((v,i)=>v-hx(b)[i]));
     const others=[...Object.entries(dots).filter(([k])=>k!=='skeleton').map(x=>x[1]),'#ffe27a','#c89a20','#ff6070','#7dffb0','#ffffff','#000000'];const md=Math.min(...others.map(c=>dd(dots.skeleton,c)));
     check(`M1.9 Rattlebone has its own minimap colour ${dots.skeleton} (>= 60 from every other mark, pits included)`,md>=60,`closest ${md.toFixed(0)}`);
+    }
     await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=true;__game.teleport(6.4,3.5,0);__game.spawn('skeleton',8.2,3.1,false);const j=__game.spawn('skeleton',8.4,4.1,false);__game.damageMob(j,4);__game.advance(0.3);});
     await shot(page,'skeleton_and_bone_pile');
     await G(page,()=>{__game.advance(3.0);});await shot(page,'bone_pile_tell');

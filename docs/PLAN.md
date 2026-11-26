@@ -60,7 +60,8 @@ on the inspiration are kept out of this repository.
 | M1.60 | done | Ranged elite crash fix; L3 and Rattlebones swaps skip all theme mobs. |
 | M1.61 | done | Gamepad LB opens the item screen. |
 | M1.62 | done | Timber Attic: the Music Box and the Rafter Doll. |
-| M1.63 | done | The Weeping Gargoyle. Current release is M1.63. |
+| M1.63 | done | The Weeping Gargoyle. |
+| M1.64 | done | Per-monster map colours removed (all the same red X). Current release is M1.64. |
 | M1.59 | done | The Spirit Slate and the item screen (I). |
 | Next | planned | More weapon families, further polish |
 
@@ -69,5 +70,5 @@ on the inspiration are kept out of this repository.
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.63 release build is about 1.65 MB.
+- File size budget: 2 MB cap from M1.47 (1 MB from M1.21); the M1.64 release build is about 1.65 MB.
 - Keeping the slot machine coin-only with printed odds.

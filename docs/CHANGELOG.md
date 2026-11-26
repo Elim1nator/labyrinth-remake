@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.64: no per-monster map colours
+- Removed the per-type map colour (`dot`) from every regular monster. In play every monster has been the same red X on the minimap and full map since M1.29, so the colours only fed the debug map preview (now the same red) and two old colour-distance tests (retired from this build on).
+- All test groups pass.
+- QA build `m1.64-qa` (debug hook on).
+
 ## M1.63: the Weeping Gargoyle
 - New decoration: a **gargoyle statue** (from the supplied art) on a pedestal, rare: about 1 in 10 big rooms (40+ cells) gets one, on any floor.
 - On **Stone Keep** floors half of those statues are alive, and about 1 in 10 of the floor's other monsters spawns as one. A live **Weeping Gargoyle** (6 base HP) never moves. Asleep it is stone: eyes shut, balloons clank off. Come within **3 cells** (in sight) and it wakes with red eyes and screams like the Screamer, then fires **bursts of 3 sonic rings** (0.3 s apart), closes its mouth and recharges for 2.4-3.4 s. Get more than **8 cells** away and it shuts its eyes and goes back to sleep. It never bites and never gets Infernal modifiers. Art: `assets/mobs/gargoyle.png` (asleep, awake, screaming). Tuning: `GARG` in the game.

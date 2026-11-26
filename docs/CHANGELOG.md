@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.61: item screen on LB
+- Gamepad **LB** opens and closes the item screen (D-pad up still opens it). Balloon colours are permanent run items and no longer cycle, so LB was free.
+- All test groups pass.
+- QA build `m1.61-qa` (debug hook on).
+
 ## M1.60: ranged elite crash and theme-mob swaps
 - The elite `ranged` modifier is only rolled for monsters that have a `RANGED` entry (it was being given to Rattlebones, Hexeyes, Lichen Faces, Bathers and the Slick Man, which then crashed with `TypeError: Cannot read properties of undefined (reading 'tele')` when they first tried to fire — about 239 of 2,200 floors in the M1.57 playtest, including seed 5 L5, seed 25 L7 and seed 19 L8). The fire code and `fireAt` now also no-op if the entry is missing, so a leftover or morphed ranged flag can never throw.
 - The L3 kettle-swap and the L6+ Rattlebones swap now skip every featured theme mob (the Mortared Man was missing from the L3 skip list; Bathers and the others could still be turned into skeletons on L6+). The M1.58 `ensureThemeMob` minimum still restores at least 1 (2 from floor 5) after later generation steps.

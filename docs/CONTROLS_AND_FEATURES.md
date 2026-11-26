@@ -32,7 +32,7 @@ pauses the game and clears held inputs; one click resumes.
 | Item | Y |
 | Switch backpack slot | RB |
 | Map | Back / View |
-| Item screen | D-pad up (d-pad picks, B closes) |
+| Item screen | LB or D-pad up (d-pad picks, B or LB closes) |
 | Pause | Start |
 | Recentre | R3 (click the right stick) |
 | Back in menus | B |

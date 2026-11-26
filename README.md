@@ -33,9 +33,9 @@ URL options: `?seed=<text>` plays a reproducible run; `?debug` exposes the test 
 
 | Path | What |
 |---|---|
-| `src/index.html` | The current game (M1.60 release build). The single file *is* the source. |
-| `builds/<milestone>/index.html` | Frozen builds M1 to M1.60, checksums in `builds/SHA256SUMS`. |
-| `builds/m1.7-qa` … `builds/m1.60-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
+| `src/index.html` | The current game (M1.61 release build). The single file *is* the source. |
+| `builds/<milestone>/index.html` | Frozen builds M1 to M1.61, checksums in `builds/SHA256SUMS`. |
+| `builds/m1.7-qa` … `builds/m1.61-qa` | **QA builds**: debug hook always on. For tests only; don't publish. |
 | `assets/` | **Game art as PNG sheets** (walls, monsters, bosses, boss props and projectiles, item and power icons). Edit them, then `node tools/assets.mjs pack`. See `assets/README.md`. |
 | `tools/release.mjs` | Freezes `src/` into a release + QA build pair (see Release below). |
 | `tools/assets.mjs` | Embeds the PNGs in `assets/` into `src/index.html` (`pack`, `check`, `export`). |

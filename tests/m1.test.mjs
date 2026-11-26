@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V161=atLeast('1.61'); // M1.61+: gamepad LB opens the item screen
 const V160=atLeast('1.60'); // M1.60+: ranged elite only on mobs with a RANGED entry; theme mobs skipped by L3/Rattlebone swaps
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
@@ -1741,6 +1742,17 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m161Tests(){
+  const ctx=await browser.newContext({viewport:{width:1280,height:800}});
+  await ctx.addInitScript(()=>{window.__pad={axes:[0,0,0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0})),connected:true,mapping:'standard',id:'test pad'};navigator.getGamepads=()=>[window.__pad];});
+  const page=await ctx.newPage();page.on('pageerror',e=>consoleProblems.push('[m161] '+e.message));await page.goto(URL);await page.waitForFunction(()=>!!window.__game);
+  const r=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(5);G.startLevel(3,{hearts:5,coins:0});G.give('shoes');const b0=G.state().player.ball;
+    const press=(i)=>{__pad.buttons[i]={pressed:true,value:1};G.advance(0.05);__pad.buttons[i]={pressed:false,value:0};G.advance(0.2);};
+    press(4);const m1=G.state().mode,b1=G.state().player.ball;press(4);const m2=G.state().mode;press(12);const m3=G.state().mode;press(1);const m4=G.state().mode;return {m1,m2,m3,m4,b0,b1};});
+  check('M1.61 gamepad LB opens and closes the item screen (D-pad up still opens it, B closes) and never changes the balloon',r.m1==='inv'&&r.m2==='play'&&r.m3==='inv'&&r.m4==='play'&&r.b0===r.b1,JSON.stringify(r));
+  await ctx.close();
+}
+
 async function m160Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m160'});
   const rolls=await G(page,()=>{const G=__game,R=G.ranged||{},types=Object.keys(G.mobs).concat(['bigspider']),out={};
@@ -1812,6 +1824,7 @@ async function m160Tests(){
 if(V158&&want('m158')){ await m158Tests(); }
 if(V159&&want('m159')){ await m159SlateTests(); await m159InvTests(); }
 if(V160&&want('m160')){ await m160Tests(); }
+if(V161&&want('m161')){ await m161Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -3681,7 +3694,7 @@ async function m19Tests(){
     // switching on every input + HUD + hand colour
     const sw=await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.setPerm({red:true,green:true,yellow:true});__game.setBall('blue');const K=(c)=>{window.dispatchEvent(new KeyboardEvent('keydown',{code:c}));window.dispatchEvent(new KeyboardEvent('keyup',{code:c}));};const o={};
       K('KeyR');o.r=__game.state().player.ball;K('Digit4');o.d4=__game.state().player.ball;window.dispatchEvent(new WheelEvent('wheel',{deltaY:100}));o.wheel=__game.state().player.ball;
-      __pad.buttons[4]={pressed:true,value:1};__game.advance(0.05);__pad.buttons[4]={pressed:false,value:0};__game.advance(0.05);o.lb=__game.state().player.ball;return o;});
+      __pad.buttons[4]={pressed:true,value:1};__game.advance(0.05);__pad.buttons[4]={pressed:false,value:0};__game.advance(0.05);o.lb=__game.state().player.ball;if(__game.closeInv)__game.closeInv();return o;}); /* M1.61: LB opens the item screen now */
     check('M1.9 balloon type switching: R cycles, 1-4 pick, mouse wheel cycles, pad LB cycles',sw.r==='red'&&sw.d4==='yellow'&&sw.wheel==='blue'&&sw.lb==='red',JSON.stringify(sw));
     const hudc=await G(page,()=>{const out={};const R=__game.hudRects().ball;for(const b of ['blue','red','green','yellow']){__game.setBall(b);__game.advance(0.05);const col=__game.balls[b].col;const t=[parseInt(col.slice(1,3),16),parseInt(col.slice(3,5),16),parseInt(col.slice(5,7),16)];let n=0;for(let y=R[1];y<R[1]+R[3];y++)for(let x=R[0];x<R[0]+R[2];x++){const p=__game.pixelAt(x,y);if(Math.abs(p[0]-t[0])+Math.abs(p[1]-t[1])+Math.abs(p[2]-t[2])<60)n++;}
       const hb=__game.handBoxes().idle;let h=0;for(let y=Math.max(0,hb.y|0);y<Math.min(300,hb.y+hb.h);y++)for(let x=hb.x|0;x<hb.x+hb.w;x++){const p=__game.pixelAt(x,y);if(Math.abs(p[0]-t[0])+Math.abs(p[1]-t[1])+Math.abs(p[2]-t[2])<70)h++;}out[b]={hud:n,hand:h};}return out;});

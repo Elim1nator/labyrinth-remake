@@ -110,7 +110,8 @@
         "veil",
         "trowel",
         "plunger",
-        "spirit"
+        "spirit",
+        "musicbox"
       ]
     },
     "mods": {
@@ -194,6 +195,11 @@
     "slickman": {
       "file": "mobs/slickman.png",
       "frames": 5,
+      "k": 1.5
+    },
+    "rafterdoll": {
+      "file": "mobs/rafterdoll.png",
+      "frames": 2,
       "k": 1.5
     },
     "kettle": {

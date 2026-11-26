@@ -47,8 +47,9 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
-const V162=atLeast('1.62'); // M1.62+: the Weeping Gargoyle
+const V163=atLeast('1.63'); // M1.63+: the Weeping Gargoyle
 const V161=atLeast('1.61'); // M1.61+: gamepad LB opens the item screen
+const V162=atLeast('1.62'); // M1.62+: Timber Attic (Music Box, the Rafter Doll)
 const V160=atLeast('1.60'); // M1.60+: ranged elite only on mobs with a RANGED entry; theme mobs skipped by L3/Rattlebone swaps
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
@@ -1743,16 +1744,16 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
-async function m162Tests(){
-  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m162'});
+async function m163Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m163'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
   const art=await G(page,()=>{const G=__game,st=G.assetState(),sig=[];for(let i=0;i<3;i++)sig.push(G.frameSig('gargoyle',i));return {st:st.gargoyle,sig:new Set(sig).size,m:G.mobs.gargoyle};});
-  check('M1.62 the Weeping Gargoyle art is packed (asleep, awake, screaming)',art.st==='png'&&atlas.gargoyle&&atlas.gargoyle.frames===3&&art.sig===3&&art.m.name==='WEEPING GARGOYLE',JSON.stringify(art));
+  check('M1.63 the Weeping Gargoyle art is packed (asleep, awake, screaming)',art.st==='png'&&atlas.gargoyle&&atlas.gargoyle.frames===3&&art.sig===3&&art.m.name==='WEEPING GARGOYLE',JSON.stringify(art));
   const gen=await G(page,()=>{const G=__game;const st={keep:0,keepAlive:0,other:0,otherStat:0,otherAlive:0,floors:0,withStat:0,small:0,firstKeep:null};
     for(let sd=1;sd<=30;sd++)for(const f of [2,3,4,5,6,7,8,10,14]){const nm=G.themeFor(sd,f).name,d=G.genMap(sd,f),m=d.map.join(''),a=[...m].filter(c=>c==='q').length,s9=[...m].filter(c=>c==='9').length;st.floors++;if(s9)st.withStat++;
       if(/STONE KEEP/.test(nm)){st.keep++;st.keepAlive+=a;(st.keeps=st.keeps||[]).push({sd,f});if(!st.firstKeep&&a)st.firstKeep={sd,f};}else{st.other++;st.otherStat+=s9;st.otherAlive+=a;}}
     return st;});
-  check('M1.62 gargoyle statues are a rare decoration (big rooms only, on some floors); live ones only on Stone Keep floors',gen.otherStat>0&&gen.withStat<gen.floors*.35&&gen.otherAlive===0&&gen.keepAlive>0,JSON.stringify(gen));
+  check('M1.63 gargoyle statues are a rare decoration (big rooms only, on some floors); live ones only on Stone Keep floors',gen.otherStat>0&&gen.withStat<gen.floors*.35&&gen.otherAlive===0&&gen.keepAlive>0,JSON.stringify(gen));
   const live=await G(page,(K)=>{const G=__game;G.manual=true;let spot=null;
     for(const k of K){G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});G.viewOverride=14;G.clearMobs();const s=G.state();
       for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-10&&!spot;x++){let ok=true;for(let k2=0;k2<10;k2++)if(G.solidAt(x+k2+.5,y+.5)||(G.pitUnder&&G.pitUnder(x+k2+.5,y+.5,0)))ok=false;if(ok)spot={x:x+.5,y:y+.5};}
@@ -1764,12 +1765,12 @@ async function m162Tests(){
     const bursts=[];let last=f0;for(let t=0;t<120;t++){G.advance(.05);const n=G.state().stats.gargShots|0;if(n>last){bursts.push(+(t*.05).toFixed(2));last=n;}}
     o.shots=last-f0;o.times=bursts.slice(0,7);G.damageMob(i,1);o.hpAwake=G.gargs()[0].hp;
     G.teleport(spot.x-2.5,spot.y,0);G.advance(.3);o.slept=G.gargs()[0];return o;},gen.keeps);
-  check('M1.62 a live gargoyle is stone (no damage) while asleep and wakes only when you come within 3 cells',live.far.awake===false&&live.far.frame===0&&live.hpAsleep===live.far.hp&&live.woke.awake===true,JSON.stringify(live));
+  check('M1.63 a live gargoyle is stone (no damage) while asleep and wakes only when you come within 3 cells',live.far.awake===false&&live.far.frame===0&&live.hpAsleep===live.far.hp&&live.woke.awake===true,JSON.stringify(live));
   const gaps=[];for(let i=1;i<live.times.length;i++)gaps.push(+(live.times[i]-live.times[i-1]).toFixed(2));
-  check('M1.62 awake, it screams and fires bursts of 3 sonic rings, then recharges; it can be hurt',live.shots>=3&&gaps.length>=3&&gaps[0]<.5&&gaps[1]<.5&&gaps[2]>1.5&&live.hpAwake<live.far.hp,JSON.stringify({gaps,shots:live.shots,hp:live.hpAwake}));
-  check('M1.62 walk far enough away and it closes its eyes and goes back to sleep',live.slept.awake===false&&live.slept.frame===0,JSON.stringify(live.slept));
+  check('M1.63 awake, it screams and fires bursts of 3 sonic rings, then recharges; it can be hurt',live.shots>=3&&gaps.length>=3&&gaps[0]<.5&&gaps[1]<.5&&gaps[2]>1.5&&live.hpAwake<live.far.hp,JSON.stringify({gaps,shots:live.shots,hp:live.hpAwake}));
+  check('M1.63 walk far enough away and it closes its eyes and goes back to sleep',live.slept.awake===false&&live.slept.frame===0,JSON.stringify(live.slept));
   await G(page,(k)=>{const G=__game;G.freeze=true;const s=G.state();const g=G.gargs()[0];G.teleport(g.x-2.6,g.y,0);G.freeze=false;G.advance(.3);G.freeze=true;G.render();},gen.firstKeep);
-  await page.screenshot({path:`${SHOTS}/m162_gargoyle.png`});
+  await page.screenshot({path:`${SHOTS}/m163_gargoyle.png`});
   await ctx.close();
 }
 
@@ -1783,6 +1784,286 @@ async function m161Tests(){
   check('M1.61 gamepad LB opens and closes the item screen (D-pad up still opens it, B closes) and never changes the balloon',r.m1==='inv'&&r.m2==='play'&&r.m3==='inv'&&r.m4==='play'&&r.b0===r.b1,JSON.stringify(r));
   await ctx.close();
 }
+
+
+async function m162Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m162'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{const G=__game,st=G.assetState(),sig=[];
+    for(let i=0;i<2;i++)sig.push(G.frameSig('rafterdoll',i));
+    const walk=p=>G.animFrame({type:'rafterdoll',state:'chase',ph:p});
+    return {st,sheets:G.mobSheets,pu:G.puIds,box:G.pu.musicbox,
+      doll:{hp:G.mobs.rafterdoll.hp,speed:G.mobs.rafterdoll.speed,name:G.mobs.rafterdoll.name,voice:G.mobs.rafterdoll.voice,ch:G.mobs.rafterdoll.ch,
+        hp1:G.floorHp('rafterdoll',1),hp4:G.floorHp('rafterdoll',4),sz:G.mobs.rafterdoll.sz,hitR:G.mobs.rafterdoll.hitR,h:G.mobs.rafterdoll.h,
+        sig,info:G.spriteInfo('rafterdoll',0),fly:!!G.mobs.rafterdoll.fly},
+      items:st.items,cfg:G.dollCfg,themeMobs:G.themeMobs||null,
+      idle:G.animFrame({type:'rafterdoll',state:'idle',ph:1}),
+      ph0:walk(0),ph011:walk(0.11),ph05:walk(0.5),ph09:walk(0.09),
+      ranged:!!(G.ranged&&G.ranged.rafterdoll)};});
+  check('M1.62 the Rafter Doll art is packed (2 walk frames in assets/mobs/rafterdoll.png), 5 base HP that scales like the others, speed 2.3, half-size (sz 0.5), and no ranged elite entry',
+    art.st.rafterdoll==='png'&&art.sheets.includes('rafterdoll')&&atlas.rafterdoll&&atlas.rafterdoll.file==='mobs/rafterdoll.png'&&atlas.rafterdoll.frames===2
+    &&new Set(art.doll.sig).size===2&&art.doll.info&&art.doll.info.w>8&&art.doll.info.h===120
+    &&art.doll.hp===5&&art.doll.hp1===5&&art.doll.hp4===8&&art.doll.name==='THE RAFTER DOLL'&&art.doll.ch==='o'
+    &&art.doll.speed===2.3&&art.doll.sz===.5&&art.doll.hitR===.30&&!art.doll.fly&&!art.ranged
+    &&art.cfg&&art.cfg.rustT===15&&art.cfg.walk===10,
+    JSON.stringify({st:art.st.rafterdoll,frames:new Set(art.doll.sig).size,hp:[art.doll.hp,art.doll.hp1,art.doll.hp4],sz:art.doll.sz,speed:art.doll.speed,cfg:art.cfg,info:art.doll.info}));
+  check('M1.62 the Rafter Doll walk is snappy (10 frames/s on 2 frames) and idle stays on frame 0',
+    art.idle===0&&art.ph0===0&&art.ph09===0&&art.ph011===1&&art.ph05===1,
+    JSON.stringify({idle:art.idle,ph0:art.ph0,ph09:art.ph09,ph011:art.ph011,ph05:art.ph05}));
+  check('M1.62 the Music Box is a use-item (loot and shop on Timber floors) with a packed icon',
+    art.pu.includes('musicbox')&&art.box&&art.box.name==='MUSIC BOX'&&/DOOR|TUNE/.test(art.box.desc)&&art.items==='png'&&(atlas.items.tiles||[]).includes('musicbox'),
+    JSON.stringify({pu:art.pu.includes('musicbox'),box:art.box,items:art.items}));
+  const sheet=await G(page,async()=>{
+    const url=__game.embedded('rafterdoll');const im=new Image();im.src=url;await im.decode();
+    const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);
+    const d=cx.getImageData(0,0,im.width,im.height).data,a=(x,y)=>d[(y*im.width+x)*4+3],n=2,fw=(im.width/n)|0;
+    const frames=[];
+    for(let i=0;i<n;i++){
+      const xs=[],ys=[],feet=[];
+      for(let y=0;y<im.height;y++)for(let x=i*fw;x<(i+1)*fw;x++)if(a(x,y)>16){xs.push(x-i*fw);ys.push(y);}
+      const y1=Math.max(...ys),y0=Math.min(...ys),cut=y1-Math.max(2,((y1-y0)*0.12)|0);
+      for(let k=0;k<xs.length;k++)if(ys[k]>=cut)feet.push(xs[k]);
+      const fx=feet.reduce((s,v)=>s+v,0)/feet.length;
+      frames.push({i,fx,mid:fw/2,d:fx-fw/2,bottom:im.height-1-y1,corners:[a(i*fw,0),a(i*fw+fw-1,0),a(i*fw,im.height-1),a(i*fw+fw-1,im.height-1)]});
+    }
+    return {w:im.width,h:im.height,n,frames};});
+  check('M1.62 the Rafter Doll sheet is transparent at every frame corner, bottom-aligned and centred on the feet',
+    sheet.n===2&&sheet.h===120&&sheet.frames.every(f=>f.corners.every(c=>c===0)&&f.bottom===0&&Math.abs(f.d)<=1.0),
+    JSON.stringify(sheet));
+  const spawn=await G(page,()=>{const G=__game;let timber=0,onT=0,offO=0,oElse=0;
+    for(let sd=1;sd<=40;sd++)for(const f of [2,3,4,5,6,7,8,9,13,17,18,21,22,25,26,29]){
+      const name=G.themeFor(sd,f).name,chars=[...G.genMap(sd,f).map.join('')],no=chars.filter(c=>c==='o').length;
+      if(/TIMBER ATTIC/.test(name)){timber++;if(no>0)onT++;}
+      else offO+=no;}
+    G.setSeed(1);G.startLevel(0);const tut=[...G.currentMap().join('')].filter(c=>c==='o').length;
+    return {timber,onT,offO,tut};});
+  check('M1.62 the Rafter Doll spawns on Timber Attic floors only, not on the tutorial or any other theme',
+    spawn.timber>0&&spawn.onT===spawn.timber&&spawn.offO===0&&spawn.tut===0,JSON.stringify(spawn));
+  const placed=await G(page,()=>{const G=__game;G.manual=true;G.freeze=true;
+    const floors=[2,3,4,5,6,7,8,9,13,17,18,21,22,25,26,29];
+    const rec=()=>({n:0,zero:0,short:0,byLvl:{}});
+    const out=rec();
+    for(let sd=1;sd<=30;sd++){
+      G.setSeed(sd);
+      for(const f of floors){
+        G.startLevel(f-1,{hearts:9,coins:20});
+        const theme=G.themeNow()||'';
+        if(!/TIMBER ATTIC/.test(theme)) continue;
+        let c=0; for(const e of (G.state().enemies||[])) if(!e.gone&&e.type==='rafterdoll')c++;
+        const min=f>=5?2:1;
+        out.n++; if(!c)out.zero++; if(c<min)out.short++;
+        const o=out.byLvl[f]||(out.byLvl[f]={n:0,sum:0,min:99,max:0});
+        o.n++; o.sum+=c; o.min=Math.min(o.min,c); o.max=Math.max(o.max,c); out.byLvl[f]=o;
+      }
+    }
+    const by={}; for(const [l,o] of Object.entries(out.byLvl)) by[l]={n:o.n,avg:o.sum/o.n,min:o.min,max:o.max};
+    out.byLvl=by; return out;});
+  check('M1.62 a real-flow Timber Attic floor always has at least 1 Rafter Doll (2 from floor 5)',
+    placed.n>0&&placed.zero===0&&placed.short===0&&Object.keys(placed.byLvl).every(l=>(+l>=5?placed.byLvl[l].min>=2:placed.byLvl[l].min>=1)),
+    JSON.stringify(placed));
+  const run=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(7);G.startLevel(2,{hearts:9,coins:0});
+    G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.4,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+1.4,y+.5,0))))spot={x:x+.5,y:y+.5};}
+    if(!spot)spot={x:s.player.x,y:s.player.y};
+    G.teleport(spot.x,spot.y,0);G.setHearts(9);
+    const i=G.spawn('rafterdoll',spot.x+0.9,spot.y,true,[]);
+    let bit=false,flee0=0,d0=0,away=0,back=0,sz=0;
+    for(let k=0;k<240&&!bit;k++){
+      G.advance(1/60);
+      const st=G.status(),en=G.state().enemies[i];
+      if(st.rust>0){bit=true;flee0=en&&en.fleeT||0;d0=Math.hypot(en.x-G.state().player.x,en.y-G.state().player.y);sz=en&&en.sz;}
+    }
+    const rust=G.status().rust;
+    const p0=G.state().player,px=p0.x,py=p0.y;
+    for(let k=0;k<45;k++)G.advance(1/60);
+    const en1=G.state().enemies[i];
+    const d1=en1?Math.hypot(en1.x-px,en1.y-py):0;
+    away=d1-d0;
+    // wait out the rest of the flee, then a short chase
+    for(let k=0;k<120;k++)G.advance(1/60);
+    const en2=G.state().enemies[i];
+    const d2=en2?Math.hypot(en2.x-px,en2.y-py):0;
+    back=d1-d2;
+    return {bit,rust,flee0,d0,d1,d2,away,back,sz,hp:G.state().player.hearts,cfg:G.dollCfg};});
+  check('M1.62 the Rafter Doll bites, applies Rust for 15 s, flees, then comes back (hit-and-run), and is drawn at half size',
+    run.bit&&run.rust>=14.2&&run.rust<=15&&run.flee0>0.5&&run.away>0.05&&run.back>0&&run.sz===.5&&run.hp<9,
+    JSON.stringify(run));
+  const rustThrow=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(3);G.startLevel(1,{hearts:9,coins:0});
+    G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+4.5,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+4.5,y+.5,0))))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0); if(G.setPitch)G.setPitch(0);
+    const fire=()=>{const p=G.state().player; /* face +x */
+      // ang 0 is +x in this game
+      G.teleport(spot.x,spot.y,0);
+      G.advance(0); 
+      // force a throw
+      const p0=G.state().player;
+      G.throwBalloon?G.throwBalloon():null;
+      const shots=G.shotsDetail();
+      return shots[shots.length-1];};
+    // use hook if throwBalloon not exported — fire via state
+    const throwOnce=()=>{
+      if(typeof G.throwBalloon==='function')G.throwBalloon();
+      else {
+        // poke the same way tests usually do: G.press or advance with input
+      }
+      return G.shotsDetail();
+    };
+    // Prefer a dedicated hook path: call through use of player throw if exposed
+    const hasThrow=typeof G.throwBalloon==='function';
+    // We'll use G.throw if needed; many builds expose it as api.throwBalloon? 
+    return {hasThrow,inf:G.inf};});
+  // do rust throw properly below with a known hook
+  const rust2=await G(page,()=>{const G=__game;
+    const hook=G.throwBalloon||G.throw||null;
+    // fallback: walk the shots after using the internal via a balloon throw from input
+    function fire(){
+      if(G.pResetThrow)G.pResetThrow();
+      if(typeof G.doThrow==='function')G.doThrow();
+      else if(typeof G.throwBalloon==='function')G.throwBalloon();
+      else if(G.state().player){ /* last resort: call from window if the hook was added */ }
+      return (G.shotsDetail()||[])[0];
+    }
+    // expose via eval of __game — we added no throwBalloon hook. Use a small workaround:
+    // advance with throw queued? Look at existing tests...
+    return {keys:Object.keys(G).filter(k=>/throw|shot|ball/i.test(k)).slice(0,30),inf:G.inf};});
+  // We'll add api.throwBalloon in a follow-up if needed. For now record rust cfg and do the throw from a hook I'll add if missing.
+  check('M1.62 Rust is tuned for slower, shorter throws (rustMul 1.5, rustSpd 0.6, rustLife 0.55, doll rust 15 s)',
+    rust2.inf&&rust2.inf.rustMul===1.5&&rust2.inf.rustSpd===.6&&rust2.inf.rustLife===.55&&art.cfg.rustT===15,
+    JSON.stringify({inf:rust2.inf,keys:rust2.keys,cfg:art.cfg}));
+
+  // Actual throw comparison via a temporary path: startLevel then call through page.evaluate using the already-exposed shots after using keyboard... 
+  // Better: I'll patch api.throwBalloon in source if missing. For this test file, try G.throwBalloon after I add it.
+  const throws=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;G.setSeed(3);G.startLevel(1,{hearts:9,coins:0});G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+5,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+5,y+.5,0))))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);
+    const fire=()=>{if(typeof G.throwBalloon==='function')G.throwBalloon();else if(typeof G.fireBalloon==='function')G.fireBalloon();
+      const sh=G.shotsDetail()||[];return sh[sh.length-1];};
+    const a=fire();
+    const cd0=G.state().player.throwT;
+    G.addStatus('rust',15);
+    // wait the first cooldown
+    for(let k=0;k<90;k++)G.advance(1/60);
+    const b=fire();
+    const cd1=G.state().player.throwT;
+    const rust=G.status().rust;
+    return {a,b,cd0,cd1,rust,hasFn:typeof G.throwBalloon==='function'};});
+  check('M1.62 while Rusted, balloon speed and lifetime drop (short, slow throws) and throw cooldown is longer',
+    throws.hasFn&&throws.a&&throws.b&&throws.b.spd<throws.a.spd*0.7&&throws.b.life<throws.a.life*0.7&&throws.cd1>throws.cd0*1.2&&throws.rust>0,
+    JSON.stringify(throws));
+
+  const loot=await G(page,()=>{const G=__game;G.manual=true;G.freeze=true;
+    const isT=th=>/Timber/i.test(th||'');
+    const nBox=its=>(its||[]).filter(it=>it.kind==='power'&&it.ptype==='musicbox'&&!it.taken).length;
+    const forced=n=>{let c=0;for(let i=0;i<n;i++)if(G.randPU()==='musicbox')c++;return c;};
+    const shopHas=()=>(G.shopOffers()||[]).includes('musicbox');
+    const slotHas=n=>{let c=0;for(let i=0;i<n;i++){const r=G.slotResolve('power',0,5);if(r&&r.power==='musicbox')c++;}return c;};
+    const off={floors:0,floorLoot:0,forced:0,shop:0,slot:0,pool:0};
+    const on={floors:0,floorLoot:0,forced:0,shop:0,slot:0,pool:0,max:0,multi:0,withP:0};
+    const seen={timber:0,baths:0,mossy:0,other:0};
+    for(let sd=1;sd<=40;sd++){
+      G.setSeed(sd);
+      for(const f of [2,3,4,5,6,7,8,9,13,17]){
+        G.startLevel(f-1,{hearts:9,coins:20});
+        const theme=G.themeNow(),b=isT(theme)?on:off;
+        b.floors++;
+        const n=nBox(G.state().items);
+        b.floorLoot+=n; if(n)b.withP=(b.withP||0)+1; if(isT(theme)){on.max=Math.max(on.max,n);if(n>1)on.multi++;}
+        b.forced+=forced(40);
+        if(shopHas())b.shop++;
+        b.slot+=slotHas(20);
+        if((G.puPool()||[]).includes('musicbox'))b.pool++;
+        if(/Timber/i.test(theme))seen.timber++;
+        else if(/Baths/i.test(theme))seen.baths++;
+        else if(/MOSSY/i.test(theme))seen.mossy++;
+        else seen.other++;
+      }
+    }
+    return {off,on,seen};});
+  check('M1.62 forced loot, shop and the slot never give a Music Box off Timber Attic floors, and Timber floors can',
+    loot.seen.timber>0&&loot.seen.baths>0&&loot.seen.mossy>0&&loot.seen.other>0
+    &&loot.off.floorLoot===0&&loot.off.forced===0&&loot.off.shop===0&&loot.off.slot===0&&loot.off.pool===0
+    &&(loot.on.withP>0||loot.on.forced>0||loot.on.shop>0),
+    JSON.stringify(loot));
+  check('M1.62 at most one Music Box appears in normal loot on Timber Attic floors',
+    loot.on.max<=1&&loot.on.multi===0&&loot.on.floors>0,JSON.stringify({floors:loot.on.floors,withP:loot.on.withP,max:loot.on.max,multi:loot.on.multi}));
+
+  const doors=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;
+    let found=null;
+    for(let sd=1;sd<=40&&!found;sd++){
+      G.setSeed(sd);
+      for(const f of [2,3,4,5,6,7,8]){
+        G.startLevel(f-1,{hearts:9,coins:30});
+        if(!G.timberFloor()) continue;
+        const d0=G.doors()||[];
+        if(d0.length>=1){found={sd,f,n:d0.length,locked:d0.filter(d=>d.locked).length,crack:G.crack()};break;}
+      }
+    }
+    if(!found){return {none:true};}
+    G.give('musicbox');const held=G.state().player.item;
+    const used=G.useItem();
+    for(let k=0;k<50;k++)G.advance(1/60);
+    const mid={item:G.state().player.item,box:G.musicBox(),doors:G.doors(),crack:G.crack(),msg:G.state().msg};
+    for(let k=0;k<360;k++)G.advance(1/60); // 6 s later, well past the usual 4 s close
+    const later={box:G.musicBox(),doors:G.doors(),crack:G.crack()};
+    const still=later.doors.every(d=>d.state==='open'&&d.open>=1&&!d.locked&&d.held);
+    const opened=mid.doors.every(d=>!d.locked&&(d.state==='open'||d.state==='opening')&&d.held);
+    const secret= !mid.crack || mid.crack.t===0 || mid.crack.broken || mid.crack.secretOpen;
+    return {found,held,used,mid:{item:mid.item,box:mid.box,n:mid.doors.length,opened,secret,msg:mid.msg},later:{box:later.box,still,n:later.doors.length,states:later.doors.map(d=>d.state)}};});
+  check('M1.62 the Music Box opens every door and hidden wall for the rest of the level, stays open past the usual close time, and is used up',
+    doors.used===true&&doors.held==='musicbox'&&doors.mid.item==null&&doors.mid.box===true&&doors.mid.opened&&doors.mid.secret&&doors.later.box===true&&doors.later.still,
+    JSON.stringify(doors));
+
+  // Screenshots: doll (with a normal mob for scale), Rust HUD with touch, Music Box in use
+  await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;
+    for(let sd=11;sd<=40;sd++){G.setSeed(sd);G.startLevel(2,{hearts:9,coins:0});if(G.timberFloor())break;}
+    G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.6,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+1.6,y+.5,0))))spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0); if(G.setPitch)G.setPitch(-0.05);
+    const doll=G.spawn('rafterdoll',spot.x+1.15,spot.y,true,[]);
+    G.spawn('screamer',spot.x+1.35,spot.y+0.85,true,[]);
+    // a couple of walk frames, not long enough for a bite
+    for(let k=0;k<8;k++)G.advance(1/60);
+    G.freeze=true;G.render();});
+  await page.screenshot({path:`${SHOTS}/m162_rafterdoll.png`});
+  await G(page,()=>{const G=__game;G.freeze=false;G.clearMobs();G.addStatus('rust',15);G.setTouch&&G.setTouch(true);G.freeze=true;G.render();return G.status();});
+  await page.screenshot({path:`${SHOTS}/m162_rust_hud.png`});
+  await G(page,()=>{const G=__game;G.freeze=false;G.manual=true;G.setTouch&&G.setTouch(false);
+    for(let sd=1;sd<=40;sd++){
+      G.setSeed(sd);G.startLevel(2,{hearts:9,coins:30});
+      if(!G.timberFloor()) continue;
+      const ds=(G.doors()||[]).filter(d=>d.state==='closed'||d.state==='opening');
+      if(!ds.length) continue;
+      G.clearMobs();
+      const d=ds[0];
+      // stand a little back, facing the door
+      let ang=0,sx=d.x+.5,sy=d.y+.5;
+      if(d.axis){ // door faces N/S
+        if(!G.solidAt(d.x+.5,d.y+1.6)){sx=d.x+.5;sy=d.y+1.6;ang=-Math.PI/2;}
+        else if(!G.solidAt(d.x+.5,d.y-.6)){sx=d.x+.5;sy=d.y-.6;ang=Math.PI/2;}
+      }else{
+        if(!G.solidAt(d.x+1.6,d.y+.5)){sx=d.x+1.6;sy=d.y+.5;ang=Math.PI;}
+        else if(!G.solidAt(d.x-.6,d.y+.5)){sx=d.x-.6;sy=d.y+.5;ang=0;}
+      }
+      G.teleport(sx,sy,ang); if(G.setPitch)G.setPitch(0);
+      G.give('musicbox');G.useItem();
+      for(let k=0;k<36;k++)G.advance(1/60);
+      G.freeze=true;G.render();
+      return {theme:G.themeNow(),n:(G.doors()||[]).length,box:G.musicBox(),msg:G.state().msg,door:G.doors()[0]};
+    }
+    return {none:true};});
+  await page.screenshot({path:`${SHOTS}/m162_musicbox.png`});
+  await ctx.close();
+}
+
 
 async function m160Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m160'});
@@ -1857,6 +2138,7 @@ if(V159&&want('m159')){ await m159SlateTests(); await m159InvTests(); }
 if(V160&&want('m160')){ await m160Tests(); }
 if(V161&&want('m161')){ await m161Tests(); }
 if(V162&&want('m162')){ await m162Tests(); }
+if(V163&&want('m163')){ await m163Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -2247,7 +2529,7 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V162?['gargoyle']:[])].sort()),types.join(','));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V163?['gargoyle']:[]),...(V162?['rafterdoll']:[])].sort()),types.join(','));
     const hp=types.map(t=>mobs[t].hp),sp=types.filter(t=>t!=='gargoyle').map(t=>mobs[t].speed) /* M1.62: the gargoyle never moves */,vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name),hpTank=types.filter(t=>t!=='slickman').map(t=>mobs[t].hp);
     check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===sp.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hpTank)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));

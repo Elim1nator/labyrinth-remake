@@ -3,9 +3,16 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
-## M1.62: the Weeping Gargoyle
+## M1.63: the Weeping Gargoyle
 - New decoration: a **gargoyle statue** (from the supplied art) on a pedestal, rare: about 1 in 10 big rooms (40+ cells) gets one, on any floor.
 - On **Stone Keep** floors half of those statues are alive, and about 1 in 10 of the floor's other monsters spawns as one. A live **Weeping Gargoyle** (6 base HP) never moves. Asleep it is stone: eyes shut, balloons clank off. Come within **3 cells** (in sight) and it wakes with red eyes and screams like the Screamer, then fires **bursts of 3 sonic rings** (0.3 s apart), closes its mouth and recharges for 2.4-3.4 s. Get more than **8 cells** away and it shuts its eyes and goes back to sleep. It never bites and never gets Infernal modifiers. Art: `assets/mobs/gargoyle.png` (asleep, awake, screaming). Tuning: `GARG` in the game.
+- Merged with Grok-Code-7 (M1.62, Timber Attic, below).
+- All test groups pass.
+- QA build `m1.63-qa` (debug hook on).
+
+## M1.62: Timber Attic (the Music Box, the Rafter Doll)
+- New use-item, **Music Box** (only drops or is sold on Timber Attic floors; uncommon, at most one per floor). Using it plays an eerie, slightly detuned music-box tune for the rest of the level and permanently opens every door on that floor, including locked and coin doors and the hidden cracked wall. It is used up afterward. A Music Box you already hold still works on any floor. Icon in `assets/items.png`.
+- New monster, **the Rafter Doll** (5 base HP, scales like the other regular mobs): a cracked porcelain doll, drawn at half a normal mob's size with a matching hitbox. It is fast, dashes in to bite, then flees before coming back. The bite applies **Rust** for 15 s: your throws are slower and don't go as far (the existing RUSTED status pill is shown, clear of the touch buttons). It only lives on **Timber Attic** floors (the wood-wall early theme), with the usual featured minimum (1, or 2 from floor 5), and is skipped by the L3 kettle-swap and the Rattlebones swap. It has no ranged elite attack. Art: `assets/mobs/rafterdoll.png` (2 walk frames, feet-centred and bottom-aligned, cut from the supplied sheet with the white background keyed out).
 - All test groups pass.
 - QA build `m1.62-qa` (debug hook on).
 

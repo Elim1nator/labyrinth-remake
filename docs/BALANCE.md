@@ -1,4 +1,4 @@
-# Balance (M1.60)
+# Balance (M1.63)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -16,12 +16,13 @@
 | Lichen Face | 3 | 1.65 | flies (slow hover bob); leaves a slowing spore patch (radius 0.36, 5 s) on the floor below; flyers and Rubber Boots ignore it. At least 1 per Mossy Cellar floor, 2 from L5 | Mossy Cellar (floors 2-8) |
 | The Bather | 4 | 1.0 | pale marble statue; leaves pool-blue slick damaging puddles (radius 0.34, 4.5 s) that also sap traction; flyers and Rubber Boots ignore them. At least 1 per Baths floor, 2 from L5 | Tiled Baths (floors 2-8) |
 | The Slick Man | 10 | 0.8 | dark slimy stone; reflects player projectiles 30%; forces view distance to 5 blocks while within 10 cells (overrides glasses and flares). At least 1 per Slate floor, 2 from L5 | Slate Halls (from floor 17) |
+| The Rafter Doll | 5 | 2.3 | cracked porcelain doll, drawn at half size (sz 0.5) with a matching hitbox; fast hit-and-run; bite applies Rust for 15 s (slower, short-range throws). At least 1 per Timber Attic floor, 2 from L5 | Timber Attic (floors 2-8) |
 
 Pools: L2 Screamer + Kettlegrump; L3 adds Springle and Hazewisp; L4 adds Clunkbot; L5+ adds
 Zapfly; L6+ adds Rattlebone. Featured (weighted) mobs: L2 Kettlegrump; L3 Springle, Hazewisp,
 Kettlegrump; L4 Clunkbot; L5 Zapfly, Clunkbot, Kettlegrump. On a **Mossy Cellar** theme (floors 2-8
 when the seed picks that early theme), the Lichen Face is added to the pool and is featured (a second
-one from L5). It does not appear on the tutorial or on deep-theme floors. On a **Tiled Baths** theme, the Bather is added the same way. On a **Slate Halls** theme (a deep style from floor 17), the Slick Man is added to the pool and featured the same way.
+one from L5). It does not appear on the tutorial or on deep-theme floors. On a **Tiled Baths** theme, the Bather is added the same way. On a **Slate Halls** theme (a deep style from floor 17), the Slick Man is added to the pool and featured the same way. On a **Timber Attic** theme (the wood-wall early style on floors 2-8), the Rafter Doll is added the same way.
 
 **Rattlebone:** guaranteed as one of the placed mobs on L6, then about 1 in 7 mobs. At 0 HP it
 becomes a bone pile: it rattles a warning at 3 s and reforms at 4.5 s unless a balloon smashes
@@ -304,13 +305,19 @@ The Slick Man has 10 base HP (`10 + (L-1)`, same +1-per-floor scaling), about 2.
 
 ## Featured theme minimum (M1.58)
 
-On a Tiled Baths, Mossy Cellar, Slate Halls or Brick Halls floor the theme mob is featured first (`feat.unshift`) and a second copy is featured from floor 5. It also stays in the random pool, so floors often have more than the minimum. After later steps (Rattlebone swaps from floor 6, shop and boss-arena moves that can drop a monster), a final pass restores the minimum if it was lost: **1 on L2–4, 2 from L5**. Real-flow checks count placed entities after `startLevel`, not just pool or map-letter membership.
+On a Tiled Baths, Mossy Cellar, Slate Halls, Brick Halls or Timber Attic floor the theme mob is featured first (`feat.unshift`) and a second copy is featured from floor 5. It also stays in the random pool, so floors often have more than the minimum. After later steps (Rattlebone swaps from floor 6, shop and boss-arena moves that can drop a monster), a final pass restores the minimum if it was lost: **1 on L2–4, 2 from L5**. Real-flow checks count placed entities after `startLevel`, not just pool or map-letter membership.
 
-From M1.60 the L3 kettle-swap and the L6+ Rattlebones swap themselves skip every featured theme mob (`THEME_MOBS`: Bather, Lichen Face, Slick Man, Mortared Man), so they are not turned into a Kettlegrump or a Rattlebone in the first place. The elite `ranged` modifier is only rolled for monsters that have a `RANGED` attack table entry.
+From M1.60 the L3 kettle-swap and the L6+ Rattlebones swap themselves skip every featured theme mob (`THEME_MOBS`: Bather, Lichen Face, Slick Man, Mortared Man, Rafter Doll), so they are not turned into a Kettlegrump or a Rattlebone in the first place. The elite `ranged` modifier is only rolled for monsters that have a `RANGED` attack table entry.
 
 ## Spirit Slate (M1.59)
 - Run item, max 1, 40 coins; in the item pool only on Slate Halls floors (deep theme, floor 17+). Shows every live monster on both maps regardless of fog of war.
 
-## Weeping Gargoyle (M1.62)
+## Timber Attic: the Rafter Doll and the Music Box (M1.62)
+
+The Rafter Doll has 5 base HP (`5 + (L-1)` like other regular mobs), speed 2.3, and is drawn at half a normal mob's size (`sz: 0.5`, with `h` 0.62 and `hitR` 0.30 scaled the same way so the hitbox matches). It dashes in, bites (reach 0.28), then flees for 1.15 s at 1.45× speed before chasing again. The bite applies the existing **Rusted** status for 15 s (`DOLL.rustT`). While rusted, throw cooldown is ×1.5 (`INF.rustMul`), balloon speed is ×0.6 and lifetime ×0.55, so throws are slower and fall short. The RUSTED pill is drawn in the existing status row (left of the view, under the HUD, clear of the bottom-right touch buttons). The doll has no `RANGED` entry, so it never rolls the ranged elite. Art: `assets/mobs/rafterdoll.png` (2 walk frames at 120 px tall, feet-centred and bottom-aligned, 10 frames/s). It only appears on Timber Attic floors, with the usual featured minimum (1, or 2 from floor 5), and is skipped by the L3 and Rattlebones swaps.
+
+The Music Box is a use-item: it plays an eerie, slightly detuned music-box melody for the rest of the level (WebAudio sine bells a few cents sharp and flat) and permanently opens every door on that floor, including locked and coin doors and the hidden cracked wall. It is used up. It only appears on floors whose theme label says Timber (Timber Attic). Every drop source (normal loot, elite drops, coin doors, secret rooms, shrines, the slot machine, boss loot and Old Murkle's shop) rerolls it to another use-item on any other theme. A Music Box you already hold still works on any floor. On Timber floors it is uncommon (about a third the weight of other use-items) and at most one is placed per floor.
+
+## Weeping Gargoyle (M1.63)
 - Statue: 10% of rooms with 40+ cells (not the start, shop, arena or pit room), centred. Separate RNG, so other floor layouts are unchanged.
 - Stone Keep: each statue in a monster room is alive 50% of the time; each other regular monster (not featured, theme, boss or Treasure Knight) becomes a gargoyle 10% of the time. 6 base HP (scales), wake 3 cells with line of sight, sleep past 8 cells, bursts of 3 Screamer rings 0.3 s apart, 2.4-3.4 s recharge.

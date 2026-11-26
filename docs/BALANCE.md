@@ -342,3 +342,7 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 
 ## Icy Prison (M1.68)
 - Chance per generated non-boss floor >= 3: min(45%, 6% + 2% x (floor - 3)); none within 4 floors after an icy floor (deterministic per run seed). Cold: move x0.85, throw cooldown x1.25.
+
+## Ice Wizard and Frozen Wand (M1.69)
+- Ice Wizard: 1 per Icy Prison floor (farthest room), HP 30 + 4 x floor, speed 0.9, keeps 3-6 cells away; casts every 1.6-2.4 s (0.45 s wind-up): 65% three small orbs (speed 6, 1 heart), 35% one big orb (speed 3.2, bursts for 1 heart within 1.3 cells + 0.8 s slow). Blizzard every 14-22 s for 5-10 s (view 3 tiles). Shields at 75/50/25% HP with 2-5 ice spikes (2 HP, speed 2.6, bite 1 heart every 1.4 s, aim 1.2 cells behind you); no damage to him while any spike lives.
+- Frozen Wand: dropped by the Ice Wizard (8 coins instead if you already have it). Balloons +1 damage; they bounce (35% speed back off monsters/walls, 45% forward off the floor) and roll for 2.6 s, harmless.

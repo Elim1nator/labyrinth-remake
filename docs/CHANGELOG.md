@@ -3,6 +3,15 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.69: the Ice Wizard and the Frozen Wand
+- New boss, **the Ice Wizard** (from the supplied 5-frame sheet: frame 1 casts, frames 2-5 walk; `assets/mobs/icewiz.png`). He is on **every Icy Prison floor**, waiting in the room farthest from the start, with a boss bar once he has seen you. HP 30 + 4 per floor. He keeps 3-6 cells away and every 1.6-2.4 s casts either a fan of 3 small fast **ice orbs** or one slow **big ice orb** that bursts into a **blue explosion** (1 heart and a brief chill within 1.3 cells) when it hits a wall, reaches you or runs out. Every 14-22 s he calls a **blizzard**: the fog closes to 3 tiles for 5-10 s.
+- At **75%, 50% and 25%** health he raises a **shield bubble** and summons **2-5 ice spikes** (flying minions from the supplied art, 2 HP, `assets/mobs/icespike.png`) that circle round to bite you from behind. Until every spike is gone his bubble holds and balloons clank off; he keeps attacking. Killing him ends the blizzard and shatters any spikes left.
+- He drops the **Frozen Wand** (run item, never sold or found elsewhere; icon in a new fifth row of `assets/items.png`): your balloons are frozen, do **+1 damage**, and instead of splashing they **bounce off** monsters and walls, drop to the floor and roll about for a few seconds before vanishing (harmless once bounced).
+- Art: `assets/boss/shot_iceorb.png`, `shot_icebig.png`; the blue explosion is the existing explosion art with red and blue swapped (no new image). Tuning: `ICEWIZ` in the game.
+- Tests: the single-file size cap is gone (the size is still reported); new art is kept as small as possible.
+- All test groups pass.
+- QA build `m1.69-qa` (debug hook on).
+
 ## M1.68: the Icy Prison
 - New floor type, **the Icy Prison**: it can replace the theme of any generated floor from floor 3 (never the tutorial or a boss floor such as the King in Yellow's). The chance grows with depth (6% on floor 3, +2% a floor, at most 45%), and after one appears the next 4 floors can't be icy. It uses only three new wall textures (cracked ice tiles, frozen stone with icicles and snow, icy brick; `assets/walls.png` is now 10 x 3 tiles), white fog, a whitish floor and a grey ceiling, a faint frost tint, and slate doors.
 - **The cold**: on an Icy Prison floor you move at 85% speed and wait 25% longer between throws. Tuning: `ICY` in the game.

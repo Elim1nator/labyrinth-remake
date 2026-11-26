@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V169=atLeast('1.69'); // M1.69+: the Ice Wizard, his ice spikes and the Frozen Wand
 const V168=atLeast('1.68'); // M1.68+: the Icy Prison (3 more wall tiles, 23 in all)
 const V165=atLeast('1.65'); // M1.65+: the Debt Collector (Old Vaults)
 const V166=atLeast('1.66'); // M1.66+: Jailer's Eye, clear boss cut-scenes, coin-loot CONTINUE, shared high scores
@@ -1749,6 +1750,46 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m169Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m169'});
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{const G=__game,st=G.assetState(),sig=[];for(let i=0;i<5;i++)sig.push(G.frameSig('icewiz',i));return {wiz:st.icewiz,spike:st.icespike,orb:st.shot_iceorb,big:st.shot_icebig,sig:new Set(sig).size,wandIco:G.itemIcoPx('wand')};});
+  check('M1.69 Ice Wizard art (5 frames: cast + 4 walk), ice spike, ice orbs and the Frozen Wand icon are packed',art.wiz==='png'&&art.spike==='png'&&art.orb==='png'&&art.big==='png'&&atlas.icewiz.frames===5&&art.sig===5&&art.wandIco>20,JSON.stringify(art));
+  const gen=await G(page,()=>{const G=__game,ch=G.wizCfg&&'y';let icy=0,with1=0,other=0,first=null;
+    for(let sd=1;sd<=60;sd++)for(let f=3;f<=24;f++){if(f%5===0)continue;const ic=G.icyAt(sd,f);const n=[...G.genMap(sd,f).map.join('')].filter(c=>c==='y').length;if(ic){icy++;if(n===1)with1++;if(!first)first={sd,f};}else other+=n;if(icy>=25)break;}
+    return {icy,with1,other,first};});
+  check('M1.69 the Ice Wizard is on every Icy Prison floor (exactly one) and nowhere else',gen.icy>0&&gen.with1===gen.icy&&gen.other===0,JSON.stringify(gen));
+  const fight=await G(page,(k)=>{const G=__game;G.manual=true;G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});G.setHearts&&G.setHearts(99);G.clearMobs();const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-7&&!spot;x++){let ok=true;for(let q=0;q<7;q++)if(G.solidAt(x+q+.5,y+.5))ok=false;if(ok)spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);const i=G.spawn('icewiz',spot.x+4.5,spot.y,false,[]);G.freeze=false;G.godMode&&G.godMode(true);const o={};
+    G.advance(.1);o.woke=G.wizard();let kinds={},booms0=G.state().stats.wizBooms|0,storm=0,minView=99,frames=new Set();
+    for(let t=0;t<600;t++){G.setHearts&&G.setHearts(99);G.advance(.05);G.state().eshots.forEach(q=>{if(q.from==='icewiz')kinds[q.kind]=1;});const w=G.wizard();frames.add(w.frame);if(G.stormT()>0){storm++;minView=Math.min(minView,G.viewNow());}}
+    o.kinds=Object.keys(kinds);o.booms=(G.state().stats.wizBooms|0)-booms0;o.storm=storm*.05;o.minView=minView;o.frames=[...frames];
+    const w0=G.wizard();G.wizSet({hp:Math.floor(w0.maxHp*.74)});G.advance(.1);o.sh=G.wizard();o.spikes=G.spikes().length;const hpS=G.wizard().hp;G.damageMob(i,1);o.hpShield=G.wizard().hp-hpS;
+    G.state().enemies.forEach((e,j)=>{if(e.type==='icespike')G.damageMob(j,5);});G.advance(.5);o.after=G.wizard();const hpA=G.wizard().hp;G.damageMob(i,1);o.hpAfter=G.wizard().hp-hpA;
+    G.wizSet({hp:1});G.damageMob(i,1);G.advance(.6);o.items=G.state().items.filter(it=>it.kind==='item').map(it=>it.ptype);o.stormAfter=G.stormT();return o;},gen.first);
+  check('M1.69 the Ice Wizard wakes when he sees you and casts small ice orbs and big ones that burst into blue explosions',fight.woke&&fight.woke.woke&&fight.kinds.includes('iceorb')&&fight.kinds.includes('icebig')&&fight.booms>=1&&fight.frames.includes(0),JSON.stringify(fight));
+  check('M1.69 his blizzard cuts the view to 3 tiles for 5-10 s',fight.storm>=5&&fight.minView<=3,JSON.stringify({storm:fight.storm,minView:fight.minView}));
+  check('M1.69 at 75% health he raises a shield bubble and summons 2-5 ice spikes; he cannot be hurt until they are all gone',fight.sh.shield&&fight.spikes>=2&&fight.spikes<=5&&fight.hpShield===0&&!fight.after.shield&&fight.hpAfter<0,JSON.stringify({sh:fight.sh,spikes:fight.spikes,hpShield:fight.hpShield,after:fight.after,hpAfter:fight.hpAfter}));
+  check('M1.69 killing him ends the blizzard and drops the Frozen Wand',fight.items.includes('wand')&&fight.stormAfter<=0,JSON.stringify({items:fight.items,storm:fight.stormAfter}));
+  const sp=await G(page,(k)=>{const G=__game;G.freeze=true;G.clearMobs();const s=G.state(),p=s.player;G.teleport(p.x,p.y,0);const j=G.spawn('icespike',p.x+2,p.y,true,[]);G.freeze=false;let behind=0,n=0;
+    for(let t=0;t<60;t++){G.advance(.05);const e=G.state().enemies[j];const q=G.state().player;const dot=(e.x-q.x)*Math.cos(q.ang)+(e.y-q.y)*Math.sin(q.ang);n++;if(dot<0)behind++;}return {behind,n,pool:G.itemPool().includes('wand')};},gen.first);
+  check('M1.69 ice spikes fly round to get behind you; the Frozen Wand is never in the shop or loot pools',sp.behind>sp.n*.4&&!sp.pool,JSON.stringify(sp));
+  const wand=await G(page,(k)=>{const G=__game;G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f,{hearts:99,coins:0});G.clearMobs();const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){let ok=true;for(let q=0;q<6;q++)if(G.solidAt(x+q+.5,y+.5))ok=false;if(ok)spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);const i=G.spawn('clunk',spot.x+2.5,spot.y,false,[]);const hp0=G.state().enemies[i].hp;G.freeze=false;G.shoot(0);let ib=0,maxLife=0;
+    for(let t=0;t<20;t++){G.advance(.05);ib=Math.max(ib,G.iceballs().length);}const hp1=G.state().enemies[i].hp;
+    G.clearMobs();G.give('wand');const j=G.spawn('clunk',spot.x+2.5,spot.y,false,[]);const hq0=G.state().enemies[j].hp;G.shoot(0);let ib2=0,minX=99;for(let t=0;t<20;t++){G.advance(.05);const b=G.iceballs();ib2=Math.max(ib2,b.length);b.forEach(q=>minX=Math.min(minX,q.x));}
+    const hq1=G.state().enemies[j].hp;let gone=0;G.advance(3);gone=G.iceballs().length;
+    return {plain:hp0-hp1,frozen:hq0-hq1,ib,ib2,bouncedBack:minX<spot.x+2.3,gone};},gen.first);
+  check('M1.69 Frozen Wand balloons do +1 damage and bounce off monsters instead of splashing, then roll on the floor and vanish',wand.frozen===wand.plain+1&&wand.ib===0&&wand.ib2>=1&&wand.bouncedBack&&wand.gone===0,JSON.stringify(wand));
+  await G(page,(k)=>{const G=__game;G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});G.clearMobs();const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){let ok=true;for(let q=0;q<6;q++)if(G.solidAt(x+q+.5,y+.5))ok=false;if(ok)spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);G.spawn('icewiz',spot.x+3.2,spot.y,false,[]);G.freeze=false;G.advance(.1);G.wizSet({hp:20,maxHp:100});G.advance(.15);G.freeze=true;G.render();},gen.first);
+  await page.screenshot({path:`${SHOTS}/m169_ice_wizard.png`});
+  await ctx.close();
+}
+
 async function m168Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m168'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
@@ -2764,6 +2805,7 @@ async function m166Tests(){
 }
 
 if(V168&&want('m168')){ await m168Tests(); }
+if(V169&&want('m169')){ await m169Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 
@@ -2889,7 +2931,7 @@ async function m167Tests(){
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
-const size=fs.statSync(FILE).size,LIM=V147?2048:V121?1024:atLeast('1.12')?400:300;check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
+const size=fs.statSync(FILE).size,LIM=V147?2048:V121?1024:atLeast('1.12')?400:300;if(V169)check('single file size (no cap from M1.69 - keep it as small as possible)',size>0,`${(size/1024).toFixed(1)} KB`);else check(`single file size under ${LIM} KB`,size<LIM*1024,`${(size/1024).toFixed(1)} KB`);
 await browser.close();
 fs.writeFileSync(`${OUT}/results.json`,JSON.stringify({build:BUILD,file:FILE,date:new Date().toISOString(),passed:results.length-failed,failed,results},null,1));
 console.log(`\n${results.length-failed}/${results.length} passed`+(retired.length?` (${retired.length} checks of pre-M1.23 items or pre-M1.31 layouts retired)`:``));

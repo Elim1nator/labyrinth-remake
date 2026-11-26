@@ -115,7 +115,8 @@
         "plunger",
         "spirit",
         "musicbox",
-        "jailer"
+        "jailer",
+        "wand"
       ]
     },
     "mods": {
@@ -184,6 +185,16 @@
     "collector": {
       "file": "mobs/collector.png",
       "frames": 3,
+      "k": 1.5
+    },
+    "icewiz": {
+      "file": "mobs/icewiz.png",
+      "frames": 5,
+      "k": 1.5
+    },
+    "icespike": {
+      "file": "mobs/icespike.png",
+      "frames": 1,
       "k": 1.5
     },
     "gargoyle": {
@@ -376,6 +387,8 @@
       "frames": 1,
       "k": 1
     },
+    "shot_iceorb": { "file": "boss/shot_iceorb.png", "frames": 1, "k": 1 },
+    "shot_icebig": { "file": "boss/shot_icebig.png", "frames": 1, "k": 1 },
     "shot_mortar": {
       "file": "boss/shot_mortar.png",
       "frames": 1,

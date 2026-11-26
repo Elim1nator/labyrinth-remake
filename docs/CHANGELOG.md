@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.60: ranged elite crash and theme-mob swaps
+- The elite `ranged` modifier is only rolled for monsters that have a `RANGED` entry (it was being given to Rattlebones, Hexeyes, Lichen Faces, Bathers and the Slick Man, which then crashed with `TypeError: Cannot read properties of undefined (reading 'tele')` when they first tried to fire — about 239 of 2,200 floors in the M1.57 playtest, including seed 5 L5, seed 25 L7 and seed 19 L8). The fire code and `fireAt` now also no-op if the entry is missing, so a leftover or morphed ranged flag can never throw.
+- The L3 kettle-swap and the L6+ Rattlebones swap now skip every featured theme mob (the Mortared Man was missing from the L3 skip list; Bathers and the others could still be turned into skeletons on L6+). The M1.58 `ensureThemeMob` minimum still restores at least 1 (2 from floor 5) after later generation steps.
+- All test groups pass.
+- QA build `m1.60-qa` (debug hook on).
+
 ## M1.59: the Spirit Slate and the item screen
 - New run item, **Spirit Slate** (only drops or is sold on Slate Halls floors; max 1, 40 coins; lasts the whole run): every monster shows as a red X on the minimap and the full map, even in rooms you haven't explored. Icon in `assets/items.png` (next to the Plunger).
 - New **item screen**: press **I** (gamepad **D-pad up**, or tap the hearts/coins panel on touch) to see every run item you have (with counts) and the use-items you carry. Pick one with the arrows / WASD, the d-pad, or a click / tap to read its name and what it does. The game waits while it is open; I, Esc or B closes it.

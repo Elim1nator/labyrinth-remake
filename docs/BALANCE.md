@@ -1,4 +1,4 @@
-# Balance (M1.58)
+# Balance (M1.60)
 
 `L` = floor (level) number. Floor 1 is the tutorial.
 
@@ -305,6 +305,8 @@ The Slick Man has 10 base HP (`10 + (L-1)`, same +1-per-floor scaling), about 2.
 ## Featured theme minimum (M1.58)
 
 On a Tiled Baths, Mossy Cellar, Slate Halls or Brick Halls floor the theme mob is featured first (`feat.unshift`) and a second copy is featured from floor 5. It also stays in the random pool, so floors often have more than the minimum. After later steps (Rattlebone swaps from floor 6, shop and boss-arena moves that can drop a monster), a final pass restores the minimum if it was lost: **1 on L2–4, 2 from L5**. Real-flow checks count placed entities after `startLevel`, not just pool or map-letter membership.
+
+From M1.60 the L3 kettle-swap and the L6+ Rattlebones swap themselves skip every featured theme mob (`THEME_MOBS`: Bather, Lichen Face, Slick Man, Mortared Man), so they are not turned into a Kettlegrump or a Rattlebone in the first place. The elite `ranged` modifier is only rolled for monsters that have a `RANGED` attack table entry.
 
 ## Spirit Slate (M1.59)
 - Run item, max 1, 40 coins; in the item pool only on Slate Halls floors (deep theme, floor 17+). Shows every live monster on both maps regardless of fog of war.

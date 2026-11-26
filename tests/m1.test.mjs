@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V160=atLeast('1.60'); // M1.60+: ranged elite only on mobs with a RANGED entry; theme mobs skipped by L3/Rattlebone swaps
 const V153=atLeast('1.53'); // M1.53+: Brick Halls: the Masonry Trowel and the Mortared Man
 const V152=atLeast('1.52'); // M1.52+ (merged from Grok-Code-3): Mourner's Veil; the Lichen Face (flying) in the Mossy Cellar
 const V146=atLeast('1.46'); // M1.46+: any mob can wear the Infernal glow; the loop survives an error; no skeleton carriers
@@ -1739,8 +1740,78 @@ async function m158Tests(){
 }
 
 if(V157&&want('m157')){ await m157Tests(); }
+
+async function m160Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m160'});
+  const rolls=await G(page,()=>{const G=__game,R=G.ranged||{},types=Object.keys(G.mobs).concat(['bigspider']),out={};
+    for(const t of types){const c=G.rollModsFor(t,'m160',12,4000);out[t]={ranged:c.ranged||0,hasEntry:!!R[t]};}
+    return out;});
+  const badRoll=Object.entries(rolls).filter(([,o])=>!o.hasEntry&&o.ranged>0);
+  const withEntry=Object.entries(rolls).filter(([,o])=>o.hasEntry);
+  check('M1.60 rollMods never gives the ranged elite to a mob that has no RANGED entry',
+    badRoll.length===0&&withEntry.length>=6,JSON.stringify({badRoll,rolls}));
+  const fire=await G(page,()=>{const G=__game;
+    G.manual=true;G.freeze=false;G.setSeed(1);G.startLevel(0,{hearts:9,coins:0});G.viewOverride=14;G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=1;y<s.mapH-1&&!spot;y++)for(let x=1;x<s.mapW-4&&!spot;x++){
+      const a={x:x+.5,y:y+.5},b={x:x+3.0,y:y+.5};
+      if(!G.solidAt(a.x,a.y)&&!G.solidAt(b.x,b.y)&&G.clearPath(a.x,a.y,b.x,b.y)&&!(G.pitUnder&&(G.pitUnder(a.x,a.y,0)||G.pitUnder(b.x,b.y,0))))spot=a;}
+    if(!spot)return {ok:false,err:'no open LOS pair'};
+    const types=Object.keys(G.mobs).concat(['bigspider']),out=[];
+    for(const t of types){
+      G.clearMobs();G.setHearts(9);G.teleport(spot.x,spot.y,0);
+      let err=null,fired=false,kind=null;
+      try{
+        const i=G.spawn(t,spot.x+3.0,spot.y,true,['ranged']);
+        G.entSet(i,{fireCD:0,tele:0,state:'chase',spdMul:0});
+        for(let k=0;k<240;k++){
+          G.entSet(i,{spdMul:0,state:'chase'});
+          G.setHearts(9);
+          G.advance(1/60);
+          const sh=(G.state().eshots||[]).filter(q=>q.from===t);
+          if(sh.some(q=>q.age<0.12)){fired=true;kind=sh[sh.length-1].kind;break;}
+        }
+      }catch(e){err=String(e&&e.message||e);}
+      out.push({t,has:!!(G.ranged&&G.ranged[t]),fired,kind,err});
+    }
+    return {spot,out};});
+  const threw=(fire.out||[]).filter(o=>o.err);
+  const shouldFire=(fire.out||[]).filter(o=>o.has&&o.t!=='mortar');
+  const missing=shouldFire.filter(o=>!o.fired);
+  check('M1.60 every regular mob can be given the ranged elite and tick without throwing; those with a RANGED entry fire once',
+    Array.isArray(fire.out)&&fire.out.length>=12&&threw.length===0&&missing.length===0,
+    JSON.stringify({threw,missing,all:fire.out,spot:fire.spot,err:fire.err}));
+  const seeds=await G(page,()=>{const G=__game;G.manual=true;G.freeze=true;
+    const cases=[[34,3],[61,3],[94,3],[164,3],[191,7]],rows=[];
+    for(const [sd,f] of cases){
+      G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:20});
+      const theme=G.themeNow()||'',types={};
+      for(const e of (G.state().enemies||[])) if(!e.gone) types[e.type]=(types[e.type]||0)+1;
+      const min=f>=5?2:1;
+      rows.push({sd,f,theme,mortar:types.mortar||0,min,ok:(types.mortar||0)>=min});
+    }
+    const baths=[];
+    for(let sd=1;sd<=40;sd++){
+      G.setSeed(sd);
+      for(const f of [6,7,8]){
+        G.startLevel(f-1,{hearts:9,coins:20});
+        const theme=G.themeNow()||'';
+        if(!/TILED BATHS/.test(theme)) continue;
+        let c=0; for(const e of (G.state().enemies||[])) if(!e.gone&&e.type==='bather')c++;
+        baths.push({sd,f,c,ok:c>=2});
+      }
+    }
+    return {rows,baths};});
+  check('M1.60 the reported Brick Halls floors keep their Mortared Men (seeds 34, 61, 94, 164 on L3 and 191 on L7)',
+    seeds.rows.every(r=>r.ok&&/BRICK HALLS/.test(r.theme)),JSON.stringify(seeds.rows));
+  check('M1.60 Bathers on Tiled Baths L6+ are not turned into Rattlebones (real-flow minimum still holds)',
+    seeds.baths.length>0&&seeds.baths.every(r=>r.ok),JSON.stringify({n:seeds.baths.length,miss:seeds.baths.filter(r=>!r.ok)}));
+  await ctx.close();
+}
+
 if(V158&&want('m158')){ await m158Tests(); }
 if(V159&&want('m159')){ await m159SlateTests(); await m159InvTests(); }
+if(V160&&want('m160')){ await m160Tests(); }
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));

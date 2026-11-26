@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.67: paid coin doors stay open on CONTINUE
+- Paying a coin door is saved (`coinPaid`, keyed like `coinTaken`). CONTINUE restores that door as open and does not charge for it again. Music Box coin-door loot is unchanged. Old saves without the field still load.
+- All test groups pass.
+- QA build `m1.67-qa` (debug hook on).
+
 ## M1.66: (merged from Grok-Code-8/9) Jailer's Eye, clear boss cut-scenes, coin-loot CONTINUE, shared high scores
 - The Jailer's Eye is a rare Stone Keep run item (weight 0.4, at most one per floor, about 8% of Stone Keep floors). While you hold it, iron fences open like doors and stay open, including after CONTINUE. It does not appear off that theme, and the slot machine does not award it.
 - Boss cut-scenes pick a camera with a clear line of sight to the boss (or skip walls between if no vantage exists), lift the fog so the boss is visible, then restore the exact previous fog, including Glasses and the Slick Man's clamp.

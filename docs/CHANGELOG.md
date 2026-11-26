@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.72: only ice monsters in the Icy Prison
+- On an Icy Prison floor every regular monster is now a **Snowman** (60%) or a **Frozen Screamer** (40%), alongside the Ice Wizard and his ice spikes. Monsters that appear during the floor (pit spiders' swarm, shrine curses and the like) are ice monsters there too, and floor 3 no longer adds its extra Kettlegrump when it is icy. The **Treasure Knight** still visits: he is the floor's loot chase rather than a regular monster, and an armoured knight fits a prison. Tuning: `ICY_MOBS`.
+- Tests that expect particular monsters on floors 3 and 6 (Springle, Kettlegrump, Rattlebone) and the "floor 3 is never easier than floor 2" check now skip icy floors.
+- All test groups pass.
+- QA build `m1.72-qa` (debug hook on).
+
 ## M1.71: the Frozen Screamer
 - New monster, **the Frozen Screamer** (Icy Prison floors only: featured and guaranteed one per floor, also in the pool; 4 base HP, speed 1.45): a Screamer encased in ice (4 flap frames from the supplied sheet, `assets/mobs/fscreamer.png`). It flies and screams like a Screamer and fires the same sonic rings, but its bite and its rings do **+1 damage** (2 hearts). When it dies the ice **shatters** (small blue burst) and a **regular Screamer** breaks free and keeps fighting; the coin drop waits for that one.
 - Size: the recent sprite sheets (Ice Wizard, ice spike, Snowman, Weeping Gargoyle, Debt Collector, Mortared Man and the new Frozen Screamer) are saved as palette PNGs - same look, about 140 KB less.

@@ -352,3 +352,6 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 
 ## Frozen Screamer (M1.71)
 - Icy Prison only (featured, guaranteed 1, pool). 4 base HP, speed 1.45, flies; natural sonic rings like the Screamer (2 hearts), bite 2 hearts. On death: a regular Screamer (scaled to the floor) spawns where it was; the Frozen Screamer itself drops nothing.
+
+## Icy Prison monsters (M1.72)
+- Every regular monster on an Icy Prison floor is re-rolled as Snowman (3/5) or Frozen Screamer (2/5) with its own RNG, after all other placement; then the Snowman (1, 2 from floor 5) and Frozen Screamer (1) minimums and the Ice Wizard are placed. Mid-floor spawns use the same 3:2 pool. Bosses never appear (icy floors are never boss floors); the Treasure Knight is kept.

@@ -63,12 +63,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.71. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.72. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, art, sounds, levels) is original. Wall, monster, item and other
    world art is packed from PNG sheets in assets/. Sounds, music, the pixel font and some
    HUD or decoration sprites are still generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.71'; /* set by tools/release.mjs */
+var VERSION='M1.72'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=128,TK=TS/64; /* M1.51: wall tiles are 128x128; the effects painted on them are laid out on a 64-grid and scaled by TK */
 var SAVE_KEY='labyrinthRemake.save.v1',UNLOCK_KEY='labyrinthRemake.unlocks.v1'; /* M1.30: floors you can start on, kept across runs */
 var MAX_HEARTS=5;
@@ -452,7 +452,7 @@ var DEEP_THEMES=[
 /* floors 1-8 keep the M1.7 themes; deeper floors always use a deep theme: half the time the newest unlocked one */
 /* M1.68 the Icy Prison: replaces a generated floor's theme (never the tutorial or a boss floor, e.g. the King in Yellow); more likely deeper; never within ICY.gap floors of the last one */
 var ICY={from:3,base:.06,step:.02,max:.45,gap:4,move:.85,throwMul:1.25,theme:{name:'ICY PRISON',base:'$',rooms:['$','@',';'],floor:'#e4ecf2',ceil:'#7c8088',haze:'#e8f0f6',icy:true}};
-var GEN_GSEED=null,ICY_MEMO={};
+var GEN_GSEED=null,ICY_MEMO={},ICY_MOBS=['snowman','snowman','snowman','fscreamer','fscreamer']; /* M1.72: what lives in the Icy Prison (60% Snowmen) */
 function icyChance(lvl){return lvl<ICY.from?0:Math.min(ICY.max,ICY.base+ICY.step*(lvl-ICY.from));}
 function icyAt(gseed,lvl){if(lvl<ICY.from||bossFor(lvl))return false;var key=gseed+':'+lvl;if(ICY_MEMO[key]!==undefined)return ICY_MEMO[key];var r=false;
   var prior=false;for(var k=1;k<=ICY.gap&&!prior;k++)if(lvl-k>=ICY.from&&icyAt(gseed,lvl-k))prior=true;
@@ -863,6 +863,7 @@ function genTry(s,lvl,lseed){
   if(themeName==='BRICK HALLS')ensureThemeMob('mortar',lvl>=5?2:1);
   if(themeName==='TIMBER ATTIC')ensureThemeMob('rafterdoll',lvl>=5?2:1);
   if(themeName==='OLD VAULTS')ensureThemeMob('collector',1);
+  if(themeName==='ICY PRISON'){var RI=rng(hashSeed(lseed+':icymobs:'+lvl));for(j=0;j<N;j++){var ti=mobCh[obj[j]];if(!ti||ti==='snowman'||ti==='fscreamer'||ti==='icewiz')continue;var TI=MOBS[ti];if(TI.boss||TI.mini)continue;obj[j]=MOBS[ICY_MOBS[Math.floor(RI()*ICY_MOBS.length)]].ch;}} /* M1.72: every other regular monster becomes a Snowman or a Frozen Screamer (the Treasure Knight stays) */
   if(themeName==='ICY PRISON')ensureThemeMob('snowman',lvl>=5?2:1);
   if(themeName==='ICY PRISON')ensureThemeMob('fscreamer',1);
   if(themeName==='ICY PRISON'){var wq=-1,wd=-1;for(j=0;j<N;j++){if(g[j]!==1||obj[j]||pitA[j]||j===exitJ||!inAnyRoom(j))continue;var rr9=roomOf(j);if(!rr9||!fillable(rr9))continue;var dv=dAll[j];if(dv>wd){wd=dv;wq=j;}}if(wq>=0)obj[wq]=MOBS.icewiz.ch;} /* M1.69: the Ice Wizard waits in the room farthest from the start */
@@ -884,7 +885,7 @@ function levelDef(idx){if(idx===0)return LEVELS[0];var key=G.seed+':'+(idx+1);if
 /* M17: a level for a game seed. L3 gets a per-seed floor: while its total base or effective (elite-adjusted) mob HP is below
    L2's for the same seed, the weakest non-kettle mob (never the last springle or wisp) becomes a KETTLEGRUMP. */
 function mobHpOf(def,floor,gseed){var R=rng(hashSeed(gseed+':'+floor+':elite')),base=0,eff=0,list=[];def.map.forEach(function(row,y){for(var x=0;x<row.length;x++){var t=MOB_BY_CH[row[x]];if(!t)continue;var m=rollMods(R,floor,t);if(MOBS[t].extra)continue; /* M1.69 the Ice Wizard is not counted (rolls kept in step) */if(t==='gargoyle'||t==='collector')m=[]; /* never Infernal (as rollLevelElites) */var hp=MOBS[t].hp,mx=m.indexOf('beefy')>=0?Math.ceil(hp*2.5):hp;base+=hp;eff+=mx;list.push({t:t,x:x,y:y,mods:m});}});return {base:base,eff:eff,list:list};}
-function genLevelFor(gseed,lvl){GEN_GSEED=gseed;var d=genLevel(levelSeed(gseed,lvl),lvl);if(lvl!==3||d.fallback)return d;
+function genLevelFor(gseed,lvl){GEN_GSEED=gseed;var d=genLevel(levelSeed(gseed,lvl),lvl);if(lvl!==3||d.fallback||d.icy)return d; /* M1.72: no extra L3 Kettlegrump in the Icy Prison */
   if(d.map18){var d18={map:d.map18},d2=genLevel(levelSeed(gseed,2),2);l3Floor(d18,mobHpOf({map:d2.map18},2,gseed),gseed);d.map18=d18.map;d.floorSwaps18=d18.floorSwaps;d.floorAdds18=d18.floorAdds;
     l3Floor(d,mobHpOf(d2,2,gseed),gseed);return d;}
   return l3Floor(d,mobHpOf(genLevel(levelSeed(gseed,2),2),2,gseed),gseed);}
@@ -2261,7 +2262,7 @@ function settleItem(it){if(!pitUnder(it.x,it.y,0)&&!solidAt(it.x,it.y))return;va
 function safeSpot(x,y){var cx=Math.floor(x),cy=Math.floor(y),best=null,bd=1e9;for(var r=0;r<=5&&!best;r++)for(var j=-r;j<=r;j++)for(var i=-r;i<=r;i++){if(Math.max(Math.abs(i),Math.abs(j))!==r)continue;var c=cellAt(cx+i,cy+j);if(!c||(c.t!==0&&c.t!==4))continue;var d=Math.hypot(cx+i+.5-x,cy+j+.5-y);if(d<bd){bd=d;best={x:cx+i+.5,y:cy+j+.5};}}return best||{x:x,y:y};}
 /* ---- slot crit fail: 1 + 1 per 3 floors monsters (max 8) next to the machine, on open floor (never a pit, wall, door or the player's spot) ---- */
 function mossyNow(){return !!(G.L&&G.L.def&&/MOSSY CELLAR/.test(G.L.def.name));}
-function poolFor(floor){return MOB_POOLS[Math.max(2,Math.min(5,floor))].concat(floor>=6?['skeleton']:[]).concat(floor>=HEXEYE.from?['hexeye']:[]).concat(mossyNow()?['lichen']:[]).concat(/TILED BATHS/.test(themeNow())?['bather']:[]).concat(/Slate/i.test(themeNow())?['slickman']:[]).concat(timberFloor()?['rafterdoll']:[]);}
+function poolFor(floor){if(G.L&&G.L.icy)return ICY_MOBS.slice(); /* M1.72: only ice monsters in the Icy Prison */return MOB_POOLS[Math.max(2,Math.min(5,floor))].concat(floor>=6?['skeleton']:[]).concat(floor>=HEXEYE.from?['hexeye']:[]).concat(mossyNow()?['lichen']:[]).concat(/TILED BATHS/.test(themeNow())?['bather']:[]).concat(/Slate/i.test(themeNow())?['slickman']:[]).concat(timberFloor()?['rafterdoll']:[]);}
 function critCells(n){var L=G.L,s=L.slot,p=G.p,seen={},q=[],out=[],D=[[1,0],[-1,0],[0,1],[0,-1]];if(!s)return out;D.forEach(function(d){q.push([s.x+d[0],s.y+d[1],1]);});
   for(var i=0;i<q.length&&out.length<n;i++){var x=q[i][0],y=q[i][1],k=y*L.w+x;if(seen[k])continue;seen[k]=1;var c=cellAt(x,y);if(!c||(c.t!==0&&c.t!==4))continue;
     if(c.t===0&&Math.hypot(x+.5-p.x,y+.5-p.y)>=1.2&&!(Math.floor(p.x)===x&&Math.floor(p.y)===y))out.push({x:x+.5,y:y+.5});
@@ -3087,7 +3088,7 @@ api.layoutTime=function(wd,ht,seed){var c=genCfg(10,0);c.width=wd;c.height=ht;c.
     for(var y=0;y<H;y++)for(var x=0;x<Wd;x++){if(!op(x,y))continue;V++;var n=(op(x+1,y)?1:0)+(op(x-1,y)?1:0)+(op(x,y+1)?1:0)+(op(x,y-1)?1:0);if(op(x+1,y))E++;if(op(x,y+1))E++;if(n===1)dead.push([x,y]);}
     var md=0;dead.forEach(function(t){var len=0,px=-1,py=-1,cx=t[0],cy=t[1];while(len<200){var nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(q){var nx=cx+q[0],ny=cy+q[1];return op(nx,ny)&&!(nx===px&&ny===py);});var deg=nb.length+(px>=0?1:0);if(deg!==2&&len>0)break;if(!nb.length)break;px=cx;py=cy;cx+=nb[0][0];cy+=nb[0][1];len++;}md=Math.max(md,len);});
     o.floors++;o.deadEnds+=dead.length;o.maxDead=Math.max(o.maxDead,md);o.loops+=E-V+1;o.cells+=V;});});o.deadPerFloor=o.deadEnds/o.floors;o.loopsPerFloor=o.loops/o.floors;return o;};api.unlocks=function(){return loadUnlocks();};api.setUnlocks=function(o){saveUnlocks(o||{floors:[],last:1});G.startPicked=false;buildMenu();};api.startFloors=function(){return startFloors();};api.startFloor=function(){return G.startFloor||1;};api.cycleStart=function(d){cycleStart(d);};api.entSet=function(i,o){var e=G.ents[i];if(e)Object.keys(o).forEach(function(k){e[k]=o[k];});};api.clearBody=function(a,b,c,d,r){return clearBody(a,b,c,d,r);};api.keyHeld=function(c){return !!keys[c];};api.watchdog=function(){inputWatchdog();};api.hitWith=function(i,src){hitEnemy(G.ents[i],src||{dmg:1,ball:'blue',hits:[]});};api.infWorld=function(){return {bolts:G.bolts.length,webs:G.webs.length,pots:G.pots.length,fires:G.fires.length};};api.mounted=function(i){var e=G.ents[i];return e&&e.mount?G.ents.indexOf(e.mount):-1;};api.entInfo=function(i){var e=G.ents[i];return e?{type:e.type,hp:e.hp,maxHp:e.maxHp,state:e.state,gone:!!e.gone,stolen:e.stolen||null,usedLife:!!e.usedLife,x:e.x,y:e.y,child:!!e.child,flying:!!e.flying}:null;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.71-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.72-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

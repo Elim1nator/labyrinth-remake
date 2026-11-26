@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
 const V169=atLeast('1.69'); // M1.69+: the Ice Wizard, his ice spikes and the Frozen Wand
@@ -1752,6 +1753,15 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m172Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m172'});
+  const r=await G(page,()=>{const G=__game,c={};let fl=0,crit=[];for(let sd=1;sd<=80&&fl<20;sd++)for(let f=3;f<=30&&fl<20;f++){if(!G.icyAt(sd,f))continue;fl++;G.manual=true;G.setSeed(sd);G.startLevel(f-1,{hearts:5,coins:0});G.state().enemies.forEach(e=>{c[e.type]=(c[e.type]||0)+1;});}
+    return {fl,c,pool:G.poolFor?G.poolFor(9):null};});
+  const allowed=['snowman','fscreamer','icewiz','icespike','knight'];
+  check('M1.72 Icy Prison floors only have ice monsters (Snowmen, Frozen Screamers, the Ice Wizard; the Treasure Knight still visits)',r.fl>=10&&Object.keys(r.c).every(t=>allowed.includes(t))&&r.c.snowman>0&&r.c.fscreamer>0,JSON.stringify(r));
+  await ctx.close();
+}
+
 async function m171Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m171'});
   const art=await G(page,()=>{const G=__game,sig=[];for(let i=0;i<4;i++)sig.push(G.frameSig('fscreamer',i));return {st:G.assetState().fscreamer,sig:new Set(sig).size,m:G.mobs.fscreamer};});
@@ -2845,6 +2855,7 @@ if(V168&&want('m168')){ await m168Tests(); }
 if(V169&&want('m169')){ await m169Tests(); }
 if(V170&&want('m170')){ await m170Tests(); }
 if(V171&&want('m171')){ await m171Tests(); }
+if(V172&&want('m172')){ await m172Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 
@@ -3878,9 +3889,9 @@ async function m15Tests(){
     await G(page,()=>{__game.startLevel(0);__game.clearMobs();__game.freeze=true;__game.teleport(6.6,3.5,0);__game.spawn('screamer',8.8,3.0,false);__game.spawn('screamer',10.6,4.3,false,['beefy','ranged']);__game.advance(0.05);});
     await page.screenshot({path:`${SHOTS}/m15_screamer_in_game_1280x800.png`});
     // balance across many seeds
-    const bal=await G(page,()=>{const N=400,sum={},spr2=[],spr3=[],cl5=[];for(let l=2;l<=8;l++)sum[l]=0;for(let k=0;k<N;k++){const seed=5000+k*7;for(let l=2;l<=8;l++){const r=__game.levelHp(seed,l);sum[l]+=r.hp/N;if(l===2)spr2.push(r.types.springle||0);if(l===3)spr3.push(r.types.springle||0);if(l===5)cl5.push(r.types.clunk||0);}}
-      return {avg:sum,spr2:spr2.filter(x=>x>0).length,spr3:spr3.filter(x=>x>0).length,cl5:cl5.filter(x=>x>0).length,N};});
-    check(`M1.5 SPRINGLE first appears on level 3 (${bal.N} seeds: never on L2, always on L3)`,bal.spr2===0&&bal.spr3===bal.N,`L2 maps with springle ${bal.spr2}, L3 ${bal.spr3}/${bal.N}`);
+    const bal=await G(page,()=>{const N=400,sum={},spr2=[],spr3=[],cl5=[];for(let l=2;l<=8;l++)sum[l]=0;for(let k=0;k<N;k++){const seed=5000+k*7;for(let l=2;l<=8;l++){const r=__game.levelHp(seed,l);sum[l]+=r.hp/N;if(l===2)spr2.push(r.types.springle||0);if(l===3&&!(__game.icyAt&&__game.icyAt(seed,3)))spr3.push(r.types.springle||0); /* M1.72 icy floors only have ice monsters */if(l===5)cl5.push(r.types.clunk||0);}}
+      return {avg:sum,spr2:spr2.filter(x=>x>0).length,spr3:spr3.filter(x=>x>0).length,n3:spr3.length,cl5:cl5.filter(x=>x>0).length,N};});
+    check(`M1.5 SPRINGLE first appears on level 3 (${bal.N} seeds: never on L2, always on L3)`,bal.spr2===0&&bal.spr3===bal.n3,`L2 maps with springle ${bal.spr2}, L3 ${bal.spr3}/${bal.N}`);
     check(`M1.5 level 5 total mob HP is not lower than level 4 (mean of ${bal.N} seeds), L5 always has a Clunkbot`,bal.avg[5]>=bal.avg[4]&&bal.cl5===bal.N,Object.entries(bal.avg).map(([l,v])=>`L${l} ${v.toFixed(1)}`).join(', '));
     // minimap colours (retired in M1.64: every monster is the same red X)
     if(!V164){
@@ -4091,7 +4102,7 @@ async function m16Tests(){
   // ---------- balance: L3 tougher than L2; two-modifier phase-in ----------
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m16-bal'});
-    const b=await G(page,()=>{const N=400,B=50,l2=[],l3=[];let k3=0,n3=new Set();for(let k=0;k<N;k++){const seed=9000+k*13;const a=__game.levelHp(seed,2),c=__game.levelHp(seed,3);l2.push(a.hp);l3.push(c.hp);if((c.types.kettle||0)>0)k3++;n3.add(c.n);}
+    const b=await G(page,()=>{const N=400,B=50,l2=[],l3=[];let k3=0,n3=new Set();for(let k=0;k<N;k++){const seed=9000+k*13;const a=__game.levelHp(seed,2),c=__game.levelHp(seed,3);l2.push(a.hp);l3.push(c.hp);if((c.types.kettle||0)>0||(__game.icyAt&&__game.icyAt(seed,3)))k3++;n3.add(c.n);}
       const mean=a=>a.reduce((x,y)=>x+y,0)/a.length,batches=[];for(let i=0;i<N;i+=B)batches.push([mean(l2.slice(i,i+B)),mean(l3.slice(i,i+B))]);
       return {N,m2:mean(l2),m3:mean(l3),k3,n3:[...n3],batches,gt:l3.filter((v,i)=>v>l2[i]).length,ties:l3.filter((v,i)=>v===l2[i]).length};});
     check(V17?`L3 has a guaranteed KETTLEGRUMP and at least 8 mobs (${b.N} seeds; M1.7 floor may add one)`:`L3 has a guaranteed KETTLEGRUMP and 8 mobs (${b.N} seeds)`,b.k3===b.N&&(V17?b.n3.every(n=>n>=8):b.n3.length===1&&b.n3[0]===8),`kettle on ${b.k3}/${b.N}, mob counts ${b.n3}`);
@@ -4264,13 +4275,13 @@ c.save('${SHOTS}/m17_ranged_colour_on_brick.png')`]);}catch(e){consoleProblems.p
   // ---------- L3 per-seed floor ----------
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m17-l3'});
-    const b=await G(page,()=>{const N=1000,rows=[];let fb=0,fe=0,sw=0,ad=0,tie=0,ns={};for(let k=0;k<N;k++){const s=k<400?1+k:20000+k*7;const a=__game.levelEff(s,2),c=__game.levelEff(s,3);if(c.base<a.base)fb++;if(c.eff<a.eff)fe++;if(c.base===a.base)tie++;if(c.swaps)sw++;if(c.adds)ad++;ns[c.n]=(ns[c.n]||0)+1;rows.push([s,a.base,a.eff,c.base,c.eff,c.swaps,c.adds]);}
-      const m=i=>rows.reduce((x,r)=>x+r[i],0)/N,mn=i=>Math.min(...rows.map(r=>r[i]-r[i-2]));return {N,fb,fe,tie,sw,ad,ns,mean:{l2b:m(1),l2e:m(2),l3b:m(3),l3e:m(4)},minMargin:{base:mn(3),eff:mn(4)},rows};});
+    const b=await G(page,()=>{const N=1000,rows=[];let fb=0,fe=0,sw=0,ad=0,tie=0,ns={};for(let k=0;k<N;k++){const s=k<400?1+k:20000+k*7;const a=__game.levelEff(s,2),c=__game.levelEff(s,3);if(__game.icyAt&&__game.icyAt(s,3))continue; /* M1.72 an icy L3 has its own (harder) mix */if(c.base<a.base)fb++;if(c.eff<a.eff)fe++;if(c.base===a.base)tie++;if(c.swaps)sw++;if(c.adds)ad++;ns[c.n]=(ns[c.n]||0)+1;rows.push([s,a.base,a.eff,c.base,c.eff,c.swaps,c.adds]);}
+      const m=i=>rows.reduce((x,r)=>x+r[i],0)/rows.length,mn=i=>Math.min(...rows.map(r=>r[i]-r[i-2]));return {N,fb,fe,tie,sw,ad,ns,mean:{l2b:m(1),l2e:m(2),l3b:m(3),l3e:m(4)},minMargin:{base:mn(3),eff:mn(4)},rows};});
     fs.writeFileSync(`${OUT}/m17_l2_l3_per_seed.json`,JSON.stringify(b,null,1));
     check(`L3 is never easier than L2: total and effective mob HP >= L2 on every seed (${b.N} seeds, 0 failures)`,b.fb===0&&b.fe===0,`base failures ${b.fb}, effective ${b.fe}; mean base ${b.mean.l2b.toFixed(2)}→${b.mean.l3b.toFixed(2)}, effective ${b.mean.l2e.toFixed(2)}→${b.mean.l3e.toFixed(2)}; smallest margin base ${b.minMargin.base}, eff ${b.minMargin.eff}; floor swaps on ${b.sw} seeds, extra kettle on ${b.ad}; mob counts ${JSON.stringify(b.ns)}`);
     // the floor's numbers match the real level: startLevel totals equal levelEff, the start/feature guarantees hold, every mob is reachable and not in a wall
     const g=await G(page,()=>{const bad=[];for(let k=0;k<40;k++){const s=[1,2,3,208,4242][k%5]+k*101;__game.setSeed(s);__game.startLevel(2);const st=__game.state();const live=st.enemies.filter(e=>__game.mobs[e.type]&&!e.spawned); /* M1.12: a coin-door room can hold an extra mob */ /* M1.11: the Treasure Knight has its own HP rule */const base=live.reduce((x,e)=>x+__game.mobs[e.type].hp,0),eff=live.reduce((x,e)=>x+e.maxHp,0),le=__game.levelEff(s,3);
-        const types=new Set(live.map(e=>e.type));const eff13=__game.floorHp?live.reduce((x,e)=>{const b=__game.mobs[e.type].hp,ok=e.maxHp===(e.mods.includes('beefy')?Math.ceil(__game.floorHp(e.type,3)*2.5):__game.floorHp(e.type,3));return x+(ok?(e.mods.includes('beefy')?Math.ceil(b*2.5):b):-999);},0):eff; /* M1.13: +2 HP on floor 3; the base layout is still compared */if(base!==le.base||eff13!==le.eff)bad.push(`${s}: ${base}/${eff} vs ${le.base}/${le.eff}`);if(!types.has('kettle')||!types.has('springle')||!types.has('wisp'))bad.push(`${s}: types ${[...types]}`);if(live.some(e=>__game.solidAt(e.x,e.y)))bad.push(`${s}: mob in wall`);}return bad;});
+        const types=new Set(live.map(e=>e.type));const eff13=__game.floorHp?live.reduce((x,e)=>{const b=__game.mobs[e.type].hp,ok=e.maxHp===(e.mods.includes('beefy')?Math.ceil(__game.floorHp(e.type,3)*2.5):__game.floorHp(e.type,3));return x+(ok?(e.mods.includes('beefy')?Math.ceil(b*2.5):b):-999);},0):eff; /* M1.13: +2 HP on floor 3; the base layout is still compared */if(base!==le.base||eff13!==le.eff)bad.push(`${s}: ${base}/${eff} vs ${le.base}/${le.eff}`);if(!(__game.icyAt&&__game.icyAt(s,3))&&(!types.has('kettle')||!types.has('springle')||!types.has('wisp')))bad.push(`${s}: types ${[...types]}`);if(live.some(e=>__game.solidAt(e.x,e.y)))bad.push(`${s}: mob in wall`);}return bad;});
     check('L3 floor matches the level you actually play (40 seeds: totals equal, Kettlegrump/Springle/Hazewisp all present, no mob in a wall)',g.length===0,g.slice(0,4).join('; ')||'ok');
     const l8=await G(page,()=>{let s=0;for(let k=0;k<200;k++)s+=__game.levelEff(5000+k*7,8).eff;return s/200;});
     check('L8 untouched by the floor (B3 not approved): L8 never uses the floor',await G(page,()=>{for(let k=0;k<200;k++){const r=__game.levelEff(5000+k*7,8);if(r.swaps||r.adds)return false;}return true;}),`L8 mean effective HP ${l8.toFixed(1)}`);
@@ -4954,7 +4965,7 @@ async function m19Tests(){
   // ---- 9. Rattlebone skeleton
   {
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m19-skel'});
-    const sp=await G(page,()=>{let early=0,l6=0,n6=0,deep=0,nd=0;for(let sd=1;sd<=150;sd++){for(let f=2;f<=5;f++)if(__game.genMap(sd,f).map.join('').includes('s'))early++;n6++;if(__game.genMap(sd,6).map.join('').includes('s'))l6++;for(const f of [9,15]){nd++;if(__game.genMap(sd,f).map.join('').includes('s'))deep++;}}return {early,l6,n6,deep,nd,M:__game.mobs.skeleton};});
+    const sp=await G(page,()=>{let early=0,l6=0,n6=0,deep=0,nd=0;for(let sd=1;sd<=150;sd++){for(let f=2;f<=5;f++)if(__game.genMap(sd,f).map.join('').includes('s'))early++;if(!(__game.icyAt&&__game.icyAt(sd,6))){n6++;if(__game.genMap(sd,6).map.join('').includes('s'))l6++;}for(const f of [9,15]){nd++;if(__game.genMap(sd,f).map.join('').includes('s'))deep++;}}return {early,l6,n6,deep,nd,M:__game.mobs.skeleton};});
     check('M1.9 RATTLEBONE first appears on floor 6 (never on 2-5, on every floor 6, common deeper), hp 4, walks',sp.early===0&&sp.l6===sp.n6&&sp.deep>sp.nd*.6&&sp.M.hp===4&&sp.M.name==='RATTLEBONE'&&!sp.M.fly,JSON.stringify({early:sp.early,l6:sp.l6,deep:sp.deep+'/'+sp.nd}));
     const k=await G(page,()=>{__game.manual=true;__game.setSeed(777);__game.startLevel(0);__game.clearMobs();__game.freeze=true;__game.setRun({kills:0,elites:0,coins:0,deepest:1});const i=__game.spawn('skeleton',8.6,3.5,false);__game.damageMob(i,4);const s1=__game.state();const e1=s1.enemies[i];
       __game.advance(2.9);const told0=__game.state().enemies[i].told;__game.advance(0.3);const e2=__game.state().enemies[i];__game.advance(1.4);const e3=__game.state().enemies[i];return {st1:e1.state,kills1:s1.run.kills,told0,told:e2.told,st2:e2.state,st3:e3.state,hp3:e3.hp,reforms:e3.reforms,kills3:__game.state().run.kills};});

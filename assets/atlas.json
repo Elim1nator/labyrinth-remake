@@ -116,7 +116,9 @@
         "spirit",
         "musicbox",
         "jailer",
-        "wand"
+        "wand",
+        "snowball",
+        "ferryman"
       ]
     },
     "mods": {
@@ -397,9 +399,21 @@
       "frames": 1,
       "k": 1
     },
-    "shot_snowball": { "file": "boss/shot_snowball.png", "frames": 1, "k": 1 },
-    "shot_iceorb": { "file": "boss/shot_iceorb.png", "frames": 1, "k": 1 },
-    "shot_icebig": { "file": "boss/shot_icebig.png", "frames": 1, "k": 1 },
+    "shot_snowball": {
+      "file": "boss/shot_snowball.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_iceorb": {
+      "file": "boss/shot_iceorb.png",
+      "frames": 1,
+      "k": 1
+    },
+    "shot_icebig": {
+      "file": "boss/shot_icebig.png",
+      "frames": 1,
+      "k": 1
+    },
     "shot_mortar": {
       "file": "boss/shot_mortar.png",
       "frames": 1,
@@ -489,6 +503,16 @@
       "file": "boss/shot_potion.png",
       "frames": 1,
       "k": 1
+    },
+    "hand_snow": {
+      "file": "hand_snow.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "snowball": {
+      "file": "snowball.png",
+      "frames": 1,
+      "k": 1.5
     }
   }
 }

@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.65: Rafter Doll hits, Music Box save, and follow-up fixes
+- The Rafter Doll is still drawn at half a normal mob's size, but its balloon hit height is now at least 0.58, so a throw at level aim (pitch 0) hits it at mid range. Its bite still connects. A shield block stops the Rust as well as the heart.
+- Using the Music Box is saved: CONTINUE restores the open doors (including locked and coin doors), the cracked wall, and the tune. Jumping to the same floor with the cheat console resets the music so the game no longer freezes (`TypeError` in `musicTick`). A coin door opened by the box now grants the reward that was in its room.
+- All test groups pass.
+- QA build `m1.65-qa` (debug hook on).
+
 ## M1.64: no per-monster map colours
 - Removed the per-type map colour (`dot`) from every regular monster. In play every monster has been the same red X on the minimap and full map since M1.29, so the colours only fed the debug map preview (now the same red) and two old colour-distance tests (retired from this build on).
 - All test groups pass.

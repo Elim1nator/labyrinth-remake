@@ -61,7 +61,8 @@ on the inspiration are kept out of this repository.
 | M1.61 | done | Gamepad LB opens the item screen. |
 | M1.62 | done | Timber Attic: the Music Box and the Rafter Doll. |
 | M1.63 | done | The Weeping Gargoyle. |
-| M1.64 | done | Per-monster map colours removed (all the same red X). Current release is M1.64. |
+| M1.65 | done | Playtest follow-up: the Rafter Doll is hittable at level aim; Music Box save, jump reset, shield, coin-door reward. Current release. |
+| M1.64 | done | Per-monster map colours removed (all the same red X). |
 | M1.59 | done | The Spirit Slate and the item screen (I). |
 | Next | planned | More weapon families, further polish |
 

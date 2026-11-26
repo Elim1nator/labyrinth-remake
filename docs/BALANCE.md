@@ -318,6 +318,9 @@ The Rafter Doll has 5 base HP (`5 + (L-1)` like other regular mobs), speed 2.3, 
 
 The Music Box is a use-item: it plays an eerie, slightly detuned music-box melody for the rest of the level (WebAudio sine bells a few cents sharp and flat) and permanently opens every door on that floor, including locked and coin doors and the hidden cracked wall. It is used up. It only appears on floors whose theme label says Timber (Timber Attic). Every drop source (normal loot, elite drops, coin doors, secret rooms, shrines, the slot machine, boss loot and Old Murkle's shop) rerolls it to another use-item on any other theme. A Music Box you already hold still works on any floor. On Timber floors it is uncommon (about a third the weight of other use-items) and at most one is placed per floor.
 
+From M1.65 the doll keeps its half-size sprite, but balloon hit height is at least 0.58 (`DOLL.hitH`) so a level-aimed throw lands at mid range (the scaled 0.31 height sat under the balloon). Bite reach is unchanged (0.52). A shield block skips the Rust as well as the damage. The Music Box effect (open doors, cracked wall, tune) is written into the floor save and restored on CONTINUE. Jumping to the same floor resets the music. Opening a coin door with the box grants the item that was in that room (the same run item, power-up, piggy bank or bag you would have picked up inside).
+
+
 ## Weeping Gargoyle (M1.63)
 - Statue: 10% of rooms with 40+ cells (not the start, shop, arena or pit room), centred. Separate RNG, so other floor layouts are unchanged.
 - Stone Keep: each statue in a monster room is alive 50% of the time; each other regular monster (not featured, theme, boss or Treasure Knight) becomes a gargoyle 10% of the time. 6 base HP (scales), wake 3 cells with line of sight, sleep past 8 cells, bursts of 3 Screamer rings 0.3 s apart, 2.4-3.4 s recharge.

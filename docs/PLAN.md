@@ -67,7 +67,8 @@ on the inspiration are kept out of this repository.
 | M1.68 | done | The Icy Prison floor. |
 | M1.69 | done | The Ice Wizard and the Frozen Wand. |
 | M1.59 | done | The Spirit Slate and the item screen (I). |
-| M1.70 | done | The Snowman (Icy Prison). Current release is M1.70. |
+| M1.70 | done | The Snowman (Icy Prison). |
+| M1.71 | done | The Frozen Screamer (Icy Prison); smaller sprite sheets. Current release is M1.71. |
 | Next | planned | More weapon families, further polish |
 
 ## Risks we watch
@@ -75,5 +76,5 @@ on the inspiration are kept out of this repository.
 - Staying clearly original (no borrowed names, art, sound or data).
 - Phone performance and touch feel.
 - iOS quirks: audio unlock, fullscreen, gamepad.
-- File size: no cap from M1.69 (2 MB from M1.47, 1 MB from M1.21) - keep new art as small as possible; the M1.70 release build is about 1.9 MB.
+- File size: no cap from M1.69 (2 MB from M1.47, 1 MB from M1.21) - keep new art as small as possible; the M1.71 release build is about 1.8 MB.
 - Keeping the slot machine coin-only with printed odds.

@@ -47,6 +47,7 @@ const V159=atLeast('1.59'); // M1.59+: the Spirit Slate (Slate Halls) and the it
 const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
+const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
 const V169=atLeast('1.69'); // M1.69+: the Ice Wizard, his ice spikes and the Frozen Wand
 const V168=atLeast('1.68'); // M1.68+: the Icy Prison (3 more wall tiles, 23 in all)
@@ -1751,6 +1752,23 @@ async function m158Tests(){
 
 if(V157&&want('m157')){ await m157Tests(); }
 
+async function m171Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m171'});
+  const art=await G(page,()=>{const G=__game,sig=[];for(let i=0;i<4;i++)sig.push(G.frameSig('fscreamer',i));return {st:G.assetState().fscreamer,sig:new Set(sig).size,m:G.mobs.fscreamer};});
+  check('M1.71 the Frozen Screamer art (4 flap frames) is packed',art.st==='png'&&art.sig===4&&art.m&&art.m.name==='FROZEN SCREAMER',JSON.stringify(art));
+  const gen=await G(page,()=>{const G=__game;let icy=0,ok=0,other=0,first=null;
+    for(let sd=1;sd<=60&&icy<20;sd++)for(let f=3;f<=24;f++){if(f%5===0)continue;const n=[...G.genMap(sd,f).map.join('')].filter(c=>c==='l').length;if(G.icyAt(sd,f)){icy++;if(n>=1)ok++;if(!first)first={sd,f};}else other+=n;}
+    return {icy,ok,other,first};});
+  check('M1.71 Frozen Screamers only appear on Icy Prison floors (at least one each)',gen.icy>0&&gen.ok===gen.icy&&gen.other===0,JSON.stringify(gen));
+  const r=await G(page,(k)=>{const G=__game;G.manual=true;G.freeze=true;G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});G.clearMobs();const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){let ok=true;for(let q=0;q<6;q++)if(G.solidAt(x+q+.5,y+.5))ok=false;if(ok)spot={x:x+.5,y:y+.5};}
+    G.teleport(spot.x,spot.y,0);G.setHearts(5);const i=G.spawn('fscreamer',spot.x+.4,spot.y,true,[]);G.freeze=false;let h0=G.state().player.hearts,h=h0;for(let t=0;t<40&&h===h0;t++){G.placeEnemy(i,spot.x+.4,spot.y);G.advance(.05);h=G.state().player.hearts;}
+    const bite=h0-h;G.clearMobs();G.setHearts(5);G.teleport(spot.x,spot.y,0);const j=G.spawn('fscreamer',spot.x+4,spot.y,true,[]);let shotDmg=0;for(let t=0;t<120&&!shotDmg;t++){G.placeEnemy(j,spot.x+4,spot.y);G.advance(.05);G.state().eshots.forEach(q=>{if(q.from==='fscreamer')shotDmg=q.dmg||1;});}
+    G.damageMob(j,20);G.advance(.4);const live=G.state().enemies.filter(e=>!e.gone&&e.state!=='dead').map(e=>e.type);return {bite,shotDmg,live};},gen.first);
+  check('M1.71 a Frozen Screamer does +1 damage (bite and sonic ring) and shatters into a regular Screamer when it dies',r.bite===2&&r.shotDmg===2&&r.live.includes('screamer')&&!r.live.includes('fscreamer'),JSON.stringify(r));
+  await ctx.close();
+}
+
 async function m170Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m170'});
   const art=await G(page,()=>{const G=__game,sig=[];for(let i=0;i<3;i++)sig.push(G.frameSig('snowman',i));return {st:G.assetState().snowman,ball:G.assetState().shot_snowball,sig:new Set(sig).size,m:G.mobs.snowman};});
@@ -2826,6 +2844,7 @@ async function m166Tests(){
 if(V168&&want('m168')){ await m168Tests(); }
 if(V169&&want('m169')){ await m169Tests(); }
 if(V170&&want('m170')){ await m170Tests(); }
+if(V171&&want('m171')){ await m171Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 
@@ -3338,7 +3357,7 @@ async function m13Tests(){
     check('M1.3 sprites redrawn with more pixels (hand >= 69x60, Screamer >= 95 px wide)',r.hand.w>=69&&r.hand.h>=60&&r.scr.w>=95,`hand ${r.hand.w}x${r.hand.h}, screamer ${r.scr.w}x${r.scr.h}`);
     const mobs=await G(page,()=>__game.mobs);
     const types=Object.keys(mobs);
-    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V163?['gargoyle']:[]),...(V162?['rafterdoll']:[]),...(V165?['collector']:[]),...(V170?['snowman']:[])].sort()),types.join(','));
+    check(V19?'M1.3/M1.9 seven enemy types: the Screamer, five M1.3 mobs and the M1.9 Rattlebone':'M1.3 six enemy types: the Screamer plus five new mobs',JSON.stringify(types.sort())===JSON.stringify([...ALL,...(V19?['skeleton']:[]),...(V147?['hexeye']:[]),...(V152?['lichen']:[]),...(V153?['mortar']:[]),...(V157?['bather','slickman']:[]),...(V163?['gargoyle']:[]),...(V162?['rafterdoll']:[]),...(V165?['collector']:[]),...(V170?['snowman']:[]),...(V171?['fscreamer']:[])].sort()),types.join(','));
     const hp=types.map(t=>mobs[t].hp),sp=types.filter(t=>t!=='gargoyle').map(t=>mobs[t].speed) /* M1.62: the gargoyle never moves */,vo=types.map(t=>mobs[t].voice),nm=types.map(t=>mobs[t].name),hpTank=types.filter(t=>t!=='slickman').map(t=>mobs[t].hp);
     check('M1.3 every mob has its own HP, speed, sound and name',new Set(hp).size>=(V19?6:6)&&new Set(sp).size===sp.length&&new Set(vo).size===types.length&&new Set(nm).size===types.length&&nm.every(n=>n&&n.length>2),types.map(t=>`${mobs[t].name}: hp ${mobs[t].hp}, speed ${mobs[t].speed}, ${mobs[t].voice}`).join('; '));
     check('M1.3 Clunkbot is the slowest and toughest, Zapfly the fastest and frailest',mobs.clunk.speed===Math.min(...sp)&&mobs.clunk.hp===Math.max(...hpTank)&&mobs.zapfly.speed===Math.max(...sp)&&mobs.zapfly.hp===Math.min(...hp));
@@ -3630,7 +3649,7 @@ async function m14Tests(){
     const lv=await G(page,()=>{const run=()=>{__game.setSeed(31337);__game.startLevel(7);const s=__game.state();return {sig:s.enemies.map(e=>e.type+':'+e.mods.join('+')).join(' '),n:s.enemies.filter(e=>e.mods.length).length};};const a=run(),b=run();__game.startLevel(0);const t=__game.state();return {a,b,tut:t.enemies.filter(e=>e.mods.length).length};});
     check('M1.4 elite rolls are deterministic per seed; tutorial has no elites',lv.a.sig===lv.b.sig&&lv.a.n>0&&lv.tut===0,`floor 8 seed 31337: ${lv.a.n} elites; tutorial ${lv.tut}`);
     // RANGED: each mob gets its own projectile, telegraphed first
-    const kinds={kettle:'steam',zapfly:'zap',clunk:'laser',screamer:'sonic',wisp:'wisp',springle:'fluff',bigspider:'web',...(V153?{mortar:'mortar'}:{}),...(V170?{snowman:'snowball'}:{})} /* M1.12: brood spiders spit webs */;
+    const kinds={kettle:'steam',zapfly:'zap',clunk:'laser',screamer:'sonic',wisp:'wisp',springle:'fluff',bigspider:'web',...(V153?{mortar:'mortar'}:{}),...(V170?{snowman:'snowball'}:{}),...(V171?{fscreamer:'sonic'}:{})} /* M1.12: brood spiders spit webs */;
     const rr=await G(page,(FR)=>{const FRESH=eval(FR);const out={};for(const t of Object.keys(__game.ranged)){FRESH();__game.teleport(7.5,3.5,0);__game.spawn(t,13.5,3.5,true,['ranged']);let tele=-1,fire=-1,kind=null,still=true,lastX=null;const f0=__game.state().stats.eshotsFired;
         for(let i=0;i<240;i++){if(!(__game.state().enemies[0].tele>0))__game.placeEnemy(0,13.5,3.5); /* hold range so melee/charges can't pre-empt the shot */const s=__game.advance(0.05),e=s.enemies[0];if(e.tele>0&&tele<0)tele=i;if(tele>=0&&fire<0&&e.tele>0){if(lastX!==null&&t!=='zapfly'&&Math.abs(e.x-lastX)>1e-6)still=false;lastX=e.x;}
           if(s.stats.eshotsFired>f0&&fire<0){fire=i;kind=s.eshots[0]&&s.eshots[0].kind;break;}}

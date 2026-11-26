@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.71: the Frozen Screamer
+- New monster, **the Frozen Screamer** (Icy Prison floors only: featured and guaranteed one per floor, also in the pool; 4 base HP, speed 1.45): a Screamer encased in ice (4 flap frames from the supplied sheet, `assets/mobs/fscreamer.png`). It flies and screams like a Screamer and fires the same sonic rings, but its bite and its rings do **+1 damage** (2 hearts). When it dies the ice **shatters** (small blue burst) and a **regular Screamer** breaks free and keeps fighting; the coin drop waits for that one.
+- Size: the recent sprite sheets (Ice Wizard, ice spike, Snowman, Weeping Gargoyle, Debt Collector, Mortared Man and the new Frozen Screamer) are saved as palette PNGs - same look, about 140 KB less.
+- All test groups pass.
+- QA build `m1.71-qa` (debug hook on).
+
 ## M1.70: the Snowman
 - New monster, **the Snowman** (Icy Prison floors only: featured, at least 1, 2 from floor 5; 4 base HP, speed 1.05): an angry snowman from the supplied 3-frame sheet (`assets/mobs/snowman.png`). Frame 1 is idle/walk and he bobs up and down as he moves; frame 2 winds up a snowball (0.45 s) and frame 3 throws it (`assets/boss/shot_snowball.png`, 1 heart). Like the Screamer he always throws (every ~2.7 s when you are 1.4-8 cells away and in sight), and he bites if you get close. Tuning: `RANGED.snowman`.
 - All test groups pass.

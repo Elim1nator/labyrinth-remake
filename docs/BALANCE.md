@@ -349,3 +349,6 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 
 ## Snowman (M1.70)
 - Icy Prison only (featured + pool; guaranteed 1, 2 from floor 5). 4 base HP, speed 1.05. Natural ranged like the Screamer: snowball speed 6, 1 heart, 0.45 s wind-up, cooldown 1.9 x 1.4 s; normal contact bite.
+
+## Frozen Screamer (M1.71)
+- Icy Prison only (featured, guaranteed 1, pool). 4 base HP, speed 1.45, flies; natural sonic rings like the Screamer (2 hearts), bite 2 hearts. On death: a regular Screamer (scaled to the floor) spawns where it was; the Frozen Screamer itself drops nothing.

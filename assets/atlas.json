@@ -187,6 +187,11 @@
       "frames": 3,
       "k": 1.5
     },
+    "fscreamer": {
+      "file": "mobs/fscreamer.png",
+      "frames": 4,
+      "k": 1.5
+    },
     "snowman": {
       "file": "mobs/snowman.png",
       "frames": 3,

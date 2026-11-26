@@ -93,6 +93,7 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 | Wax Wings | float over pits | 1 |
 | Ice Cube | balloons chill monsters (slower for 1.5 s) | 1 |
 | Rubber Boots | webs, frost, goo, Lichen Face spores and Bather puddles can't touch you | 1 |
+| Jailer's Eye | fences open like doors; Stone Keep only, rare (M1.66) | 1 |
 
 - **Balloon colours** are run items too, and they stack: every colour you own is on every balloon
   (the HUD balloon box shows a dot per colour).
@@ -142,6 +143,8 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **The Bather** (M1.57) slowly chases you on Tiled Baths floors (4 HP, marble statue art; at least one per Baths floor, two from floor 5) and leaves slick, pool-water-blue damaging puddles (flyers and Rubber Boots ignore them). **Plunger** opens a black hole at your feet and drops you to the next floor, then is used up (blocked on a sealed boss floor or the last floor). It only appears as loot or in the shop on floors labeled Baths; a Plunger you already hold still works on any floor.
 - **The Slick Man** (M1.57) lumbers toward you on Slate Halls floors (10 HP; at least one per Slate floor, two from floor 5). It reflects about 30% of your balloons back at you, and while it is within 10 cells the fog thickens to 5 blocks no matter what sight items you have.
 - **The Rafter Doll** (M1.62) is a small, fast cracked porcelain doll on Timber Attic floors (5 HP, half a normal mob's size; at least one per Timber floor, two from floor 5). It dashes in, bites, and runs away. The bite Rusts you for 15 s: your throws are slower and don't go far. **Music Box** plays an eerie tune for the rest of the level and permanently opens every door, including locked doors and hidden walls, then is used up. CONTINUE keeps the doors open and the tune; a coin door opened this way still gives its room reward. It only appears as loot or in the shop on Timber Attic floors; a Music Box you already hold still works on any floor.
+- **The Jailer's Eye** (M1.66) is a rare Stone Keep run item (at most one per floor). While you hold it, iron fences open like doors on walk or USE, stay open, and stay open on CONTINUE. It does not appear on other themes.
+
 
 ## Treasure Knight, masks and items (M1.11)
 
@@ -167,7 +170,7 @@ Every 5th floor a boss guards the portal: the Screamer King (5, 20, 35, ...; M1.
 and Coghoot (15, 30, ...). The band says "BOSS FLOOR!" at the start. The portal is barred and
 dim (also on both maps) until the boss falls; the exit door itself needs no key. The boss stays
 in its arena room and wakes when you walk in. Opening its door plays a 5-second cut scene: you are pulled
-inside, every door slams and locks until the boss falls, and "VS <BOSS>" comes up. While it fights, its name and a health bar show
+inside, every door slams and locks until the boss falls, and "VS <BOSS>" comes up. From M1.66 the camera keeps a clear line of sight to the boss, the fog lifts for the intro, and the previous fog is restored when the fight starts. While it fights, its name and a health bar show
 in the message band. Once the cut scene ends the barred portal vanishes (M1.26). Beat the boss for coins, a run item (a heart once those are maxed) and a use-item,
 and the open portal appears (a few cells away if you're standing on its spot).
 CONTINUE on a boss floor restarts the fight.
@@ -188,7 +191,10 @@ start scores 1000 per floor past the floor you started on, plus kills, elites an
   letters plus A/B on a gamepad, or tap the box on touch. The name box always starts empty.
 - The HIGH SCORES page (also on the title) uses the same-origin API
   ([research/highscore-api.md](research/highscore-api.md)); otherwise a LOCAL top 10
-  (`labyrinthRemake.localScores.v1`).
+  (`labyrinthRemake.localScores.v1`). From M1.66 each posted score includes this build's
+  version. A toggle on the board (tap the tabs, left/right / A/D / Q/E / Tab, or the
+  shoulder buttons / d-pad) switches All versions and This version; old rows with no
+  version count as unknown. The tabs stay in the panel, not behind the touch buttons.
 
 ## Revive (M1.18)
 

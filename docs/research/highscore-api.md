@@ -18,20 +18,25 @@ There is no CORS: the API is not meant to be called from other origins.
 ```json
 {"scores": [
   {"rank": 1, "name": "ACE", "score": 12345, "floor": 9, "seed": "abc123",
-   "created_at": "2026-11-21T14:00:00Z"}
+   "version": "M1.66", "created_at": "2026-11-21T14:00:00Z"}
 ]}
 ```
 
 Sorted by score (highest first), ties broken by earliest `created_at`. `created_at` is an
-ISO 8601 UTC timestamp.
+ISO 8601 UTC timestamp. `version` is optional on old rows (treat a missing value as
+unknown). From M1.66 the game requests `limit=50` so a “This version” filter still has
+enough rows, then shows the top 10 after filtering.
 
 ### `POST /api/labyrinth/scores`
 
 Body (`Content-Type: application/json`, at most 2 KB):
 
 ```json
-{"name": "ACE", "score": 12345, "floor": 9, "seed": "abc123"}
+{"name": "ACE", "score": 12345, "floor": 9, "seed": "abc123", "version": "M1.66"}
 ```
+
+From M1.66 the game always sends `version` (the build's release string). Older clients may
+omit it; the server should accept either form.
 
 Success: `201 {"ok": true, "id": 42, "rank": 7}`.
 
@@ -45,6 +50,7 @@ The server enforces these rules; the game checks them too before sending.
 | `score` | integer, 0 to 10,000,000, and at most `floor × 100,000` |
 | `floor` | integer, 1 to 10,000 |
 | `seed` | string, 1–32 characters; letters, digits, `_` `-` only |
+| `version` | optional string, at most 16 characters from `[A-Za-z0-9._-]`; the build id (e.g. `M1.66`). Omit or reject other characters. A missing value is unknown, not the current build |
 | body | JSON object, at most 2 KB |
 
 ## Errors
@@ -69,5 +75,7 @@ friendly "wait a minute, then try again" message and lets the player retry.
   fails), the game keeps a **local top 10** in `localStorage` under
   `labyrinthRemake.localScores.v1` and labels the board LOCAL.
 - The score formula never exceeds `floor × 100,000` (see [../BALANCE.md](../BALANCE.md)).
+- The board can toggle All versions vs This version, filtering the fetched list
+  client-side by `version`.
 - Automated tests never post to a live board; they use `tests/hs_stub.mjs`, a local
   implementation of this contract (including the rate limits) that binds to loopback only.

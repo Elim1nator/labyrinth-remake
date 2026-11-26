@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.66: Jailer's Eye, clear boss cut-scenes, coin-loot CONTINUE, shared high scores
+- The Jailer's Eye is a rare Stone Keep run item (weight 0.4, at most one per floor, about 8% of Stone Keep floors). While you hold it, iron fences open like doors and stay open, including after CONTINUE. It does not appear off that theme, and the slot machine does not award it.
+- Boss cut-scenes pick a camera with a clear line of sight to the boss (or skip walls between if no vantage exists), lift the fog so the boss is visible, then restore the exact previous fog, including Glasses and the Slick Man's clamp.
+- After the Music Box opens a coin door and you take the room's reward, CONTINUE no longer respawns that loot.
+- Every score POST to the relative `/api/labyrinth/scores` path includes `{name,score,floor,seed,version}`. The board can toggle All versions vs This version (old rows with no version are unknown). A 404, error, or unreachable API still shows the local top 10.
+- All test groups pass.
+- QA build `m1.66-qa` (debug hook on).
+
 ## M1.65: Rafter Doll hits, Music Box save, and follow-up fixes
 - The Rafter Doll is still drawn at half a normal mob's size, but its balloon hit height is now at least 0.58, so a throw at level aim (pitch 0) hits it at mid range. Its bite still connects. A shield block stops the Rust as well as the heart.
 - Using the Music Box is saved: CONTINUE restores the open doors (including locked and coin doors), the cracked wall, and the tune. Jumping to the same floor with the cheat console resets the music so the game no longer freezes (`TypeError` in `musicTick`). A coin door opened by the box now grants the reward that was in its room.

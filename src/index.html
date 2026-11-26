@@ -63,12 +63,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.66. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.67. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, art, sounds, levels) is original. Wall, monster, item and other
    world art is packed from PNG sheets in assets/. Sounds, music, the pixel font and some
    HUD or decoration sprites are still generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.66'; /* set by tools/release.mjs */
+var VERSION='M1.67'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=128,TK=TS/64; /* M1.51: wall tiles are 128x128; the effects painted on them are laid out on a 64-grid and scaled by TK */
 var SAVE_KEY='labyrinthRemake.save.v1',UNLOCK_KEY='labyrinthRemake.unlocks.v1'; /* M1.30: floors you can start on, kept across runs */
 var MAX_HEARTS=5;
@@ -916,15 +916,16 @@ function startLevel(idx,carry){
   var r=loadLevel(idx);G.levelIdx=idx;G.L=r.L;G.items=r.items;G.ents=r.ents;G.shots=[];G.parts=[];G.eshots=[];G.puddles=[];
   G.p={x:r.L.start.x,y:r.L.start.y,ang:r.L.def.ang,hearts:Math.max(1,Math.min(MAX_HEARTS+(carry.perm&&carry.perm.items?(carry.perm.items.heart|0):itemN('heart')),carry.hearts)),coins:carry.coins|0,keys:0,hurtT:0,inv:0,throwT:0,throwAnim:0,bob:0,moving:0,pitch:0,recenter:false,riseT:0,prevFrame:'idle',item:carry.item&&PU[carry.item]?carry.item:null,effect:null,goopT:0,slickT:0,slickVx:0,slickVy:0};G.hole=null;
   if(carry.perm)G.perm=permFrom(carry.perm);if(!G.perm)G.perm=permFrom({});if(!G.perm.items)G.perm.items={};var p9=G.p;p9.effects=[];p9.item2=carry.item2&&PU[carry.item2]&&G.perm.pack?carry.item2:null;p9.sel=carry.sel===1&&G.perm.pack?1:0;p9.ball=carry.ball&&BALLS[carry.ball]&&carry.ball!=='blue'&&itemN(carry.ball)?carry.ball:(ownedBalls().slice(-1)[0]||'blue');p9.shieldHits=0;p9.mirrorN=0;
-  G.ypuds=[];G.spores=[];G.veilMist=0;G.bolts=[];G.webs=[];G.pots=[];G.fires=[];G.flashT=0;p9.st={};G.slotForce=null;G.shopState=null;G.fellPit=false;G.boss=null;G.flareT=0;G.musicBox=false;musicStop();G.coinTaken=!!(carry&&carry.coinTaken===idx);G.dmgNums=[];G.splats=[];G.hudDmg=[];G.sealMsgT=0;G.intro=null;G.shake=0;G.trapFall=false;G.itemLockT=0;G.bombs=[];G.booms=[];G.cracks=[];G.rings=[];G.signs=[];G.halis=[];G.carcosaT=0;if(carry.secret===idx&&G.L.crack)openSecret(G.L.crack,false); /* M19: a broken secret wall stays open on CONTINUE */
+  G.ypuds=[];G.spores=[];G.veilMist=0;G.bolts=[];G.webs=[];G.pots=[];G.fires=[];G.flashT=0;p9.st={};G.slotForce=null;G.shopState=null;G.fellPit=false;G.boss=null;G.flareT=0;G.musicBox=false;musicStop();G.coinTaken=!!(carry&&carry.coinTaken===idx);G.coinPaid=!!(carry&&carry.coinPaid===idx);G.dmgNums=[];G.splats=[];G.hudDmg=[];G.sealMsgT=0;G.intro=null;G.shake=0;G.trapFall=false;G.itemLockT=0;G.bombs=[];G.booms=[];G.cracks=[];G.rings=[];G.signs=[];G.halis=[];G.carcosaT=0;if(carry.secret===idx&&G.L.crack)openSecret(G.L.crack,false); /* M19: a broken secret wall stays open on CONTINUE */
   G.stats={coins0:G.p.coins,coinsTotal:r.items.filter(function(i){return i.kind==='coin';}).length+r.ents.length,enemiesTotal:r.ents.length,defeated:0};
   G.stats.elites=rollLevelElites(idx+1);G.stats.powerups=placePowerups(idx);G.stats.knight=carry.knight===idx?null:spawnKnight(idx);G.stats.extras=addFloorExtras(idx);G.L.worms=spawnWorms(idx);if(G.L.lectern)placeScript(idx);G.nearUse=null;G.L.spiderLvl=pitLevel(permN('pit'));p9.confuseT=0;p9.script=false;G.skitT=6+Math.random()*6;G.bigT=12+Math.random()*8;G.faceT=0;p9.slowT=0;runItemsFloorStart(!carry.cont); /* M1.11: after the elite and power-up rolls, so those stay as they were */
   if(carry.musicBox)applyMusicBox({quiet:true,noGrant:true}); /* M1.65: CONTINUE keeps doors open and the tune */
   if(carry.fences&&(carry.level===idx||carry.cont))applyOpenFences(carry.fences); /* M1.66: opened fences stay open on CONTINUE */
+  if(G.coinPaid)applyPaidCoinDoors(); /* M1.67: a paid coin door stays open on CONTINUE */
   G.levelTime=0;G.mode='play';G.modeT=0;G.dist=null;G.distG=null;G.distT=0;VIEW.cur=viewDist(); /* M1.66: a new floor does not inherit the last floor's fog */
   if(carry.run)G.run={kills:carry.run.kills|0,elites:carry.run.elites|0,coins:carry.run.coins|0,deepest:Math.max(1,carry.run.deepest|0),cheated:!!carry.run.cheated,deaths:carry.run.deaths|0};if(!G.run)G.run=newRun();G.run.deepest=Math.max(G.run.deepest,Math.min(MAX_FLOOR,idx+1));
   G.slot={spins:0,anim:null,show:0,last:null};G.final=null;if(nameIn&&nameIn.className)closeName();
-  writeSave({v:1,knight:G.stats.knight===null&&carry.knight===idx?idx:undefined,level:idx,hearts:G.p.hearts,coins:G.p.coins,seed:G.seed,item:G.p.item,item2:G.p.item2,sel:G.p.sel,ball:G.p.ball,perm:permCopy(),secret:G.L.secretOpen?idx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?idx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
+  writeSave({v:1,knight:G.stats.knight===null&&carry.knight===idx?idx:undefined,level:idx,hearts:G.p.hearts,coins:G.p.coins,seed:G.seed,item:G.p.item,item2:G.p.item2,sel:G.p.sel,ball:G.p.ball,perm:permCopy(),secret:G.L.secretOpen?idx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?idx:undefined,coinPaid:G.coinPaid?idx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
   setMsg(idx===0?'FIND THE GOLD KEY, THEN THE EXIT!':(idx+1===TIER_FLOORS[texTier(idx+1)]&&idx>0&&texTier(idx+1)>0?'DEEPER! NEW WALLS: '+DEEP_THEMES[texTier(idx+1)-1].name:(G.L.def.boss?(G.L.bossType==='yellow'?'FIND THE PLAY SCRIPT. HIS LECTERN WAITS...':'BOSS FLOOR! '+bossName()+' GUARDS THE STAIRS'):'NEW MAZE! KEY FIRST, THEN THE EXIT.')),3.5);
   SFX.start();
 }
@@ -1495,7 +1496,7 @@ function addFloorExtras(idx){var L=G.L,floor=idx+1,out={};if(idx<1)return out;va
 function hasJailer(){return itemN('jailer')>0;} /* M1.66: the Jailer's Eye is a passive run item */
 function findUse(){var p=G.p,ca=Math.cos(p.ang),sa=Math.sin(p.ang);for(var d=.1;d<=1.45;d+=.05){var c=cellAt(Math.floor(p.x+ca*d),Math.floor(p.y+sa*d));if(!c||c.t===1)return null;if(c.t===3){if(hasJailer()&&((c.open||0)<.99||c.state==='closing'))return c;return null;}if(c.t===5||c.t===7||c.t===8||c.t===10)return c;if(c.t===2){if(c.locked||c.open<.99||c.state==='closing')return c;return null;}}return null;}
 function doUse(){var d=G.useTarget;if(!d){if(G.nearUse)nearUseDo(G.nearUse);return;}if(d.t===5){slotUse();return;}if(d.t===7){openShop();return;}if(d.t===8){shrineUse(d);return;}if(d.t===10){lecternUse(d);return;}
-  if(d.coin){if(G.p.coins>=d.coin){G.p.coins-=d.coin;setMsg('PAID '+d.coin+' COINS. THE DOOR CREAKS OPEN...',2.2);d.coin=0;d.locked=false;d.tex=5;d.state='opening';SFX.buy();SFX.door();stats.coinDoors++;}else{setMsg('THIS DOOR WANTS '+d.coin+' COINS',2.2);SFX.locked();}return;} /* M1.12 coin door */
+  if(d.coin){if(G.p.coins>=d.coin){G.p.coins-=d.coin;setMsg('PAID '+d.coin+' COINS. THE DOOR CREAKS OPEN...',2.2);d.coin=0;d.locked=false;d.tex=5;d.state='opening';SFX.buy();SFX.door();stats.coinDoors++;markCoinPaid();}else{setMsg('THIS DOOR WANTS '+d.coin+' COINS',2.2);SFX.locked();}return;} /* M1.12 coin door; M1.67: persist paid-open so CONTINUE cannot charge again */
   if(d.bossLock){setMsg('LOCKED UNTIL '+bossName()+' FALLS!',2.5);SFX.locked();return;}
   if(d.locked){if(G.p.keys>0){G.p.keys--;d.locked=false;d.tex=5;d.state='opening';setMsg('UNLOCKED!',2);SFX.unlock();SFX.door();}else{setMsg('LOCKED! FIND THE GOLD KEY.',2.5);SFX.locked();}return;}
   if(d.t===3){tryOpenFence(d);return;}
@@ -1514,7 +1515,7 @@ function applyMusicBox(opt){var quiet=opt&&opt.quiet;G.musicBox=true;
   musicBoxStart();}
 function openMusicBox(){applyMusicBox(null);
   G.shake=Math.max(G.shake||0,.12);setMsg('A TINNY TUNE. EVERY DOOR YIELDS!',2.5);stats.musicBoxUses=(stats.musicBoxUses|0)+1;
-  var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.musicBox=true;sv.item=G.p.item;sv.item2=G.p.item2;sv.sel=G.p.sel;if(G.L&&G.L.secretOpen)sv.secret=G.levelIdx;if(G.coinTaken)sv.coinTaken=G.levelIdx;writeSave(sv);}} /* M1.65: persist the open doors and tune on CONTINUE */
+  var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.musicBox=true;sv.item=G.p.item;sv.item2=G.p.item2;sv.sel=G.p.sel;if(G.L&&G.L.secretOpen)sv.secret=G.levelIdx;if(G.coinTaken)sv.coinTaken=G.levelIdx;if(G.coinPaid)sv.coinPaid=G.levelIdx;writeSave(sv);}} /* M1.65: persist the open doors and tune on CONTINUE */
 function tryOpenFence(c,opt){if(!c||c.t!==3||!hasJailer())return false;if(c.state==='opening'||c.state==='open'||(c.open||0)>=.99)return false;
   c.state='opening';c.held=true;c.open=c.open||0;if(!(opt&&opt.quiet)){SFX.door();setMsg('THE FENCE YIELDS!',2.2);}persistOpenFences();return true;}
 function bumpOpenFences(p,dx,dy,r){if(!hasJailer())return;var pts=[[p.x+dx-r,p.y-r],[p.x+dx+r,p.y-r],[p.x+dx-r,p.y+r],[p.x+dx+r,p.y+r],[p.x-r,p.y+dy-r],[p.x+r,p.y+dy-r],[p.x-r,p.y+dy+r],[p.x+r,p.y+dy+r]];
@@ -1523,6 +1524,8 @@ function openFenceList(){var o=[],L=G.L;if(!L||!L.fences)return o;L.fences.forEa
 function applyOpenFences(list){if(!list||!G.L||!G.L.fences)return;var want={};list.forEach(function(p){want[p[0]+','+p[1]]=1;});G.L.fences.forEach(function(d){if(!want[d.x+','+d.y])return;d.held=true;d.open=1;d.state='open';});}
 function persistOpenFences(){var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){var a=openFenceList();sv.fences=a.length?a:undefined;writeSave(sv);}}
 function markCoinTaken(){G.coinTaken=true;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinTaken=G.levelIdx;writeSave(sv);}} /* M1.66: claimed coin-room loot stays claimed on CONTINUE */
+function markCoinPaid(){G.coinPaid=true;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinPaid=G.levelIdx;writeSave(sv);}} /* M1.67: a paid coin door stays open and is not charged again on CONTINUE */
+function applyPaidCoinDoors(){if(!G.L||!G.L.doors)return;G.L.doors.forEach(function(d){if(!(d.coin>0))return;d.coin=0;d.locked=false;d.tex=5;d.held=true;d.open=1;d.state='open';});}
 function updateDoors(dt){G.L.doors.forEach(function(d){
   if(d.state==='opening'){d.open+=dt*1.8;if(d.open>=1){d.open=1;d.state='open';d.timer=4;}}
   else if(d.state==='open'){if(d.held||G.musicBox){d.open=1;}else{d.timer-=dt;if(d.timer<=0){if(cellOccupied(d))d.timer=.5;else{d.state='closing';SFX.door();}}}}
@@ -1731,7 +1734,7 @@ function reviveCost(){return REVIVE_COST*Math.max(1,(G.run&&G.run.deaths)|0);}
 function tryRevive(){if(G.mode!=='dead'||G.modeT<.4)return false;var p=G.p,c=reviveCost();if(p.coins<c){G.reviveMsg='YOU NEED '+c+' COINS';SFX.locked();return false;}
   p.coins-=c;p.hearts=maxHearts();p.inv=2;p.hurtT=0;if(G.fellPit){var sp=safeSpot(p.x,p.y);p.x=sp.x;p.y=sp.y;G.fellPit=false;}G.final=null;G.mode='play';G.modeT=0;resetInputs();
   G.eshots=[];G.puddles=[];G.halis=[];G.signs=[];G.splats=[];G.hudDmg=[];G.ents.forEach(function(e){if(!e.gone&&Math.hypot(e.x-p.x,e.y-p.y)<1.5&&!MOBS[e.type].boss)for(var k=0;k<10;k++)moveBody(e,(e.x-p.x||.1)*.08,(e.y-p.y||.1)*.08,.28,'g');});
-  writeSave({v:1,level:G.levelIdx,hearts:p.hearts,coins:p.coins,seed:G.seed,item:p.item,item2:p.item2,sel:p.sel,ball:p.ball,perm:permCopy(),secret:G.L.secretOpen?G.levelIdx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?G.levelIdx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
+  writeSave({v:1,level:G.levelIdx,hearts:p.hearts,coins:p.coins,seed:G.seed,item:p.item,item2:p.item2,sel:p.sel,ball:p.ball,perm:permCopy(),secret:G.L.secretOpen?G.levelIdx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?G.levelIdx:undefined,coinPaid:G.coinPaid?G.levelIdx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
   SFX.portalOpen();SFX.heart();sparkle(p.x,p.y,.5,'spark',20);setMsg('REVIVED! (-'+c+' COINS)',2.5);stats.revives++;if(G.lastInput==='kb')requestLock();return true;}
 function onRunOver(){var r=G.run||newRun();G.final={cheated:!!r.cheated,score:scoreOf(r),floor:Math.max(1,Math.min(MAX_FLOOR,r.deepest|0)),seed:String(G.seed),kills:r.kills|0,coins:r.coins|0};clearSave();}
 var NAME_CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _.-';
@@ -3014,7 +3017,7 @@ api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.s
 api.los=function(ax,ay,bx,by){return los(ax,ay,bx,by);};
 api.cam=function(){return {x:cam.x,y:cam.y,ang:cam.ang};};
 api.enemyRect=function(){return stats.enemyRect?{top:stats.enemyRect.top,bottom:stats.enemyRect.bottom,left:stats.enemyRect.left,right:stats.enemyRect.right,d:stats.enemyRect.d}:null;};
-api.coinTaken=function(){return !!G.coinTaken;};
+api.coinTaken=function(){return !!G.coinTaken;};api.coinPaid=function(){return !!G.coinPaid;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.status=function(){var o={};var p=G.p;if(p&&p.st)Object.keys(p.st).forEach(function(k){o[k]=+p.st[k].t.toFixed(2);});return o;};api.addStatus=function(k,t){addStatus(k,t);};api.infernalName=function(i){return infernalName(G.ents[i]);};api.inf=INF;api.layout9=LAYOUT;api.gen=GEN;api.genStats=function(seeds,floors){var o={keyBand:0,mobsEarly:0,mobsLate:0,heartsFar:0,hearts:0,floors:0,pathLen:0,minPath:1e9,maxPath:0,deadEnds:0,maxDeadEnds:0,stubs:0,braids:0,extra:0,pathLoops:0,attempts:0,treasure:0,tags:{},fallback:0};
   seeds.forEach(function(sd){floors.forEach(function(f){var d=genLevel(levelSeed(String(sd),f),f);if(d.fallback){o.fallback++;return;}var L=d.layout;o.floors++;o.pathLen+=L.pathLen;o.minPath=Math.min(o.minPath,L.pathLen);o.maxPath=Math.max(o.maxPath,L.pathLen);o.deadEnds+=L.deadEnds;o.maxDeadEnds=Math.max(o.maxDeadEnds,L.deadEnds);
@@ -3025,7 +3028,7 @@ api.layoutTime=function(wd,ht,seed){var c=genCfg(10,0);c.width=wd;c.height=ht;c.
     for(var y=0;y<H;y++)for(var x=0;x<Wd;x++){if(!op(x,y))continue;V++;var n=(op(x+1,y)?1:0)+(op(x-1,y)?1:0)+(op(x,y+1)?1:0)+(op(x,y-1)?1:0);if(op(x+1,y))E++;if(op(x,y+1))E++;if(n===1)dead.push([x,y]);}
     var md=0;dead.forEach(function(t){var len=0,px=-1,py=-1,cx=t[0],cy=t[1];while(len<200){var nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(q){var nx=cx+q[0],ny=cy+q[1];return op(nx,ny)&&!(nx===px&&ny===py);});var deg=nb.length+(px>=0?1:0);if(deg!==2&&len>0)break;if(!nb.length)break;px=cx;py=cy;cx+=nb[0][0];cy+=nb[0][1];len++;}md=Math.max(md,len);});
     o.floors++;o.deadEnds+=dead.length;o.maxDead=Math.max(o.maxDead,md);o.loops+=E-V+1;o.cells+=V;});});o.deadPerFloor=o.deadEnds/o.floors;o.loopsPerFloor=o.loops/o.floors;return o;};api.unlocks=function(){return loadUnlocks();};api.setUnlocks=function(o){saveUnlocks(o||{floors:[],last:1});G.startPicked=false;buildMenu();};api.startFloors=function(){return startFloors();};api.startFloor=function(){return G.startFloor||1;};api.cycleStart=function(d){cycleStart(d);};api.entSet=function(i,o){var e=G.ents[i];if(e)Object.keys(o).forEach(function(k){e[k]=o[k];});};api.clearBody=function(a,b,c,d,r){return clearBody(a,b,c,d,r);};api.keyHeld=function(c){return !!keys[c];};api.watchdog=function(){inputWatchdog();};api.hitWith=function(i,src){hitEnemy(G.ents[i],src||{dmg:1,ball:'blue',hits:[]});};api.infWorld=function(){return {bolts:G.bolts.length,webs:G.webs.length,pots:G.pots.length,fires:G.fires.length};};api.mounted=function(i){var e=G.ents[i];return e&&e.mount?G.ents.indexOf(e.mount):-1;};api.entInfo=function(i){var e=G.ents[i];return e?{type:e.type,hp:e.hp,maxHp:e.maxHp,state:e.state,gone:!!e.gone,stolen:e.stolen||null,usedLife:!!e.usedLife,x:e.x,y:e.y,child:!!e.child,flying:!!e.flying}:null;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.66-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.67-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

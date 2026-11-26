@@ -49,6 +49,7 @@ const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Sla
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
 const V165=atLeast('1.65'); // M1.65+: the Debt Collector (Old Vaults)
 const V166=atLeast('1.66'); // M1.66+: Jailer's Eye, clear boss cut-scenes, coin-loot CONTINUE, shared high scores
+const V167=atLeast('1.67'); // M1.67+: paid coin doors stay open on CONTINUE and are not charged again
 const V164=atLeast('1.64'); // M1.64+: monsters have no per-type map colour (all the same red X)
 const V163=atLeast('1.63'); // M1.63+: the Weeping Gargoyle
 const V161=atLeast('1.61'); // M1.61+: gamepad LB opens the item screen
@@ -2736,6 +2737,127 @@ async function m166Tests(){
 }
 
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
+if(V167&&want('m167')){ await m167Tests(); }
+
+async function m167Tests(){
+  const M167='/workspace/labyrinth-main/m167';
+  fs.mkdirSync(M167,{recursive:true});
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m167'});
+  const paid=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    function face(c){
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
+      for(const d of dirs){
+        const x=c.x+d[0],y=c.y+d[1];
+        if(typeof G.cellType==='function'?G.cellType(x,y)===0:!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);return true;}
+      }
+      return false;
+    }
+    function doorAt(c){return (G.doors()||[]).find(d=>d.x===c.x&&d.y===c.y)||null;}
+    // playtest repro is seed 9 L5; fall back to the first priced door we can face
+    const tries=[[9,5],[1,6],[1,5]];
+    let found=null;
+    for(const [sd,f] of tries){
+      G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:40,perm:{items:{}}});
+      const e=G.extras&&G.extras();
+      if(e&&e.coinDoor&&face(e.coinDoor)){found={sd,f,level:G.state().level,price:e.coinDoor.price,c:e.coinDoor};break;}
+    }
+    if(!found){
+      for(let sd=1;sd<=40&&!found;sd++)for(let f=2;f<=12&&!found;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:40,perm:{items:{}}});
+        const e=G.extras&&G.extras();
+        if(e&&e.coinDoor&&face(e.coinDoor)){found={sd,f,level:G.state().level,price:e.coinDoor.price,c:e.coinDoor};}
+      }
+    }
+    if(!found)return {ok:false,err:'no coin door'};
+    G.clearMobs&&G.clearMobs();
+    const startCoins=40;
+    G.setCoins(startCoins);G.advance(0.05);
+    const beforePay={coins:G.state().player.coins,door:doorAt(found.c),msg:G.state().msg};
+    G.use();
+    for(let k=0;k<50;k++)G.advance(1/60);
+    const afterPay={
+      coins:G.state().player.coins,door:doorAt(found.c),msg:G.state().msg,
+      coinPaid:!!(G.coinPaid&&G.coinPaid()),
+      save:JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null')
+    };
+    const cycles=[];
+    for(let i=0;i<3;i++){
+      const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+      if(!sv)return {ok:false,err:'no save',found,afterPay};
+      const coinsAtSave=sv.coins;
+      sv.cont=true;
+      G.startLevel(sv.level,sv);
+      for(let k=0;k<24;k++)G.advance(1/60);
+      const d0=doorAt(found.c);
+      const coins0=G.state().player.coins;
+      face(found.c);G.advance(0.05);G.use();
+      for(let k=0;k<40;k++)G.advance(1/60);
+      const d1=doorAt(found.c);
+      cycles.push({
+        i,coinsAtSave,coins0,coins1:G.state().player.coins,
+        door0:d0,door1:d1,
+        coinPaid:!!(G.coinPaid&&G.coinPaid()),
+        savePaid:(JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null')||{}).coinPaid
+      });
+    }
+    // old saves without coinPaid still load; the door is priced again (pre-fix behaviour)
+    G.setSeed(found.sd);G.startLevel(found.level,{hearts:9,coins:40,perm:{items:{}},cont:true});
+    for(let k=0;k<12;k++)G.advance(1/60);
+    const legacy={
+      mode:G.state().mode,level:G.state().level,
+      door:doorAt(found.c),
+      coinPaid:!!(G.coinPaid&&G.coinPaid()),
+      coins:G.state().player.coins
+    };
+    return {ok:true,found,beforePay,afterPay,cycles,legacy};
+  });
+  const payOk=paid.ok&&paid.afterPay.coinPaid&&paid.afterPay.coins===40-paid.found.price
+    &&paid.afterPay.door&&paid.afterPay.door.coin===0&&!paid.afterPay.door.locked
+    &&paid.afterPay.save&&paid.afterPay.save.coinPaid===paid.found.level;
+  const stay=paid.ok&&paid.cycles.length===3&&paid.cycles.every(c=>
+    c.coinPaid&&c.savePaid===paid.found.level
+    &&c.door0&&c.door0.coin===0&&!c.door0.locked&&c.door0.open>0.9
+    &&c.coins1===c.coins0
+  );
+  const legacyOk=paid.ok&&paid.legacy.mode==='play'&&paid.legacy.level===paid.found.level
+    &&!paid.legacy.coinPaid&&paid.legacy.door&&paid.legacy.door.coin===paid.found.price
+    &&paid.legacy.coins===40;
+  check('M1.67 paying a coin door records coinPaid and opens it',
+    payOk,JSON.stringify({found:paid.found,afterPay:paid.afterPay,err:paid.err}));
+  check('M1.67 CONTINUE keeps a paid coin door open and does not charge again',
+    stay,JSON.stringify(paid.cycles));
+  check('M1.67 an old save without coinPaid still loads (door is priced as before)',
+    legacyOk,JSON.stringify(paid.legacy));
+
+  // headless screenshot: the same paid door, still open after CONTINUE
+  const shot=await G(page,(found)=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    function face(c){
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
+      for(const o of dirs){const x=c.x+o[0],y=c.y+o[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,o[2]);return;}}
+    }
+    G.setSeed(found.sd);G.startLevel(found.level,{hearts:9,coins:40,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    face(found.c);G.setCoins(40);G.advance(0.05);G.use();
+    for(let k=0;k<50;k++)G.advance(1/60);
+    const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+    if(!sv)return {ok:false,err:'no save'};
+    sv.cont=true;G.startLevel(sv.level,sv);
+    G.clearMobs&&G.clearMobs();
+    face(found.c);
+    for(let k=0;k<20;k++)G.advance(1/60);
+    G.freeze=true;G.render();
+    const open=(G.doors()||[]).find(q=>q.x===found.c.x&&q.y===found.c.y);
+    return {ok:true,door:open,coins:G.state().player.coins,coinPaid:!!(G.coinPaid&&G.coinPaid()),msg:G.state().msg};
+  },paid.found);
+  await page.screenshot({path:`${SHOTS}/m167_paid_coindoor_continue.png`});
+  fs.copyFileSync(`${SHOTS}/m167_paid_coindoor_continue.png`,`${M167}/m167_paid_coindoor_continue.png`);
+  check('M1.67 paid coin-door CONTINUE screenshot posed',
+    shot.ok&&shot.door&&shot.door.coin===0&&shot.door.open>0.9,JSON.stringify(shot));
+  await ctx.close();
+}
+
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -4320,7 +4442,7 @@ async function m18Tests(){
     let m=await DIEP({kills:40,elites:4,coins:50,deepest:8});
     await page.keyboard.type('QA Stub');await page.keyboard.press('Enter');h=await waitHS();await G(page,()=>__game.advance(0.4));let st=await G(page,()=>__game.state());
     const post=stub.state.posts[0];
-    check('M1.8 stub online: submit POSTs {name,score,floor,seed} as JSON and gets 201 + rank, shown and highlighted',m==='name'&&st.mode==='scores'&&stub.state.posts.length===1&&post.ok&&Object.keys(post.parsed).sort().join()===(atLeast('1.66')?'floor,name,score,seed,version':'floor,name,score,seed')&&(!atLeast('1.66')||post.parsed.version==='M1.66')&&post.parsed.name==='QA Stub'&&post.parsed.score===9650&&post.parsed.floor===8&&post.parsed.seed==='4242'&&/SCORE SENT! YOUR RANK: 4/.test(h.msg)&&h.hl&&h.hl.rank===4&&h.list[3].name==='QA Stub'&&/application\/json/.test(post.headers['content-type']),JSON.stringify({msg:h.msg,post:post&&post.parsed}));
+    check('M1.8 stub online: submit POSTs {name,score,floor,seed} as JSON and gets 201 + rank, shown and highlighted',m==='name'&&st.mode==='scores'&&stub.state.posts.length===1&&post.ok&&Object.keys(post.parsed).sort().join()===(atLeast('1.66')?'floor,name,score,seed,version':'floor,name,score,seed')&&(!atLeast('1.66')||post.parsed.version===BUILD.replace(/^m/,'M'))&&post.parsed.name==='QA Stub'&&post.parsed.score===9650&&post.parsed.floor===8&&post.parsed.seed==='4242'&&/SCORE SENT! YOUR RANK: 4/.test(h.msg)&&h.hl&&h.hl.rank===4&&h.list[3].name==='QA Stub'&&/application\/json/.test(post.headers['content-type']),JSON.stringify({msg:h.msg,post:post&&post.parsed}));
     await page.screenshot({path:`${SHOTS}/m18_highscores_online_after_submit.png`});
     // 429 -> friendly retry message, name kept; retry works once the limit clears
     stub.fillLimit();m=await DIEP({kills:1,elites:0,coins:2,deepest:2});

@@ -56,3 +56,5 @@ Token meters are not visible to this executor, so read and written tokens are **
 - **Wall-clock, start to freeze:** about 8 minutes
 - **Model turns (approx.):** about 15
 - **Tool calls (approx.):** about 45 (seam inspection, tile rebuild, pack, official suite, this handoff, the text/HTML push). Tokens: not available
+
+Later work: moss wall art was restored and Basalt Depths gained the Obsidian Column and the Skittering Creep in **M1.76** (`handoffs/m1.76/HANDOFF.md`).

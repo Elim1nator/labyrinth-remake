@@ -50,6 +50,7 @@ const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk
 const V173=atLeast('1.73'); // M1.73+: 100 pit coins make the next boss floor the Broodmother
 const V1731=atLeast('1.73.1'); // M1.73.1+: paid coin-door coins stay deducted on CONTINUE; score board GET is cached for the session; a 429 falls back to the local board
 const V174=atLeast('1.74'); // M1.74+: Snowball, Ferryman's Coin, Master Key, Turned Face
+const V1742=atLeast('1.74.2'); // M1.74.2+: Plunger and Music Box are gated on the floor's generated theme (Tiled Baths / Timber Attic) at roll, placement and pickup
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
@@ -3675,6 +3676,7 @@ if(V174&&want('m174')){ await m174Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 if(V1731&&want('m1731')){ await m1731Tests(); }
+if(V1742&&want('m1742')){ await m1742Tests(); }
 
 async function m167Tests(){
   const M167='/workspace/labyrinth-main/m167';
@@ -3984,6 +3986,151 @@ async function m1731Tests(){
     &&!hs.rpost.submitted.retry&&hs.rpost.local.includes('RATEY')&&hs.rpost.posts===1&&hs.rpost.postGets===0,
     JSON.stringify({rpost:hs&&hs.rpost,err:hs&&hs.err}));
 
+  await ctx.close();
+}
+
+
+async function m1742Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m1742'});
+  const sweep=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=true;
+    const gated={plunger:'TILED BATHS',musicbox:'TIMBER ATTIC'};
+    const isTheme=(th,need)=> (G.floorTheme?G.floorTheme():'')===need || (th||'').indexOf(need)>=0;
+    const powers=its=>(its||[]).filter(it=>it.kind==='power'&&!it.taken);
+    const bad=[],seen={baths:0,timber:0,basalt:0,other:0,floors:0,continues:0,transitions:0,eliteDrops:0,powerDrops:0};
+    function rec(tag,extra){
+      const st=G.state(),title=st.levelName||'',ft=G.floorTheme?G.floorTheme():'',now=G.themeNow();
+      const baths=!!G.bathsFloor(),timber=!!G.timberFloor();
+      seen.floors++;
+      if(ft==='TILED BATHS')seen.baths++;
+      else if(ft==='TIMBER ATTIC')seen.timber++;
+      else if(ft==='BASALT DEPTHS')seen.basalt++;
+      else seen.other++;
+      if(now!==title) bad.push({tag:'themeNow!=levelName',tag2:tag,now,title,ft,...extra});
+      if(ft && title.indexOf(ft)<0) bad.push({tag:'floorTheme not in title',tag2:tag,ft,title,...extra});
+      if(baths!==(ft==='TILED BATHS')||timber!==(ft==='TIMBER ATTIC')) bad.push({tag:'helper mismatch',tag2:tag,baths,timber,ft,title,...extra});
+      const pool=G.puPool()||[];
+      for(const [k,need] of Object.entries(gated)){
+        const ok=ft===need;
+        if(pool.includes(k)!==ok) bad.push({tag:'puPool',k,ok,ft,title,tag2:tag,...extra});
+        if(!ok && (G.shopOffers()||[]).includes(k)) bad.push({tag:'shop',k,ft,title,tag2:tag,...extra});
+        let randHits=0,slotHits=0;
+        for(let i=0;i<60;i++){if(G.randPU()===k)randHits++;const r=G.slotResolve('power',0,5);if(r&&r.power===k)slotHits++;}
+        if(!ok && (randHits||slotHits)) bad.push({tag:'rand/slot',k,randHits,slotHits,ft,title,tag2:tag,...extra});
+        const n=powers(st.items).filter(it=>it.ptype===k).length;
+        if(!ok && n) bad.push({tag:'floor loot',k,n,ft,title,tag2:tag,...extra});
+      }
+    }
+    function dropElites(){
+      const st=G.state(),p=st.player;if(!p||!G.spawn)return;
+      const before=powers(st.items).map(it=>it.ptype);
+      for(let n=0;n<12;n++){
+        const i=G.spawn('screamer',p.x+0.3,p.y,false);if(i==null)continue;
+        if(G.entSet)G.entSet(i,{mods:['beefy']});
+        try{G.setForceDrop(i,1);}catch(e){}
+        G.killEnt(i);
+      }
+      for(let t=0;t<18;t++)G.advance(1/30);
+      const st2=G.state();
+      const after=powers(st2.items);
+      const fresh=after.filter(it=>!before.includes(it.ptype)||after.filter(x=>x.ptype===it.ptype).length>before.filter(x=>x===it.ptype).length);
+      seen.eliteDrops++;
+      seen.powerDrops+=Math.max(0,after.length-before.length);
+      const ft=G.floorTheme?G.floorTheme():'';
+      for(const it of after){
+        const need=gated[it.ptype];
+        if(need&&need!==ft) bad.push({tag:'elite drop',k:it.ptype,ft,title:st2.levelName});
+      }
+    }
+    for(let seed=1;seed<=16;seed++){
+      G.setSeed(seed);
+      for(const idx of [0,1,2,3,4,5,6,7,8,9,10,12,16]){
+        G.startLevel(idx,{hearts:9,coins:40});
+        rec('start',{seed,idx});
+        if((G.floorTheme()==='BASALT DEPTHS'||G.floorTheme()==='TILED BATHS'||G.floorTheme()==='TIMBER ATTIC') && seed<=8){
+          dropElites();
+          rec('after elite drops',{seed,idx});
+          const sv=G.state().save;
+          if(sv){G.startLevel(sv.level,Object.assign({},sv,{cont:true}));seen.continues++;rec('CONTINUE',{seed,idx});}
+        }
+      }
+    }
+    let leftBaths=0,leftTimber=0;
+    for(let seed=1;seed<=40&&(leftBaths<4||leftTimber<4);seed++){
+      G.setSeed(seed);
+      for(let idx=1;idx<=8;idx++){
+        G.startLevel(idx,{hearts:9,coins:40});
+        const ft=G.floorTheme();
+        if(ft==='TILED BATHS'&&leftBaths<4){leftBaths++;G.startLevel(idx+1,{hearts:9,coins:40});seen.transitions++;rec('left Baths',{seed,from:idx});dropElites();rec('drops after leaving Baths',{seed,from:idx});}
+        if(ft==='TIMBER ATTIC'&&leftTimber<4){leftTimber++;G.startLevel(idx+1,{hearts:9,coins:40});seen.transitions++;rec('left Timber',{seed,from:idx});dropElites();rec('drops after leaving Timber',{seed,from:idx});}
+      }
+    }
+    return {bad,seen,leftBaths,leftTimber};
+  });
+  check('M1.74.2 floorTheme is the generated theme, bathsFloor/timberFloor match TILED BATHS / TIMBER ATTIC exactly, and themeNow stays the floor title',
+    sweep.seen.baths>0&&sweep.seen.timber>0&&sweep.seen.basalt>0&&sweep.seen.other>0
+    &&sweep.bad.filter(b=>b.tag==='themeNow!=levelName'||b.tag==='floorTheme not in title'||b.tag==='helper mismatch').length===0,
+    JSON.stringify({seen:sweep.seen,bad:sweep.bad.filter(b=>/themeNow|floorTheme|helper/.test(b.tag)).slice(0,6)}));
+  check('M1.74.2 no Plunger or Music Box appears off its theme from floor loot, puPool, shop, the slot, randPU, elite drops or CONTINUE',
+    sweep.bad.length===0&&sweep.seen.floors>0&&sweep.seen.continues>0&&sweep.seen.eliteDrops>0,
+    JSON.stringify({seen:sweep.seen,bad:sweep.bad.slice(0,8)}));
+  check('M1.74.2 leaving a Tiled Baths or Timber Attic floor does not carry those theme powers onto the next floor',
+    sweep.leftBaths>=4&&sweep.leftTimber>=4&&sweep.seen.transitions>=8
+    &&sweep.bad.filter(b=>/leaving|left /.test(b.tag2||'')).length===0,
+    JSON.stringify({leftBaths:sweep.leftBaths,leftTimber:sweep.leftTimber,transitions:sweep.seen.transitions,bad:sweep.bad.filter(b=>/leaving|left /.test(b.tag2||'')).slice(0,6)}));
+
+  const pickup=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    let basalt=null;
+    for(let seed=1;seed<=24&&!basalt;seed++){
+      G.setSeed(seed);
+      for(const idx of [8,9,10,12,16]){
+        G.startLevel(idx,{hearts:9,coins:20});
+        if(G.floorTheme()==='BASALT DEPTHS'){basalt={seed,idx};break;}
+      }
+    }
+    if(!basalt)return {none:true};
+    const s=G.state();G.clearMobs();G.teleport(s.player.x,s.player.y,0);
+    const c0=s.player.coins,item0=s.player.item;
+    G.spawnPower('plunger',s.player.x,s.player.y);
+    G.advance(0.15);
+    const st=G.state();
+    const still= (st.items||[]).some(it=>it.kind==='power'&&it.ptype==='plunger'&&!it.taken);
+    const got={coins:st.player.coins,item:st.player.item,still,msg:st.msg,theme:G.floorTheme(),title:G.themeNow()};
+    // a plunger you already hold (give) still works off-theme
+    G.give('plunger');
+    const held=G.state().player.item;
+    const blocked=G.plungerBlocked&&G.plungerBlocked();
+    return {basalt,got,held,blocked,c0,item0};
+  });
+  check('M1.74.2 a Plunger that appears on Basalt Depths cannot be picked up (it pays 5 coins instead); give() still hands you one',
+    pickup&&!pickup.none&&pickup.got.theme==='BASALT DEPTHS'&&pickup.got.item!=='plunger'&&pickup.got.coins===pickup.c0+5&&pickup.got.still===false&&pickup.held==='plunger',
+    JSON.stringify(pickup));
+
+  const swap=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    let basalt=null;
+    for(let seed=1;seed<=24&&!basalt;seed++){
+      G.setSeed(seed);
+      for(const idx of [8,9,10,12,16]){
+        G.startLevel(idx,{hearts:9,coins:20});
+        if(G.floorTheme()==='BASALT DEPTHS'){basalt={seed,idx};break;}
+      }
+    }
+    if(!basalt)return {none:true};
+    G.clearMobs();
+    const s=G.state();G.teleport(s.player.x,s.player.y,0);
+    G.give('plunger');
+    G.spawnPower('flare',s.player.x,s.player.y);
+    G.advance(0.2);
+    const st=G.state();
+    const floorPl=(st.items||[]).filter(it=>it.kind==='power'&&it.ptype==='plunger'&&!it.taken);
+    const floorFl=(st.items||[]).filter(it=>it.kind==='power'&&it.ptype==='flare'&&!it.taken);
+    return {basalt,theme:G.floorTheme(),item:st.player.item,item2:st.player.item2,floorPl:floorPl.length,floorFl:floorFl.length,msg:st.msg};
+  });
+  check('M1.74.2 walking over another power-up on Basalt Depths while holding a Plunger keeps the Plunger in hand and does not leave it on the floor',
+    swap&&!swap.none&&swap.theme==='BASALT DEPTHS'&&swap.item==='plunger'&&swap.floorPl===0&&swap.floorFl>=1,
+    JSON.stringify(swap));
   await ctx.close();
 }
 

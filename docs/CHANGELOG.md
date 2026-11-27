@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.74.2: Plunger and Music Box stay on their own themes
+- Walking over another power-up used to swap whatever you were holding onto the floor. A Plunger (or Music Box) carried from a Tiled Baths (or Timber Attic) floor could therefore appear on Basalt Depths as if an elite had dropped it. That swap is now refused off-theme: you keep the Plunger or Music Box, and the new item stays on the ground.
+- The theme gate now uses the floor's generated theme name (stored on the floor def as `theme`), not a loose `/Baths/` or `/Timber/` test of the "LEVEL n: ..." title. It is applied when a use-item is rolled, when it is placed, and when you try to pick one up. A Plunger or Music Box that somehow landed on the wrong theme cannot be picked up: it becomes **5 coins** instead. A thief returning something stolen from your hand can still be picked up off-theme. A Plunger or Music Box you already hold still works on any floor.
+- New regression checks sweep seeds and floors (including elite drops, CONTINUE, and leaving a Baths or Timber floor), assert a spawned Plunger on Basalt Depths cannot be picked up, and assert that walking over loot while holding a Plunger there does not leave one on the floor.
+
 ## M1.73.1: paid coin doors keep their cost; the score board is cached
 - Paying a coin door now writes the new coin count into the floor save along with `coinPaid`. CONTINUE still restores the door as open and does not charge again, and it no longer refunds the first payment (once per floor). Old saves without the field still load, with the door priced as before.
 - The high-score board fetches the online list at most once per page load (and may re-read it after a successful score POST). Re-opening the board, including the All/This version toggle, uses the cached rows and filters them on the client. A 429 from a GET or a POST falls back to the local top-10 board, the same way a 404 or other error already did, and does not retry in a loop. A 429 on POST still keeps the local save.

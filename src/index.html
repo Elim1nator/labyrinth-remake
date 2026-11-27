@@ -63,12 +63,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.79.2. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.79.3. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, art, sounds, levels) is original. Wall, monster, item and other
    world art is packed from PNG sheets in assets/. Sounds, music, the pixel font and some
    HUD or decoration sprites are still generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.79.2'; /* set by tools/release.mjs */
+var VERSION='M1.79.3'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=128,TK=TS/64; /* M1.51: wall tiles are 128x128; the effects painted on them are laid out on a 64-grid and scaled by TK */
 var SAVE_KEY='labyrinthRemake.save.v1',UNLOCK_KEY='labyrinthRemake.unlocks.v1'; /* M1.30: floors you can start on, kept across runs */
 var MAX_HEARTS=5;
@@ -965,12 +965,16 @@ function newMob(type,x,y){var m=MOBS[type];return {type:type,x:x,y:y,hp:m.hp,sta
 var MASK={comedy:.35,keep:1.3};
 function newScreamer(x,y){return newMob('screamer',x,y);}
 function cellAt(x,y){var L=G.L;if(x<0||y<0||x>=L.w||y>=L.h)return null;return L.cells[y*L.w+x];}
-function shotSolid(fx,fy){var c=cellAt(Math.floor(fx),Math.floor(fy));if(c&&c.t===10)return false;return solidAt(fx,fy);} /* M1.14: shots fly over the lectern */
+function mapEdgeAt(fx,fy){var L=G.L,x=Math.floor(fx),y=Math.floor(fy);if(!L)return true;return x===0||y===0||x===L.w-1||y===L.h-1;} /* M1.79.3: the outer ring of Heights pits stays solid for everyone */
+function heightPitOpen(fx,fy){var c=cellAt(Math.floor(fx),Math.floor(fy));return !!(c&&c.t===11&&!mapEdgeAt(fx,fy));}
+function heightPitUnder(x,y,m){if(!heightPitOpen(x,y))return false;var fx=x-Math.floor(x),fy=y-Math.floor(y);m=m||0;return fx>m&&fx<1-m&&fy>m&&fy<1-m;}
+function solidWings(fx,fy){if(heightPitOpen(fx,fy))return false;return solidAt(fx,fy);} /* M1.79.3: player with Wax Wings / lev, and flying mobs, treat interior t===11 like a regular pit */
+function shotSolid(fx,fy){var c=cellAt(Math.floor(fx),Math.floor(fy));if(c&&c.t===10)return false;if(c&&c.t===11&&!mapEdgeAt(fx,fy))return false;return solidAt(fx,fy);} /* M1.14: shots fly over the lectern; M1.79.3: and over interior Heights pits, like regular pits */
 function solidAt(fx,fy){var c=cellAt(Math.floor(fx),Math.floor(fy));if(!c)return true;if(c.t===1||c.t===5||c.t===7||c.t===8||c.t===10||c.t===11)return true;if(c.t===2||c.t===3)return (c.open||0)<.8;return false;}
 function solidGround(fx,fy){var c=cellAt(Math.floor(fx),Math.floor(fy));if(c&&c.t===6)return true;return solidAt(fx,fy);} /* M19: walking mobs never step into a pit */
-function solidGhost(fx,fy){var c=cellAt(Math.floor(fx),Math.floor(fy));if(!c)return true;if(c.t===1||c.t===5||c.t===7||c.t===8||c.t===10||c.t===11)return true;return false;} // Hazewisp drifts through fences and (M19) closed doors
+function solidGhost(fx,fy){var c=cellAt(Math.floor(fx),Math.floor(fy));if(!c)return true;if(c.t===1||c.t===5||c.t===7||c.t===8||c.t===10)return true;if(c.t===11)return mapEdgeAt(fx,fy);return false;} // Hazewisp drifts through fences and (M19) closed doors; M1.79.3: interior Heights pits are open like regular pits
 function opaqueAt(fx,fy){var c=cellAt(Math.floor(fx),Math.floor(fy));if(!c)return true;if(c.t===1)return true;if(c.t===2)return c.open<.8;return false;}
-function blocked(x,y,r,gh){var f=gh===true?solidGhost:gh==='g'?solidGround:solidAt;return f(x-r,y-r)||f(x+r,y-r)||f(x-r,y+r)||f(x+r,y+r);}
+function blocked(x,y,r,gh){var f=gh===true?solidGhost:gh==='g'?solidGround:gh==='w'?solidWings:solidAt;return f(x-r,y-r)||f(x+r,y-r)||f(x-r,y+r)||f(x+r,y+r);}
 function moveBody(e,dx,dy,r,gh){var moved=false;if(!blocked(e.x+dx,e.y,r,gh)){e.x+=dx;moved=true;}if(!blocked(e.x,e.y+dy,r,gh)){e.y+=dy;moved=true;}return moved;}
 function los(ax,ay,bx,by){var d=Math.hypot(bx-ax,by-ay),n=Math.ceil(d/.1);for(var i=1;i<n;i++){var t=i/n;if(opaqueAt(ax+(bx-ax)*t,ay+(by-ay)*t))return false;}return true;}
 
@@ -1475,8 +1479,8 @@ function updatePlay(dt){if(G.failNext){G.failNext=false;var te=new Error('test f
   var sp=2.7*(run?1.45:1)*(G.L&&G.L.icy?ICY.move:1)* /* M1.68 cold */Math.min(ITEM_FX.maxSpeed,1+ITEM_FX.shoes*itemN('shoes'))*(p.slowT>0&&!itemN('boots')?SPIDERS.webMul:1)*(stOn('lev')?.6:1)*dt,ca=Math.cos(p.ang),sa=Math.sin(p.ang);
   var dx=(ca*fw-sa*st)*sp,dy=(sa*fw+ca*st)*sp;
   if(!itemN('boots')&&(p.slickT||0)>0){p.slickT-=dt;p.slickVx=(p.slickVx||0)*.88+dx*.42;p.slickVy=(p.slickVy||0)*.88+dy*.42;dx=p.slickVx;dy=p.slickVy;m=Math.hypot(dx,dy)/Math.max(sp,.001);}
-  if(m>0.01||((p.slickT||0)>0&&!itemN('boots')&&(Math.hypot(p.slickVx||0,p.slickVy||0)>0.02))){var pr=Math.min(ITEM_FX.maxBody,.22+ITEM_FX.burgerBody*itemN('burger'));if(hasJailer())bumpOpenFences(p,dx,dy,pr);moveBody(p,dx,dy,pr);p.bob+=dt*9*m*(run?1.3:1);p.moving=Math.min(1,p.moving+dt*6);}else p.moving=Math.max(0,p.moving-dt*4);
-  if(G.L.pits&&!effectIs('wings')&&!stOn('lev')&&pitUnder(p.x,p.y,PIT_MARGIN)){startFall();return;} /* M19: stepping into a pit is fatal */
+  if(m>0.01||((p.slickT||0)>0&&!itemN('boots')&&(Math.hypot(p.slickVx||0,p.slickVy||0)>0.02))){var pr=Math.min(ITEM_FX.maxBody,.22+ITEM_FX.burgerBody*itemN('burger'));if(hasJailer())bumpOpenFences(p,dx,dy,pr);moveBody(p,dx,dy,pr,(effectIs('wings')||stOn('lev'))?'w':undefined);p.bob+=dt*9*m*(run?1.3:1);p.moving=Math.min(1,p.moving+dt*6);}else p.moving=Math.max(0,p.moving-dt*4);
+  if(G.L.pits&&!effectIs('wings')&&!stOn('lev')&&(pitUnder(p.x,p.y,PIT_MARGIN)||heightPitUnder(p.x,p.y,PIT_MARGIN))){startFall();return;} /* M19: stepping into a pit is fatal; M1.79.3: losing wings over a Heights pit falls the same way */
   // use target + use
   G.useTarget=findUse();G.nearUse=G.useTarget?null:nearUseFind();G.nearCollector=G.useTarget?null:collectorNear();
   if(inp.use){inp.use=false;if(G.nearCollector){stats.collectorTrades=(stats.collectorTrades|0)+1;openShop();}else doUse();}
@@ -1575,7 +1579,7 @@ function addFloorExtras(idx){var L=G.L,floor=idx+1,out={};if(idx<1)return out;va
   function pitNear(x,y){for(var j=-1;j<=1;j++)for(var i=-1;i<=1;i++){var g=C(x+i,y+j);if(g&&g.t===6)return true;}return false;}
   return out;}
 function hasJailer(){return itemN('jailer')>0;} /* M1.66: the Jailer's Eye is a passive run item */
-function findUse(){var p=G.p,ca=Math.cos(p.ang),sa=Math.sin(p.ang);for(var d=.1;d<=1.45;d+=.05){var c=cellAt(Math.floor(p.x+ca*d),Math.floor(p.y+sa*d));if(!c||c.t===1||c.t===11)return null;if(c.t===3){if(hasJailer()&&((c.open||0)<.99||c.state==='closing'))return c;return null;}if(c.t===5||c.t===7||c.t===8||c.t===10)return c;if(c.t===2){if(c.locked||c.open<.99||c.state==='closing')return c;return null;}}return null;}
+function findUse(){var p=G.p,ca=Math.cos(p.ang),sa=Math.sin(p.ang);for(var d=.1;d<=1.45;d+=.05){var c=cellAt(Math.floor(p.x+ca*d),Math.floor(p.y+sa*d));if(!c||c.t===1)return null; /* M1.79.3: Heights pits no longer stop the use ray, same as regular pits */if(c.t===3){if(hasJailer()&&((c.open||0)<.99||c.state==='closing'))return c;return null;}if(c.t===5||c.t===7||c.t===8||c.t===10)return c;if(c.t===2){if(c.locked||c.open<.99||c.state==='closing')return c;return null;}}return null;}
 function doUse(){var d=G.useTarget;if(!d){if(G.nearUse)nearUseDo(G.nearUse);return;}if(d.t===5){slotUse();return;}if(d.t===7){openShop();return;}if(d.t===8){shrineUse(d);return;}if(d.t===10){lecternUse(d);return;}
   if(d.coin){if(G.p.coins>=d.coin){var price=d.coin,wasLocked=!!d.locked;G.p.coins-=price;d.coin=0;d.locked=false;d.tex=5;d.state='opening';SFX.buy();SFX.door();stats.coinDoors++;var extra=ferryPayout(wasLocked,true);markCoinPaid(price);setMsg('PAID '+price+' COINS. THE DOOR CREAKS OPEN'+(extra?'. THE FERRYMAN PAYS +'+extra+' COINS':'')+'...',2.2);}else{setMsg('THIS DOOR WANTS '+d.coin+' COINS',2.2);SFX.locked();}return;} /* M1.12 coin door; M1.67: persist paid-open so CONTINUE cannot charge again; M1.74 Ferryman pays after a real payment, not a CONTINUE restore */
   if(d.bossLock){setMsg('LOCKED UNTIL '+bossName()+' FALLS!',2.5);SFX.locked();return;}
@@ -2230,7 +2234,7 @@ function useInstant(k){var p=G.p;if(SFX[PU[k].snd])SFX[PU[k].snd]();
   if(k==='herb'){var h0=p.hearts;p.hearts=Math.min(maxHearts(),p.hearts+2);setMsg('HEALING HERB! +'+(p.hearts-h0)+' HEARTS',2);sparkle(p.x,p.y,.4,'spark',10);}
   else if(k==='flare'){G.flareT=8;setMsg('FLARE! THE DARK PULLS BACK',2);G.shake=.15;}
   else if(k==='bell'){var n=0;G.ents.forEach(function(e){if(e.gone||e.state==='dead'||e.state==='pile')return;var M=MOBS[e.type],dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy)||1;if(d>4.5)return;
-      if(M.boss){e.stunT=.6;n++;return;}for(var j=0;j<12;j++)moveBody(e,dx/d*.12,dy/d*.12,.28,M.ghost?true:(M.fly?false:'g'));e.stunT=2;e.chargeT=0;e.tele=0;n++;});
+      if(M.boss){e.stunT=.6;n++;return;}for(var j=0;j<12;j++)moveBody(e,dx/d*.12,dy/d*.12,.28,M.ghost?true:(M.fly?'w':'g'));e.stunT=2;e.chargeT=0;e.tele=0;n++;});
     for(var q=0;q<12;q++){var a=q/12*Math.PI*2;G.parts.push({kind:'puff',x:p.x+Math.cos(a)*.6,y:p.y+Math.sin(a)*.6,z:.4,vx:Math.cos(a)*2,vy:Math.sin(a)*2,vz:0,life:.4,g:0,max:.5});}
     setMsg('DONG! '+n+' MONSTER'+(n===1?'':'S')+' STUNNED',2);stats.bellStuns+=n;G.shake=.25;}
   else if(k==='veil'){var n=0,v=viewDist();G.ents.forEach(function(e){if(e.gone||e.state==='dead'||e.state==='pile'||e.dormant)return;var d=Math.hypot(e.x-p.x,e.y-p.y);if(d>v||!los(e.x,e.y,p.x,p.y))return;e.blindT=VEIL.time;e.wanderT=0;n++;});
@@ -2381,7 +2385,7 @@ function applyBoss(e,floor){var b=bossFor(floor)||{tier:0,hpMul:1,cdMul:1,spdMul
 function bossActive(){var b=G.boss;return b&&!b.gone&&b.state!=='dead'&&b.woke?b:null;}
 function bossClamp(e){var A=e.arena;if(!A)return false;var r=MOBS[e.type].bodyR,x=Math.max(A.x+r,Math.min(A.x+A.w-r,e.x)),y=Math.max(A.y+r,Math.min(A.y+A.h-r,e.y)),hit=x!==e.x||y!==e.y;e.x=x;e.y=y;return hit;}
 function bossMove(e,tx,ty,step){var A=e.arena,r=MOBS[e.type].bodyR;if(A){tx=Math.max(A.x+r,Math.min(A.x+A.w-r,tx));ty=Math.max(A.y+r,Math.min(A.y+A.h-r,ty));}
-  var dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy);if(d<.05)return false;step=Math.min(step,d);return moveBody(e,dx/d*step,dy/d*step,r,MOBS[e.type].fly?false:'g');}
+  var dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy);if(d<.05)return false;step=Math.min(step,d);return moveBody(e,dx/d*step,dy/d*step,r,MOBS[e.type].fly?'w':'g');}
 function bossShot(e,a,spd,kind,home){if(G.eshots.length>=ELITE_CFG.maxEnemyShots)G.eshots.shift();var M=MOBS[e.type],z=Math.min(.6,mobZ(e)+(e.hh||M.h)*.45);
   G.eshots.push({kind:kind,x:e.x+Math.cos(a)*.45,y:e.y+Math.sin(a)*.45,z:z,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,spd:spd,home:home||0,life:3.6,age:0,from:e.type,fc:-1});stats.eshotsFired++;stats.bossShots++;}
 function bossFan(e,n,spread,spd,kind,home){var a0=Math.atan2(G.p.y-e.y,G.p.x-e.x);for(var i=0;i<n;i++)bossShot(e,n>1?a0+(i/(n-1)-.5)*spread:a0,spd,kind,home);}
@@ -2423,7 +2427,7 @@ function startSovCollapse(e){e.state='sovfall';e.sovAnimT=0;e.tele=0;e.chargeT=0
 function sovTick(e,dt){if(e.state==='sovfall'){e.sovAnimT+=dt;if(e.sovAnimT>=SOV.fallT){e.state='sovdown';e.sovAnimT=0;}}
   else if(e.state==='sovdown'){if(!sovPilesLive().length){e.state='sovup';e.sovAnimT=0;SFX.reform();stats.sovReforms=(stats.sovReforms||0)+1;}}
   else if(e.state==='sovup'){e.sovAnimT+=dt;if(e.sovAnimT>=SOV.riseT){e.state='chase';e.sovAnimT=0;e.atkCD=.9;e.tele=0;sparkle(e.x,e.y,.45,'spark',10);}}}
-function updateBoss(e,dt,p){if(e.dormant)return;if(e.type==='sovereign'&&(e.state==='sovfall'||e.state==='sovdown'||e.state==='sovup')){sovTick(e,dt);bossClamp(e);return;}if(e.blindT>0){var bw=wanderDir(e,dt),B=MOBS[e.type],bsp=B.speed*(e.spdMul||1)*.7*dt;moveBody(e,bw.x*bsp,bw.y*bsp,.28,B.fly?false:'g');bossClamp(e);return;}var M=MOBS[e.type],A=e.arena,dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1e-6;
+function updateBoss(e,dt,p){if(e.dormant)return;if(e.type==='sovereign'&&(e.state==='sovfall'||e.state==='sovdown'||e.state==='sovup')){sovTick(e,dt);bossClamp(e);return;}if(e.blindT>0){var bw=wanderDir(e,dt),B=MOBS[e.type],bsp=B.speed*(e.spdMul||1)*.7*dt;moveBody(e,bw.x*bsp,bw.y*bsp,.28,B.fly?'w':'g');bossClamp(e);return;}var M=MOBS[e.type],A=e.arena,dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1e-6;
   if(!e.woke){var inA=A&&p.x>A.x-.3&&p.x<A.x+A.w+.3&&p.y>A.y-.3&&p.y<A.y+A.h+.3;if(inA&&!e.introDone&&api.bossIntro){startBossIntro(e,null);return;}if(inA||e.state==='chase'||(d<7&&los(e.x,e.y,p.x,p.y)))bossWake(e);else return;}
   if(!G.boss)G.boss=e;
   if(!e.doorsLocked&&A&&p.x>A.x+.3&&p.x<A.x+A.w-.3&&p.y>A.y+.3&&p.y<A.y+A.h-.3){if(!e.introDone&&api.bossIntro){startBossIntro(e,null);return;}arenaLock(e,true);G.L.portalHidden=true;} /* M1.26: the barred portal vanishes once you're locked in */
@@ -2431,7 +2435,7 @@ function updateBoss(e,dt,p){if(e.dormant)return;if(e.type==='sovereign'&&(e.stat
   if(e.atkT>0)e.atkT-=dt;
   if(!e.enraged&&e.hp<=e.maxHp/2){e.enraged=true;setMsg(M.name+' IS FURIOUS!',2);SFX.bossRoar();stats.bossEnrages++;}
   BOSS_AI[e.type](e,dt,p,dx,dy,d);bossClamp(e);
-  for(var j=0;j<G.ents.length;j++){var o=G.ents[j];if(o===e||o.gone||o.state==='dead'||o.state==='pile')continue;var ox=o.x-e.x,oy=o.y-e.y,od=Math.hypot(ox,oy);if(od<M.bodyR+.25&&od>0)moveBody(o,ox/od*.03,oy/od*.03,.28,MOBS[o.type].ghost?true:(MOBS[o.type].fly?false:'g'));} /* minions get nudged aside, the boss doesn't budge */
+  for(var j=0;j<G.ents.length;j++){var o=G.ents[j];if(o===e||o.gone||o.state==='dead'||o.state==='pile')continue;var ox=o.x-e.x,oy=o.y-e.y,od=Math.hypot(ox,oy);if(od<M.bodyR+.25&&od>0)moveBody(o,ox/od*.03,oy/od*.03,.28,MOBS[o.type].ghost?true:(MOBS[o.type].fly?'w':'g'));} /* minions get nudged aside, the boss doesn't budge */
   if(Math.hypot(p.x-e.x,p.y-e.y)<M.reach&&e.atkT<=0){e.atkT=1.3;hurtPlayer(e);}}
 var BOSS_AI={
   /* M1.26 the Screamer King: hovers just out of reach; opens his mouth to spit one huge purple orb at you, or a fan of small ones
@@ -3104,7 +3108,7 @@ api.fogInfo=function(){var L=G.L,sn=0;for(var i=0;i<L.seen.length;i++)if(L.seen[
 api.seeAll=function(frac){var L=G.L;for(var i=0;i<L.seen.length;i++)if(frac===undefined||(i%L.w)<frac*L.w)L.seen[i]=1;};api.mobPools={pools:MOB_POOLS,featured:FEATURED};
 api.levelHp=function(seed,lvl){var d=genLevelFor(seed,lvl),hp=0,n=0,t={};d.map.forEach(function(r){for(var i=0;i<r.length;i++){var m=MOB_BY_CH[r[i]];if(m){hp+=MOBS[m].hp;n++;t[m]=(t[m]||0)+1;}}});return {hp:hp,n:n,types:t};};
 api.damageMob=function(i,n){for(var k=0;k<(n||1);k++)hitEnemy(G.ents[i]);};
-api.modCols=function(){var o={};MOD_IDS.forEach(function(k){o[k]=MODS[k].col;});return o;};api.twoModChance=function(f){return twoModChance(f);};api.lootSpot=function(x,y){return lootSpot(x,y);};api.clearPath=function(a,b,c,d){return clearPath(a,b,c,d);};api.settings=function(){return JSON.parse(JSON.stringify(settings));};api.minimapOn=function(){return !!G.minimap;};api.giantSplash=function(x,y){giantSplash(x,y);};api.itemList=function(){return G.items.filter(function(i){return !i.taken;}).map(function(i){return {kind:i.kind,ptype:i.ptype,x:i.x,y:i.y,solid:solidAt(i.x,i.y)};});};api.solidAt=function(x,y){return solidAt(x,y);};
+api.modCols=function(){var o={};MOD_IDS.forEach(function(k){o[k]=MODS[k].col;});return o;};api.twoModChance=function(f){return twoModChance(f);};api.lootSpot=function(x,y){return lootSpot(x,y);};api.clearPath=function(a,b,c,d){return clearPath(a,b,c,d);};api.settings=function(){return JSON.parse(JSON.stringify(settings));};api.minimapOn=function(){return !!G.minimap;};api.giantSplash=function(x,y){giantSplash(x,y);};api.itemList=function(){return G.items.filter(function(i){return !i.taken;}).map(function(i){return {kind:i.kind,ptype:i.ptype,x:i.x,y:i.y,solid:solidAt(i.x,i.y)};});};api.solidAt=function(x,y){return solidAt(x,y);};api.solidWings=function(x,y){return solidWings(x,y);};api.heightPitUnder=function(x,y,m){return heightPitUnder(x,y,m);};api.shotSolid=function(x,y){return shotSolid(x,y);};api.mapEdgeAt=function(x,y){return mapEdgeAt(x,y);};
 api.levelEff=function(seed,lvl){var d=genLevelFor(seed,lvl),r=mobHpOf(d,lvl,seed);return {base:r.base,eff:r.eff,n:r.list.length,swaps:d.floorSwaps||0,adds:d.floorAdds||0};};
 api.scrFlap=function(){return SCR_FLAP.slice();};api.clearMobs=function(){G.ents=[];G.dist=null;};
 api.currentMap=function(){return G.L.def.map.slice();};
@@ -3216,7 +3220,7 @@ api.layoutTime=function(wd,ht,seed){var c=genCfg(10,0);c.width=wd;c.height=ht;c.
     for(var y=0;y<H;y++)for(var x=0;x<Wd;x++){if(!op(x,y))continue;V++;var n=(op(x+1,y)?1:0)+(op(x-1,y)?1:0)+(op(x,y+1)?1:0)+(op(x,y-1)?1:0);if(op(x+1,y))E++;if(op(x,y+1))E++;if(n===1)dead.push([x,y]);}
     var md=0;dead.forEach(function(t){var len=0,px=-1,py=-1,cx=t[0],cy=t[1];while(len<200){var nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(q){var nx=cx+q[0],ny=cy+q[1];return op(nx,ny)&&!(nx===px&&ny===py);});var deg=nb.length+(px>=0?1:0);if(deg!==2&&len>0)break;if(!nb.length)break;px=cx;py=cy;cx+=nb[0][0];cy+=nb[0][1];len++;}md=Math.max(md,len);});
     o.floors++;o.deadEnds+=dead.length;o.maxDead=Math.max(o.maxDead,md);o.loops+=E-V+1;o.cells+=V;});});o.deadPerFloor=o.deadEnds/o.floors;o.loopsPerFloor=o.loops/o.floors;return o;};api.unlocks=function(){return loadUnlocks();};api.setUnlocks=function(o){saveUnlocks(o||{floors:[],last:1});G.startPicked=false;buildMenu();};api.startFloors=function(){return startFloors();};api.startFloor=function(){return G.startFloor||1;};api.cycleStart=function(d){cycleStart(d);};api.entSet=function(i,o){var e=G.ents[i];if(e)Object.keys(o).forEach(function(k){e[k]=o[k];});};api.clearBody=function(a,b,c,d,r){return clearBody(a,b,c,d,r);};api.keyHeld=function(c){return !!keys[c];};api.watchdog=function(){inputWatchdog();};api.hitWith=function(i,src){hitEnemy(G.ents[i],src||{dmg:1,ball:'blue',hits:[]});};api.infWorld=function(){return {bolts:G.bolts.length,webs:G.webs.length,pots:G.pots.length,fires:G.fires.length};};api.mounted=function(i){var e=G.ents[i];return e&&e.mount?G.ents.indexOf(e.mount):-1;};api.entInfo=function(i){var e=G.ents[i];return e?{type:e.type,hp:e.hp,maxHp:e.maxHp,state:e.state,gone:!!e.gone,stolen:e.stolen||null,usedLife:!!e.usedLife,x:e.x,y:e.y,child:!!e.child,flying:!!e.flying}:null;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.79.2-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.79.3-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

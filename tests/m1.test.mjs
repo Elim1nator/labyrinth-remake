@@ -49,6 +49,7 @@ const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Sla
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
 const V173=atLeast('1.73'); // M1.73+: 100 pit coins make the next boss floor the Broodmother
 const V1731=atLeast('1.73.1'); // M1.73.1+: paid coin-door coins stay deducted on CONTINUE; score board GET is cached for the session; a 429 falls back to the local board
+const V174=atLeast('1.74'); // M1.74+: Snowball, Ferryman's Coin, Master Key, Turned Face
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
@@ -858,7 +859,7 @@ async function m123Tests(){
 async function m124Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m124'});
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
-  const st=await G(page,()=>({st:__game.assetState(),fx:__game.fxSheets.filter(n=>n!=='hand'&&n!=='balloon')})); /* M1.43: the arm and balloon live in assets/, not assets/boss/ */const bad=st.fx.filter(n=>st.st[n]!=='png'||!atlas[n]||atlas[n].file!=='boss/'+n+'.png');
+  const st=await G(page,()=>({st:__game.assetState(),fx:__game.fxSheets.filter(n=>n!=='hand'&&n!=='balloon'&&n!=='hand_snow'&&n!=='snowball')})); /* M1.43: the arm and balloon live in assets/, not assets/boss/; M1.74: the snowball hand and projectile too */const bad=st.fx.filter(n=>st.st[n]!=='png'||!atlas[n]||atlas[n].file!=='boss/'+n+'.png');
   check(`M1.24 ${st.fx.length} boss and effect strips (portals, lectern, signs, Hali, goo, the play script, 14 projectiles) load from assets/boss/*.png`,st.fx.length>=22&&!bad.length,bad.join(',')||st.fx.join(','));
   const cmp=await G(page,async(names)=>{const px=async url=>{const im=new Image();im.src=url;await im.decode();const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const cx=cv.getContext('2d');cx.drawImage(im,0,0);return {w:im.width,h:im.height,u:new Uint32Array(cx.getImageData(0,0,im.width,im.height).data.buffer)};};
     const out=[];for(const n of names){const a=await px(__game.embedded(n)),b=await px(__game.atlasPng(n));let d=a.w!==b.w||a.h!==b.h?1e9:0;if(!d)for(let i=0;i<a.u.length;i++){const p=a.u[i]>>>24>=128?a.u[i]|0xff000000:0,q=b.u[i]>>>24>=128?b.u[i]|0xff000000:0;if(p!==q)d++;}if(d)out.push(n+':'+d);}return out;},st.fx);
@@ -2863,12 +2864,814 @@ async function m166Tests(){
   await ctx.close();
 }
 
+
+async function m174Tests(){
+  const M174='/workspace/labyrinth-main/m174';
+  fs.mkdirSync(M174,{recursive:true});
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m174'});
+
+  const art=await G(page,()=>{
+    const G=__game,st=G.assetState();
+    return {
+      hand:st.hand_snow,ball:st.snowball,items:st.items,
+      ico:G.itemIcoPx('snowball'),
+      item:G.items&&G.items.snowball,
+      ids:(G.itemIds||[]).includes('snowball'),
+      fx:G.itemFx&&G.itemFx.snow,
+      cfg:G.snowball&&{drop:G.snowball.drop,slow:G.snowball.slow},
+      goldWeb:G.spiders&&G.spiders.goldWebMul,
+      invHas:false
+    };
+  });
+  check('M1.74 Snowball art is packed (hand, projectile, item icon) and the item is registered (max 1, noPool, 7% drop, 1 s slow)',
+    art.hand==='png'&&art.ball==='png'&&art.items==='png'&&art.ico>20&&art.item&&art.item.name==='SNOWBALL'&&art.item.max===1&&art.item.noPool&&art.ids&&art.fx===1&&art.cfg&&art.cfg.drop===.07&&art.cfg.slow===1,
+    JSON.stringify(art));
+
+  const drop=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function openSpot(){
+      const p=G.state().player;
+      for(const [dx,dy] of [[2,0],[-2,0],[0,2],[0,-2],[1.8,0],[-1.8,0],[2.4,0],[0,2.4],[1.5,1.5]]){
+        const x=p.x+dx,y=p.y+dy;
+        if(!G.solidAt(x,y))return {x,y};
+      }
+      return {x:p.x,y:p.y};
+    }
+    G.setSeed(7);G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    const pool=G.itemPool()||[];
+    G.snowball.rng=()=>0; // force a drop
+    const s1=openSpot();
+    const i1=G.spawn('snowman',s1.x,s1.y,false,[]);
+    G.killEnt(i1);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const afterFirst=(G.itemList()||[]).filter(it=>it.ptype==='snowball');
+    const s2=openSpot();
+    const i2=G.spawn('snowman',s2.x,s2.y,false,[]);
+    G.killEnt(i2);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const afterSecond=(G.itemList()||[]).filter(it=>it.ptype==='snowball');
+    if(afterFirst[0])G.teleport(afterFirst[0].x,afterFirst[0].y,0);
+    for(let t=0;t<40;t++)G.advance(.05);
+    const held=G.itemN('snowball');
+    const msg=G.state().msg||'';
+    const inv=(G.invList()||[]).some(it=>it.k==='snowball');
+    const s3=openSpot();
+    const i3=G.spawn('snowman',s3.x,s3.y,false,[]);
+    G.killEnt(i3);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const afterHeld=(G.itemList()||[]).filter(it=>it.ptype==='snowball');
+    // other mobs never drop it, even with a forced roll
+    G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    G.snowball.rng=()=>0;
+    const sc=openSpot();
+    const c=G.spawn('clunk',sc.x,sc.y,false,[]);
+    G.killEnt(c);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const clunk=(G.itemList()||[]).filter(it=>it.ptype==='snowball');
+    let icy={found:false,pool:false};
+    for(let sd=1;sd<=80&&!icy.found;sd++)for(let f=3;f<=18&&!icy.found;f++){
+      if(G.icyAt&&G.icyAt(sd,f)){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{}}});
+        icy={found:true,sd,f,theme:G.themeNow(),pool:(G.itemPool()||[]).includes('snowball')};
+      }
+    }
+    if(!icy.found)icy.pool=(G.itemPool()||[]).includes('snowball');
+    G.snowball.rng=null;
+    return {poolHas:pool.includes('snowball'),afterFirst:afterFirst.length,afterSecond:afterSecond.length,held,msg,inv,afterHeld:afterHeld.length,clunk:clunk.length,icy};
+  });
+  check('M1.74 Snowmen drop the Snowball (at most one per run) and nothing else does; it is not in the item pool',
+    drop.afterFirst===1&&drop.afterSecond===1&&drop.held===1&&drop.afterHeld===0&&drop.clunk===0&&!drop.poolHas&&!drop.icy.pool&&/SNOWBALL/.test(drop.msg)&&drop.inv,
+    JSON.stringify(drop));
+
+  const sweep=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    G.snowball.rng=null;
+    // isolated rolls (floor item cleared, never held) measure the raw 7% chance
+    G.setSeed(11);G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    let rolls=0,hits=0;
+    for(let n=0;n<1000;n++){
+      if(G.clearItems)G.clearItems();
+      rolls++;
+      if(G.maybeSnowDrop(5,5))hits++;
+    }
+    // seed sweep: real Snowman kills on Icy Prison floors, max 1 honoured per seed-run
+    let kills=0,drops=0,floors=0,seedsWith=0;
+    const sample=[];
+    for(let sd=1;sd<=50;sd++){
+      let got=false,runKills=0,runDrops=0;
+      G.setSeed(sd);
+      for(let f=3;f<=18;f++){
+        if(!(G.icyAt&&G.icyAt(sd,f)))continue;
+        floors++;
+        G.startLevel(f-1,{hearts:99,coins:0,perm:got?{items:{snowball:1}}:{items:{}}});
+        const ents=G.state().enemies||[];
+        for(let i=0;i<ents.length;i++){
+          const e=ents[i];
+          if(e.gone||e.state==='dead'||e.type!=='snowman')continue;
+          kills++;runKills++;
+          const before=(G.itemList()||[]).filter(it=>it.ptype==='snowball').length+(G.itemN('snowball')||0);
+          G.killEnt(i);
+          for(let t=0;t<20;t++)G.advance(.05);
+          const after=(G.itemList()||[]).filter(it=>it.ptype==='snowball').length+(G.itemN('snowball')||0);
+          if(after>before){drops++;runDrops++;got=true;}
+        }
+      }
+      if(got)seedsWith++;
+      if(runKills)sample.push({sd,kills:runKills,drops:runDrops});
+    }
+    return {rolls,hits,rate:hits/rolls,kills,drops,floors,seedsWith,seeds:50,sample:sample.slice(0,8),cfg:G.snowball.drop};
+  });
+  const band=sweep.hits>=40&&sweep.hits<=110;
+  check('M1.74 Snowball drop rate is 7% per Snowman kill (1000 isolated rolls sit in a 4-11% band; seed sweep reports how often it showed up)',
+    sweep.cfg===.07&&sweep.rolls===1000&&band&&sweep.kills>0,
+    JSON.stringify({rolls:sweep.rolls,hits:sweep.hits,rate:sweep.rate,kills:sweep.kills,drops:sweep.drops,floors:sweep.floors,seedsWith:sweep.seedsWith,sample:sweep.sample}));
+  fs.writeFileSync(`${M174}/drop_sweep.json`,JSON.stringify(sweep,null,2));
+
+  const combat=await G(page,()=>{
+    const G=__game;
+    function openAhead(){
+      const p=G.state().player;
+      for(const [dx,dy,ang] of [[2.2,0,0],[-2.2,0,Math.PI],[0,2.2,Math.PI/2],[0,-2.2,-Math.PI/2]]){
+        if(!G.solidAt(p.x+dx,p.y+dy)&&!G.solidAt(p.x+dx*.5,p.y+dy*.5)){G.teleport(p.x,p.y,ang);return {x:p.x+dx,y:p.y+dy};}
+      }
+      return {x:p.x+1.5,y:p.y};
+    }
+    function fireAt(tx,ty,opts){
+      G.clearMobs&&G.clearMobs();
+      if(G.clearItems)G.clearItems();
+      const j=G.spawn('clunk',tx,ty,false,[]);
+      const hp0=G.state().enemies[j].hp;
+      const parts0=G.partsDetail?G.partsDetail():[];
+      const snow0=parts0.filter(q=>q.kind==='snow').length, drop0=parts0.filter(q=>q.kind==='drop').length;
+      G.shoot(0);
+      let shot=null,hit=null,puff=0,splash=0,slowStart=null,slowMid=null,slowAfter=null,frames=0,hitAt=null;
+      for(let t=0;t<50;t++){
+        G.advance(.05);frames++;
+        const shots=G.shotsDetail()||[];
+        if(shots.length&&!shot)shot=shots[0];
+        const parts=G.partsDetail?G.partsDetail():[];
+        const snowN=Math.max(0,parts.filter(q=>q.kind==='snow').length-snow0);
+        const dropN=Math.max(0,parts.filter(q=>q.kind==='drop').length-drop0);
+        const en=G.state().enemies[j];
+        if(shot&&!hit&&(!shots.length||(en&&en.hp<hp0)||(en&&en.slowT>0))){
+          hit={puff:snowN,splash:dropN,slow:en&&en.slowT,hp:en&&en.hp,dmg:hp0-(en?en.hp:hp0)};
+          hitAt=frames*.05;
+          puff=snowN;splash=dropN;slowStart=en&&en.slowT;
+        }
+        if(hitAt!=null){
+          const since=frames*.05-hitAt;
+          if(Math.abs(since-0.5)<.04)slowMid=en&&en.slowT;
+          if(since>=1.2&&slowAfter==null)slowAfter=en&&en.slowT;
+        }
+        if(hit&&slowAfter!=null)break;
+      }
+      return {shot,hit,puff,splash,slowStart,slowMid,slowAfter,hp0,hp1:G.state().enemies[j]&&G.state().enemies[j].hp,ib:opts&&opts.ice&&G.iceballs?G.iceballs().length:0};
+    }
+    G.manual=true;G.freeze=false;
+    G.setSeed(21);G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    const a=openAhead();
+    G.addRunItem('snowball');G.addRunItem('green');
+    const inv=(G.invList()||[]).map(it=>it.k);
+    const plain=fireAt(a.x,a.y);
+    // yellow puddles sparkle with 3 'drop' motes (existing YPUD art), so colour flags are checked on a separate throw
+    G.addRunItem('yellow');G.shoot(0);
+    const colourShot=(G.shotsDetail()||[])[0]||plain.shot;
+    // Frozen Wand: fresh clunk, no colour ticks so the +1 is obvious
+    G.startLevel(2,{hearts:99,coins:0,perm:{items:{snowball:1,wand:1}}});
+    G.clearMobs&&G.clearMobs();
+    const b=openAhead();
+    const wand=fireAt(b.x,b.y,{ice:true});
+    let ib=0;
+    if(G.iceballs){for(let t=0;t<16;t++){G.advance(.05);ib=Math.max(ib,G.iceballs().length);}}
+    return {inv,plain,colourShot,wand:{...wand,ib:Math.max(ib,wand.ib)},goldWeb:G.spiders&&G.spiders.goldWebMul};
+  });
+  const shot=combat.colourShot||combat.plain.shot;
+  const shotOk=shot&&shot.snow&&shot.green&&shot.yellow&&!shot.frozen&&shot.dmg===1;
+  const slowOk=combat.plain.slowStart>=.85&&combat.plain.slowAfter<=.15;
+  const puffOk=combat.plain.puff>=3&&combat.plain.splash===0;
+  const wandOk=combat.wand.shot&&combat.wand.shot.snow&&combat.wand.shot.frozen&&combat.wand.shot.dmg===2&&combat.wand.hit&&combat.wand.hit.dmg===2&&combat.wand.ib>=1&&combat.wand.puff===0;
+  check('M1.74 holding a Snowball turns thrown balloons into snowballs; colour flags and damage stay on; a hit slows for 1 s and puffs (no splash)',
+    shotOk&&slowOk&&puffOk&&combat.inv.includes('snowball'),
+    JSON.stringify({shot:shot,puff:combat.plain.puff,splash:combat.plain.splash,slowStart:combat.plain.slowStart,slowMid:combat.plain.slowMid,slowAfter:combat.plain.slowAfter,inv:combat.inv,hit:combat.plain.hit}));
+  check('M1.74 Frozen Wand still adds +1 damage and bounce; the snowball sprite is kept and the bounce skips the puff',
+    wandOk,JSON.stringify(combat.wand));
+
+  const save=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    G.setSeed(33);G.startLevel(3,{hearts:7,coins:4,perm:{items:{}}});
+    G.addRunItem('snowball');G.addRunItem('green');
+    const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+    const held=G.itemN('snowball');
+    sv.cont=true;
+    G.startLevel(sv.level,sv);
+    for(let t=0;t<12;t++)G.advance(.05);
+    G.shoot(0);
+    const shot=(G.shotsDetail()||[])[0]||null;
+    const after={mode:G.state().mode,level:G.state().level,n:G.itemN('snowball'),green:G.itemN('green'),shot};
+    // old save without the field still loads
+    localStorage.setItem('labyrinthRemake.save.v1',JSON.stringify({v:1,level:2,hearts:5,coins:3,seed:4242,item:null,t:1,perm:{items:{coffee:1}}}));
+    const old=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1'));
+    old.cont=true;
+    G.startLevel(old.level,old);
+    for(let t=0;t<12;t++)G.advance(.05);
+    const legacy={mode:G.state().mode,level:G.state().level,n:G.itemN('snowball'),coffee:G.itemN('coffee'),hearts:G.state().player.hearts,coins:G.state().player.coins};
+    return {sv,held,after,legacy};
+  });
+  check('M1.74 CONTINUE keeps the Snowball (throws stay snowballs)',
+    save.held===1&&save.after.mode==='play'&&save.after.n===1&&save.after.green===1&&save.after.shot&&save.after.shot.snow&&save.sv&&save.sv.perm&&save.sv.perm.items&&save.sv.perm.items.snowball===1,
+    JSON.stringify({sv:save.sv&&save.sv.perm,after:save.after}));
+  check('M1.74 an old save without a Snowball field still loads',
+    save.legacy.mode==='play'&&save.legacy.level===2&&save.legacy.n===0&&save.legacy.coffee===1&&save.legacy.hearts===5&&save.legacy.coins===3,
+    JSON.stringify(save.legacy));
+
+  // headless screenshots: held hand, in-flight or puff, pickup message
+  const posed=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=true;
+    G.setSeed(21);G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    G.addRunItem('snowball');
+    G.render&&G.render();
+    return {ok:true,n:G.itemN('snowball')};
+  });
+  await page.screenshot({path:`${M174}/m174_hand_snowball.png`});
+
+  const flight=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    G.setSeed(21);G.startLevel(2,{hearts:99,coins:0,perm:{items:{snowball:1}}});
+    G.clearMobs&&G.clearMobs();
+    const p=G.state().player;
+    for(const [dx,dy,ang] of [[2.4,0,0],[-2.4,0,Math.PI],[0,2.4,Math.PI/2],[0,-2.4,-Math.PI/2]]){
+      if(!G.solidAt(p.x+dx,p.y+dy)){G.teleport(p.x,p.y,ang);G.spawn('clunk',p.x+dx,p.y+dy,false,[]);break;}
+    }
+    G.shoot(0);
+    for(let t=0;t<4;t++)G.advance(.04);
+    G.freeze=true;G.render&&G.render();
+    const shots=G.shotsDetail()||[];
+    const parts=G.partsDetail?G.partsDetail():[];
+    return {shots:shots.length,snow:!!(shots[0]&&shots[0].snow),puff:parts.filter(q=>q.kind==='snow').length};
+  });
+  await page.screenshot({path:`${M174}/m174_snowball_flight.png`});
+  if(!(flight.shots>0)){
+    // if the shot already landed, hold a moment later and capture the puff
+    await G(page,()=>{const G=__game;G.freeze=false;for(let t=0;t<8;t++)G.advance(.05);G.freeze=true;G.render&&G.render();return (G.partsDetail()||[]).filter(q=>q.kind==='snow').length;});
+    await page.screenshot({path:`${M174}/m174_snowball_puff.png`});
+  }
+
+  const pick=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    G.setSeed(21);G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    const p=G.state().player;
+    G.spawnItem('item','snowball',p.x,p.y);
+    for(let t=0;t<30;t++)G.advance(.05);
+    G.freeze=true;G.render&&G.render();
+    return {n:G.itemN('snowball'),msg:G.state().msg||'',inv:(G.invList()||[]).some(it=>it.k==='snowball')};
+  });
+  await page.screenshot({path:`${M174}/m174_snowball_pickup.png`});
+  check('M1.74 picking up a Snowball shows the pickup message and lists it in the item screen',
+    pick.n===1&&/SNOWBALL/.test(pick.msg)&&pick.inv,
+    JSON.stringify(pick));
+
+  // ---- Ferryman's Coin ----
+  const ferryArt=await G(page,()=>{
+    const G=__game,I=G.items&&G.items.ferryman;
+    return {
+      ico:G.itemIcoPx&&G.itemIcoPx('ferryman'),
+      name:I&&I.name,desc:I&&I.desc,max:I&&I.max,price:I&&I.price,noPool:!!(I&&I.noPool),theme:I&&I.theme,
+      drop:G.ferryman&&G.ferryman.drop,coins:G.ferryman&&G.ferryman.coins,
+      ids:(G.itemIds||[]).includes('ferryman')
+    };
+  });
+  check('M1.74 the Ferryman\'s Coin is a packed Old Vaults run item (max 1, noPool, 30% collector drop, +3 coins, shop price 40)',
+    ferryArt.ico>80&&ferryArt.name==="FERRYMAN'S COIN"&&/\+3/.test(ferryArt.desc)&&ferryArt.max===1&&ferryArt.price===40&&ferryArt.noPool&&ferryArt.theme==='OLD VAULTS'&&ferryArt.drop===.3&&ferryArt.coins===3&&ferryArt.ids,
+    JSON.stringify(ferryArt));
+
+  const ferryDrop=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function openSpot(){
+      const p=G.state().player;
+      for(const [dx,dy] of [[2,0],[-2,0],[0,2],[0,-2],[1.8,0],[-1.8,0],[2.4,0],[0,2.4]]){
+        if(!G.solidAt(p.x+dx,p.y+dy))return {x:p.x+dx,y:p.y+dy};
+      }
+      return {x:p.x,y:p.y};
+    }
+    function vaultFloor(){
+      for(let sd=1;sd<=80;sd++)for(let f=2;f<=18;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{}}});
+        if(G.vaultsFloor&&G.vaultsFloor())return {sd,f,theme:G.themeNow()};
+      }
+      return null;
+    }
+    const v=vaultFloor();
+    if(!v)return {ok:false,err:'no vaults floor'};
+    G.clearMobs&&G.clearMobs();
+    const pool=G.itemPool()||[];
+    G.ferryman.rng=()=>0; // force a drop
+    const s1=openSpot();
+    const i1=G.spawn('collector',s1.x,s1.y,false,[]);
+    G.killEnt(i1);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const afterFirst=(G.itemList()||[]).filter(it=>it.ptype==='ferryman');
+    const s2=openSpot();
+    const i2=G.spawn('collector',s2.x,s2.y,false,[]);
+    G.killEnt(i2);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const afterSecond=(G.itemList()||[]).filter(it=>it.ptype==='ferryman');
+    if(afterFirst[0])G.teleport(afterFirst[0].x,afterFirst[0].y,0);
+    for(let t=0;t<40;t++)G.advance(.05);
+    const held=G.itemN('ferryman');
+    const msg=G.state().msg||'';
+    const inv=(G.invList()||[]).some(it=>it.k==='ferryman');
+    const s3=openSpot();
+    const i3=G.spawn('collector',s3.x,s3.y,false,[]);
+    G.killEnt(i3);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const afterHeld=(G.itemList()||[]).filter(it=>it.ptype==='ferryman');
+    // other mobs never drop it, even with a forced roll
+    G.startLevel(v.f-1,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    G.ferryman.rng=()=>0;
+    const sc=openSpot();
+    const c=G.spawn('clunk',sc.x,sc.y,false,[]);
+    G.killEnt(c);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const clunk=(G.itemList()||[]).filter(it=>it.ptype==='ferryman');
+    // miss roll
+    G.startLevel(v.f-1,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    G.ferryman.rng=()=>0.99;
+    const sm=openSpot();
+    const m=G.spawn('collector',sm.x,sm.y,false,[]);
+    G.killEnt(m);
+    for(let t=0;t<24;t++)G.advance(.05);
+    const missed=(G.itemList()||[]).filter(it=>it.ptype==='ferryman');
+    G.ferryman.rng=null;
+    return {ok:true,v,poolHas:pool.includes('ferryman'),afterFirst:afterFirst.length,afterSecond:afterSecond.length,held,msg,inv,afterHeld:afterHeld.length,clunk:clunk.length,missed:missed.length};
+  });
+  check('M1.74 Debt Collectors drop the Ferryman\'s Coin (30% roll, at most one per run) and nothing else does; it is not in the item pool',
+    ferryDrop.ok&&ferryDrop.afterFirst===1&&ferryDrop.afterSecond===1&&ferryDrop.held===1&&ferryDrop.afterHeld===0&&ferryDrop.clunk===0&&ferryDrop.missed===0&&!ferryDrop.poolHas&&/FERRYMAN/.test(ferryDrop.msg)&&ferryDrop.inv,
+    JSON.stringify(ferryDrop));
+
+  const ferryShop=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=true;
+    const vaults=[],other=[];
+    for(let sd=1;sd<=200;sd++){
+      for(let f=2;f<=24;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:80,perm:{items:{}}});
+        const theme=G.themeNow()||'',isV=!!(G.vaultsFloor&&G.vaultsFloor()),hasShop=!!(G.hasShop&&G.hasShop());
+        const stock=G.shopItems?G.shopItems():[];
+        const rec={sd,f,theme,hasShop,stock:stock.includes('ferryman'),n:stock.filter(k=>k==='ferryman').length,len:stock.length};
+        if(isV)vaults.push(rec);else other.push(rec);
+      }
+    }
+    const withShop=vaults.filter(r=>r.hasShop);
+    const shopHas=withShop.filter(r=>r.stock);
+    const shopDup=withShop.filter(r=>r.n>1);
+    const otherHas=other.filter(r=>r.stock);
+    const overLen=withShop.filter(r=>r.len>3);
+    // once owned, the shop still lists it but marks it sold
+    const first=withShop[0];
+    let sold=null;
+    if(first){
+      G.setSeed(first.sd);G.startLevel(first.f-1,{hearts:9,coins:80,perm:{items:{ferryman:1}}});
+      G.openShop&&G.openShop();
+      const rows=(G.shopRows&&G.shopRows())||[];
+      const row=rows.find(r=>r.item==='ferryman'||r.name==="FERRYMAN'S COIN");
+      const buy=row?G.shopBuy(rows.indexOf(row)):null;
+      sold={listed:!!row,owned:!!(row&&row.owned),price:row&&row.price,buy,coins:G.state().player.coins,n:G.itemN('ferryman'),mode:G.state().mode};
+      G.closeShop&&G.closeShop();
+    }
+    return {
+      vaults:vaults.length,withShop:withShop.length,shopHas:shopHas.length,
+      shopRate:vaults.length?withShop.length/vaults.length:0,
+      always:withShop.length>0&&shopHas.length===withShop.length,
+      shopDup:shopDup.length,otherHas:otherHas.length,overLen:overLen.length,
+      sold,sample:withShop.slice(0,6)
+    };
+  });
+  fs.writeFileSync(`${M174}/ferry_shop_sweep.json`,JSON.stringify(ferryShop,null,2));
+  check('M1.74 every Old Vaults shop stocks the Ferryman\'s Coin (one copy, 3-item shop), and no other theme does',
+    ferryShop.vaults>10&&ferryShop.withShop>0&&ferryShop.always&&ferryShop.otherHas===0&&ferryShop.shopDup===0&&ferryShop.overLen===0,
+    JSON.stringify({vaults:ferryShop.vaults,withShop:ferryShop.withShop,shopHas:ferryShop.shopHas,shopRate:+ferryShop.shopRate.toFixed(4),otherHas:ferryShop.otherHas,dup:ferryShop.shopDup,over:ferryShop.overLen,sample:ferryShop.sample}));
+  check('M1.74 once you own the Ferryman\'s Coin the shop still lists it at 40 coins but marks it sold',
+    ferryShop.sold&&ferryShop.sold.listed&&ferryShop.sold.owned&&ferryShop.sold.price===40&&ferryShop.sold.buy===false&&ferryShop.sold.coins===80&&ferryShop.sold.n===1,
+    JSON.stringify(ferryShop.sold));
+
+  const ferryPay=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function face(c){
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
+      for(const d of dirs){
+        const x=c.x+d[0],y=c.y+d[1];
+        if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);return true;}
+      }
+      return false;
+    }
+    function findDoors(){
+      for(let sd=1;sd<=60;sd++)for(let f=2;f<=16;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:40,perm:{items:{ferryman:1}}});
+        const doors=G.doors()||[];
+        const lock=doors.find(d=>d.locked&&!d.coin&&!d.bossLock);
+        const coin=(G.extras&&G.extras()||{}).coinDoor||doors.find(d=>d.coin>0);
+        const plain=doors.find(d=>!d.locked&&!d.coin&&!d.bossLock&&d.t!==3);
+        if(lock&&coin&&face(lock))return {sd,f,lock,coin,plain,theme:G.themeNow()};
+      }
+      return null;
+    }
+    const found=findDoors();
+    if(!found)return {ok:false,err:'no lock+coin doors'};
+    G.clearMobs&&G.clearMobs();
+    // locked door with a key
+    face(found.lock);G.setKeys(1);G.setCoins(20);G.advance(0.05);
+    const beforeLock=G.state().player.coins;
+    G.use();
+    for(let k=0;k<50;k++)G.advance(1/60);
+    const afterLock={coins:G.state().player.coins,keys:G.state().player.keys,door:(G.doors()||[]).find(d=>d.x===found.lock.x&&d.y===found.lock.y),msg:G.state().msg};
+    // coin door
+    G.setSeed(found.sd);G.startLevel(found.f-1,{hearts:9,coins:40,perm:{items:{ferryman:1}}});
+    G.clearMobs&&G.clearMobs();
+    face(found.coin);G.setCoins(40);G.advance(0.05);
+    const price=found.coin.price||found.coin.coin||((G.extras&&G.extras()||{}).coinDoor||{}).price;
+    const beforeCoin=G.state().player.coins;
+    G.use();
+    for(let k=0;k<50;k++)G.advance(1/60);
+    const afterCoin={coins:G.state().player.coins,door:(G.doors()||[]).find(d=>d.x===found.coin.x&&d.y===found.coin.y),msg:G.state().msg,price};
+    // a plain door does not pay
+    let afterPlain=null;
+    if(found.plain&&face(found.plain)){
+      G.setCoins(10);G.advance(0.05);
+      const b=G.state().player.coins;
+      G.use();
+      for(let k=0;k<40;k++)G.advance(1/60);
+      afterPlain={coins:G.state().player.coins,delta:G.state().player.coins-b};
+    }
+    // Music Box pays for locked + coin doors
+    G.setSeed(found.sd);G.startLevel(found.f-1,{hearts:9,coins:20,perm:{items:{ferryman:1}}});
+    G.clearMobs&&G.clearMobs();
+    if(G.clearItems)G.clearItems();
+    const doors0=(G.doors()||[]).map(d=>({x:d.x,y:d.y,locked:!!d.locked,coin:d.coin||0,bossLock:!!d.bossLock}));
+    const payable=doors0.filter(d=>d.locked||d.coin>0||d.bossLock).length;
+    const beforeBox=G.state().player.coins;
+    G.give('musicbox');G.useItem&&G.useItem();
+    for(let k=0;k<30;k++)G.advance(1/60);
+    const afterBox={coins:G.state().player.coins,delta:G.state().player.coins-beforeBox,payable,msg:G.state().msg,music:!!(G.musicBox&&G.musicBox())};
+    // CONTINUE must not pay a restored paid coin door again
+    G.setSeed(found.sd);G.startLevel(found.f-1,{hearts:9,coins:40,perm:{items:{ferryman:1}}});
+    G.clearMobs&&G.clearMobs();
+    face(found.coin);G.setCoins(40);G.advance(0.05);G.use();
+    for(let k=0;k<50;k++)G.advance(1/60);
+    const afterPay=G.state().player.coins;
+    const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+    if(!sv)return {ok:false,err:'no save',found,afterLock,afterCoin};
+    sv.cont=true;sv.perm=sv.perm||{items:{ferryman:1}};
+    if(!sv.perm.items)sv.perm.items={};sv.perm.items.ferryman=1;
+    G.startLevel(sv.level,sv);
+    for(let k=0;k<24;k++)G.advance(1/60);
+    const afterCont={coins:G.state().player.coins,n:G.itemN('ferryman'),door:(G.doors()||[]).find(d=>d.x===found.coin.x&&d.y===found.coin.y),coinPaid:!!(G.coinPaid&&G.coinPaid())};
+    // re-use the restored door: it must not pay +3 again (the M1.67 leftover may refund the payment itself)
+    face(found.coin);G.advance(0.05);
+    const coinsBeforeReuse=G.state().player.coins;
+    G.use();
+    for(let k=0;k<40;k++)G.advance(1/60);
+    const reuse={coins:G.state().player.coins,delta:G.state().player.coins-coinsBeforeReuse,door:(G.doors()||[]).find(d=>d.x===found.coin.x&&d.y===found.coin.y),msg:G.state().msg};
+    return {ok:true,found:{sd:found.sd,f:found.f,price},beforeLock,afterLock,beforeCoin,afterCoin,afterPlain,afterBox,afterPay,afterCont,reuse};
+  });
+  const lockOk=ferryPay.ok&&ferryPay.afterLock.coins===ferryPay.beforeLock+3&&ferryPay.afterLock.keys===0&&ferryPay.afterLock.door&&!ferryPay.afterLock.door.locked;
+  const coinOk=ferryPay.ok&&ferryPay.afterCoin.price>0&&ferryPay.afterCoin.coins===40-ferryPay.afterCoin.price+3&&ferryPay.afterCoin.door&&!ferryPay.afterCoin.door.coin;
+  const plainOk=!ferryPay.afterPlain||ferryPay.afterPlain.delta===0;
+  const boxOk=ferryPay.ok&&ferryPay.afterBox.payable>0&&ferryPay.afterBox.delta===3*ferryPay.afterBox.payable&&ferryPay.afterBox.music;
+  const contOk=ferryPay.ok&&ferryPay.afterCont.n===1&&ferryPay.afterCont.door&&!ferryPay.afterCont.door.coin&&ferryPay.afterCont.coinPaid&&ferryPay.reuse&&ferryPay.reuse.delta===0;
+  check('M1.74 the Ferryman\'s Coin pays +3 for a key-unlocked door and a paid coin door, but not a plain door',
+    lockOk&&coinOk&&plainOk,
+    JSON.stringify({lock:ferryPay.afterLock,coin:ferryPay.afterCoin,plain:ferryPay.afterPlain,err:ferryPay.err}));
+  check('M1.74 the Music Box pays +3 per locked or coin door it opens, and CONTINUE does not pay a restored paid coin door again',
+    boxOk&&contOk,
+    JSON.stringify({box:ferryPay.afterBox,afterPay:ferryPay.afterPay,afterCont:ferryPay.afterCont,reuse:ferryPay.reuse}));
+
+  const ferrySave=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    G.setSeed(33);G.startLevel(3,{hearts:7,coins:4,perm:{items:{}}});
+    G.addRunItem('ferryman');
+    const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+    sv.cont=true;G.startLevel(sv.level,sv);
+    for(let t=0;t<12;t++)G.advance(.05);
+    const after={mode:G.state().mode,n:G.itemN('ferryman')};
+    localStorage.setItem('labyrinthRemake.save.v1',JSON.stringify({v:1,level:2,hearts:5,coins:3,seed:4242,item:null,t:1,perm:{items:{coffee:1}}}));
+    const old=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1'));
+    old.cont=true;G.startLevel(old.level,old);
+    for(let t=0;t<12;t++)G.advance(.05);
+    const legacy={mode:G.state().mode,level:G.state().level,n:G.itemN('ferryman'),coffee:G.itemN('coffee')};
+    return {sv:sv&&sv.perm,after,legacy};
+  });
+  check('M1.74 CONTINUE keeps the Ferryman\'s Coin, and an old save without it still loads',
+    ferrySave.sv&&ferrySave.sv.items&&ferrySave.sv.items.ferryman===1&&ferrySave.after.mode==='play'&&ferrySave.after.n===1&&ferrySave.legacy.mode==='play'&&ferrySave.legacy.n===0&&ferrySave.legacy.coffee===1,
+    JSON.stringify(ferrySave));
+
+  const ferryPick=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    G.setSeed(21);G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    const p=G.state().player;
+    G.spawnItem('item','ferryman',p.x,p.y);
+    for(let t=0;t<30;t++)G.advance(.05);
+    G.freeze=true;G.render&&G.render();
+    return {n:G.itemN('ferryman'),msg:G.state().msg||'',inv:(G.invList()||[]).some(it=>it.k==='ferryman')};
+  });
+  await page.screenshot({path:`${M174}/m174_ferryman_pickup.png`});
+  check('M1.74 picking up the Ferryman\'s Coin shows the pickup message and lists it in the item screen',
+    ferryPick.n===1&&/FERRYMAN/.test(ferryPick.msg)&&ferryPick.inv,
+    JSON.stringify(ferryPick));
+
+
+  // ----- Master Key + the Turned Face (Deep Labyrinth) -----
+  const mkArt=await G(page,()=>{
+    const G=__game,st=G.assetState();
+    return {
+      face:st.turnedface,items:st.items,
+      ico:G.itemIcoPx('masterkey'),
+      item:G.items&&G.items.masterkey,
+      ids:(G.itemIds||[]).includes('masterkey'),
+      cfg:G.masterKey&&{drop:G.masterKey.drop},
+      faceCfg:G.turnedFace&&{speed:G.turnedFace.speed,alpha:G.turnedFace.alpha,freeze:G.turnedFace.freeze,atkCD:G.turnedFace.atkCD,recoil:G.turnedFace.recoil},
+      poolHas:(G.itemPool()||[]).includes('masterkey')
+    };
+  });
+  check('M1.74 the Master Key is a packed Deep Labyrinth run item (max 1, noPool, 15% floor spawn) and the Turned Face sheet is packed',
+    mkArt.face==='png'&&mkArt.items==='png'&&mkArt.ico>80&&mkArt.item&&mkArt.item.name==='MASTER KEY'&&/LOCK/.test(mkArt.item.desc)&&mkArt.item.max===1&&mkArt.item.noPool&&mkArt.item.theme==='DEEP LABYRINTH'&&mkArt.ids&&mkArt.cfg&&mkArt.cfg.drop===.15&&mkArt.faceCfg&&mkArt.faceCfg.speed===.9&&mkArt.faceCfg.atkCD===1.5&&mkArt.faceCfg.recoil===3&&!mkArt.poolHas,
+    JSON.stringify(mkArt));
+
+  const mkSweep=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=true;
+    const st={deep:0,withFace:0,withKey:0,faces:0,otherFace:0,otherKey:0,dupFace:0,ownedStill:0,sample:[],first:null};
+    for(let sd=1;sd<=200;sd++){
+      for(let f=2;f<=24;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{}}});
+        const theme=G.themeNow()||'',isD=!!(G.deepLabFloor&&G.deepLabFloor());
+        const faces=(G.state().enemies||[]).filter(e=>e.type==='turnedface'&&!e.gone);
+        const keys=(G.state().items||[]).filter(it=>!it.taken&&it.kind==='item'&&it.ptype==='masterkey');
+        if(isD){
+          st.deep++;st.faces+=faces.length;if(faces.length===1)st.withFace++;if(faces.length>1)st.dupFace++;
+          if(keys.length)st.withKey++;if(keys.length>1)st.dupFace+=0; // counted below
+          if(keys.length>1)st.dupKey=(st.dupKey||0)+1;
+          if(!st.first&&faces.length)st.first={sd,f,theme};
+          if(st.sample.length<6&&keys.length)st.sample.push({sd,f,theme,faces:faces.length,keys:keys.length});
+        }else{
+          st.otherFace+=faces.length;st.otherKey+=keys.length;
+        }
+      }
+    }
+    st.dupKey=st.dupKey||0;
+    st.keyRate=st.deep?Math.round(10000*st.withKey/st.deep)/10000:0;
+    // once you own it, it stops spawning
+    if(st.first){
+      G.setSeed(st.first.sd);G.startLevel(st.first.f-1,{hearts:99,coins:0,perm:{items:{masterkey:1}}});
+      const keys=(G.state().items||[]).filter(it=>!it.taken&&it.kind==='item'&&it.ptype==='masterkey');
+      st.ownedStill=keys.length;
+    }
+    return st;
+  });
+  fs.writeFileSync(`${M174}/master_key_sweep.json`,JSON.stringify(mkSweep,null,2));
+  check('M1.74 every Deep Labyrinth floor has exactly one Turned Face, and no other theme does',
+    mkSweep.deep>0&&mkSweep.withFace===mkSweep.deep&&mkSweep.faces===mkSweep.deep&&mkSweep.dupFace===0&&mkSweep.otherFace===0,
+    JSON.stringify({deep:mkSweep.deep,withFace:mkSweep.withFace,faces:mkSweep.faces,dupFace:mkSweep.dupFace,otherFace:mkSweep.otherFace,first:mkSweep.first}));
+  check('M1.74 the Master Key has a 15% chance on Deep Labyrinth floors (at most one), and never off-theme or after you own it',
+    mkSweep.deep>0&&mkSweep.dupKey===0&&mkSweep.otherKey===0&&mkSweep.ownedStill===0&&mkSweep.keyRate>=0.08&&mkSweep.keyRate<=0.22,
+    JSON.stringify({deep:mkSweep.deep,withKey:mkSweep.withKey,keyRate:mkSweep.keyRate,otherKey:mkSweep.otherKey,dupKey:mkSweep.dupKey,ownedStill:mkSweep.ownedStill,sample:mkSweep.sample}));
+
+  const faceAct=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function findDeep(){
+      for(let sd=1;sd<=80;sd++)for(let f=2;f<=12;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{}}});
+        if(G.deepLabFloor&&G.deepLabFloor()&&G.faceEnt())return {sd,f,theme:G.themeNow()};
+      }
+      return null;
+    }
+    const found=findDeep();
+    if(!found)return {ok:false,err:'no deep labyrinth'};
+    // through-walls: stand the player in an open cell, the face on the far side of a wall, and let it drift
+    let through=null;
+    const L=G.state();
+    const W=G.dims?null:null;
+    // walk the map via doors? use cell probes around the start
+    const p0=G.state().player;
+    let placed=false,wall=null;
+    for(let y=Math.floor(p0.y)-8;y<=Math.floor(p0.y)+8&&!placed;y++)for(let x=Math.floor(p0.x)-8;x<=Math.floor(p0.x)+8;x++){
+      if(!G.solidAt(x+.5,y+.5)){
+        for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const wx=x+d[0],wy=y+d[1],fx=x+d[0]*2,fy=y+d[1]*2;
+          if(G.solidAt(wx+.5,wy+.5)&&!G.solidAt(fx+.5,fy+.5)){
+            G.teleport(x+.5,y+.5,Math.atan2(d[1],d[0]));
+            G.placeFace(fx+.5,fy+.5);
+            G.thawFace();
+            wall={px:x+.5,py:y+.5,wx:wx+.5,wy:wy+.5,fx:fx+.5,fy:fy+.5};
+            placed=true;break;
+          }
+        }
+      }
+    }
+    const start=G.faceEnt();
+    const startDist=start?Math.hypot(start.x-G.state().player.x,start.y-G.state().player.y):99;
+    let inWall=false,minDist=startDist,pos=[];
+    for(let t=0;t<90;t++){
+      G.advance(1/60);
+      const e=G.faceEnt();if(!e)break;
+      const d=Math.hypot(e.x-G.state().player.x,e.y-G.state().player.y);
+      if(d<minDist)minDist=d;
+      if(e.solid)inWall=true;
+      if(t%15===0)pos.push({x:+e.x.toFixed(2),y:+e.y.toFixed(2),solid:!!e.solid,d:+d.toFixed(2)});
+    }
+    const after=G.faceEnt();
+    through={placed,wall,start,startDist,minDist,inWall,after,pos,movedCloser:minDist<startDist-0.2};
+    // isolate the face so other monsters cannot bite during the contact checks
+    if(G.clearMobs){const fe=G.faceEnt();G.clearMobs();G.spawnTurnedFace();if(fe)G.placeFace(fe.x,fe.y);}
+    // park it far away and wait out any leftover invincibility from earlier bites
+    const pl0=G.state().player;
+    G.placeFace(pl0.x+8,pl0.y+8);
+    G.setHearts(99);
+    G.thawFace();
+    for(let t=0;t<80;t++)G.advance(1/60);
+    G.setHearts(99);
+    // cannot be damaged: park it in front but out of bite range so the throw cannot also set inv
+    const plT=G.state().player;
+    G.teleport(plT.x,plT.y,0);
+    G.placeFace(plT.x+2.4,plT.y);
+    G.thawFace();
+    const hp0=G.faceEnt()&&G.faceEnt().hp;
+    G.shoot(0);
+    for(let t=0;t<40;t++)G.advance(1/60);
+    const hp1=G.faceEnt()&&G.faceEnt().hp;
+    const shotsLeft=(G.shotsDetail()||[]).length; // may have splashed on a wall; hp is the assertion
+    const noDmg={hp0,hp1,same:hp0===hp1,shotsLeft};
+    // park far and wait out any leftover invincibility before the contact check
+    const pl1=G.state().player;
+    G.placeFace(pl1.x+8,pl1.y+8);
+    for(let t=0;t<90;t++)G.advance(1/60);
+    G.setHearts(99);
+    if(G.state().player.inv){for(let t=0;t<90&&G.state().player.inv>0;t++)G.advance(1/60);G.setHearts(99);}
+    const hearts0=G.state().player.hearts;
+    const inv0=G.state().player.inv;
+    G.placeFace(G.state().player.x,G.state().player.y-0.2);
+    G.thawFace();
+    for(let t=0;t<8;t++)G.advance(1/60);
+    const afterHit={hearts:G.state().player.hearts,inv0,inv:G.state().player.inv,ent:G.faceEnt()};
+    for(let t=0;t<50;t++)G.advance(1/60); // still in cooldown (~0.83s more, total ~1s)
+    const midCD={hearts:G.state().player.hearts,ent:G.faceEnt()};
+    for(let t=0;t<90;t++)G.advance(1/60);
+    const afterRecoil={hearts:G.state().player.hearts,ent:G.faceEnt()};
+    const recoilD=afterRecoil.ent&&afterHit.ent?Math.hypot(afterRecoil.ent.x-G.state().player.x,afterRecoil.ent.y-G.state().player.y):0;
+    // shield blocks contact
+    G.setHearts(99);
+    G.addRunItem('bubble');
+    const sh0=G.state().player.shieldHits||0;
+    G.placeFace(G.state().player.x,G.state().player.y);
+    G.thawFace();
+    for(let t=0;t<8;t++)G.advance(1/60);
+    const shield={hearts:G.state().player.hearts,hits:G.state().player.shieldHits,sh0};
+    return {ok:true,found,through,noDmg,afterHit,midCD,afterRecoil,recoilD,shield,hearts0};
+  });
+  const thruOk=faceAct.ok&&faceAct.through&&faceAct.through.placed&&faceAct.through.movedCloser&&faceAct.through.inWall;
+  const dmgOk=faceAct.ok&&faceAct.noDmg&&faceAct.noDmg.same&&faceAct.noDmg.hp0>0;
+  const hitOk=faceAct.ok&&faceAct.afterHit.hearts===faceAct.hearts0-1;
+  const cdOk=faceAct.ok&&faceAct.midCD.hearts===faceAct.afterHit.hearts; // no second bite during the 1.5 s cooldown
+  const recOk=faceAct.ok&&faceAct.recoilD>=2.2; // faded back about 3 tiles
+  const shOk=faceAct.ok&&faceAct.shield.hearts===99&&(faceAct.shield.sh0===0||faceAct.shield.hits<faceAct.shield.sh0||faceAct.shield.hits>=0);
+  // shield: bubble gives shieldHits; a blocked bite keeps 99 hearts
+  check('M1.74 the Turned Face floats through walls toward the player, cannot be damaged, bites for 1 heart with a 1.5 s cooldown, then fades back about 3 tiles',
+    thruOk&&dmgOk&&hitOk&&cdOk&&recOk,
+    JSON.stringify({found:faceAct.found,through:faceAct.through,noDmg:faceAct.noDmg,afterHit:faceAct.afterHit,midCD:faceAct.midCD,afterRecoil:faceAct.afterRecoil,recoilD:faceAct.recoilD,shield:faceAct.shield,err:faceAct.err}));
+  check('M1.74 a shield that blocks contact damage also blocks the Turned Face',
+    shOk&&faceAct.ok&&faceAct.shield.hearts===99,
+    JSON.stringify(faceAct.shield));
+
+  const keyUse=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function face(c){
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
+      for(const d of dirs){
+        const x=c.x+d[0],y=c.y+d[1];
+        if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);return true;}
+      }
+      return false;
+    }
+    let found=null;
+    for(let sd=1;sd<=60&&!found;sd++)for(let f=2;f<=16;f++){
+      G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:10,perm:{items:{}}});
+      const lock=(G.doors()||[]).find(d=>d.locked&&!d.coin&&!d.bossLock);
+      if(lock&&face(lock))found={sd,f,lock,theme:G.themeNow()};
+    }
+    if(!found)return {ok:false,err:'no locked door'};
+    G.clearMobs&&G.clearMobs();
+    G.addRunItem('masterkey');G.addRunItem('ferryman');
+    G.setCoins(10);
+    const before={keys:G.state().player.keys,coins:G.state().player.coins,n:G.itemN('masterkey')};
+    face(found.lock);G.advance(0.05);G.use();
+    for(let k=0;k<50;k++)G.advance(1/60);
+    const after={keys:G.state().player.keys,coins:G.state().player.coins,door:(G.doors()||[]).find(d=>d.x===found.lock.x&&d.y===found.lock.y),msg:G.state().msg,n:G.itemN('masterkey')};
+    // CONTINUE keeps the key and the opened door, and does not pay again
+    const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+    if(!sv)return {ok:false,err:'no save',found,before,after};
+    sv.cont=true;sv.perm=sv.perm||{items:{}};sv.perm.items=sv.perm.items||{};sv.perm.items.masterkey=1;sv.perm.items.ferryman=1;
+    G.startLevel(sv.level,sv);
+    for(let k=0;k<24;k++)G.advance(1/60);
+    const afterCont={mode:G.state().mode,n:G.itemN('masterkey'),coins:G.state().player.coins,door:(G.doors()||[]).find(d=>d.x===found.lock.x&&d.y===found.lock.y)};
+    face(found.lock);G.advance(0.05);
+    const coins0=G.state().player.coins;
+    G.use();
+    for(let k=0;k<40;k++)G.advance(1/60);
+    const reuse={coins:G.state().player.coins,delta:G.state().player.coins-coins0,door:(G.doors()||[]).find(d=>d.x===found.lock.x&&d.y===found.lock.y),msg:G.state().msg};
+    // old save without the field still loads
+    localStorage.setItem('labyrinthRemake.save.v1',JSON.stringify({v:1,level:2,hearts:5,coins:3,seed:4242,item:null,t:1,perm:{items:{coffee:1}}}));
+    const old=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1'));
+    old.cont=true;G.startLevel(old.level,old);
+    for(let t=0;t<12;t++)G.advance(.05);
+    const legacy={mode:G.state().mode,level:G.state().level,n:G.itemN('masterkey'),coffee:G.itemN('coffee')};
+    return {ok:true,found,before,after,afterCont,reuse,legacy};
+  });
+  const unlockOk=keyUse.ok&&keyUse.before.keys===0&&keyUse.after.keys===0&&keyUse.after.n===1&&keyUse.after.door&&!keyUse.after.door.locked&&keyUse.after.coins===keyUse.before.coins+3;
+  const contKeyOk=keyUse.ok&&keyUse.afterCont.mode==='play'&&keyUse.afterCont.n===1&&keyUse.afterCont.door&&!keyUse.afterCont.door.locked&&keyUse.reuse.delta===0;
+  check('M1.74 the Master Key opens a locked door without spending a key, and with the Ferryman\'s Coin it still pays +3',
+    unlockOk,JSON.stringify({before:keyUse.before,after:keyUse.after,err:keyUse.err,found:keyUse.found}));
+  check('M1.74 CONTINUE keeps the Master Key and a door it opened, and does not pay the Ferryman again; an old save without it still loads',
+    contKeyOk&&keyUse.legacy&&keyUse.legacy.mode==='play'&&keyUse.legacy.n===0&&keyUse.legacy.coffee===1,
+    JSON.stringify({afterCont:keyUse.afterCont,reuse:keyUse.reuse,legacy:keyUse.legacy}));
+
+  const keyPick=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    G.setSeed(21);G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    const p=G.state().player;
+    G.spawnItem('item','masterkey',p.x,p.y);
+    for(let t=0;t<30;t++)G.advance(.05);
+    G.freeze=true;G.render&&G.render();
+    return {n:G.itemN('masterkey'),msg:G.state().msg||'',inv:(G.invList()||[]).some(it=>it.k==='masterkey')};
+  });
+  await page.screenshot({path:`${M174}/m174_master_key_pickup.png`});
+  check('M1.74 picking up the Master Key shows the pickup message and lists it in the item screen',
+    keyPick.n===1&&/MASTER KEY/.test(keyPick.msg)&&keyPick.inv,
+    JSON.stringify(keyPick));
+
+  const faceShot=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=true;
+    function findDeep(){
+      for(let sd=1;sd<=80;sd++)for(let f=2;f<=12;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{}}});
+        if(G.deepLabFloor&&G.deepLabFloor()&&G.faceEnt())return {sd,f,theme:G.themeNow()};
+      }
+      return null;
+    }
+    const found=findDeep();
+    if(!found)return {ok:false};
+    const p=G.state().player;
+    let posed=false,spot=null;
+    for(let y=Math.floor(p.y)-10;y<=Math.floor(p.y)+10&&!posed;y++)for(let x=Math.floor(p.x)-10;x<=Math.floor(p.x)+10;x++){
+      if(G.solidAt(x+.5,y+.5))continue;
+      for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const wx=x+d[0],wy=y+d[1],fx=x+d[0]*2,fy=y+d[1]*2;
+        if(G.solidAt(wx+.5,wy+.5)&&!G.solidAt(fx+.5,fy+.5)){
+          G.teleport(x+.5,y+.5,Math.atan2(d[1],d[0]));
+          G.placeFace(fx+.5,fy+.5);
+          posed=true;spot={x,y,wx,wy,fx,fy};break;
+        }
+      }
+    }
+    G.render&&G.render();
+    return {ok:posed,found,spot,ent:G.faceEnt()};
+  });
+  await page.screenshot({path:`${M174}/m174_turned_face_through_wall.png`});
+  check('M1.74 Turned Face through-a-wall screenshot posed',
+    faceShot.ok&&faceShot.ent,JSON.stringify(faceShot));
+
+  await ctx.close();
+}
+
+
 if(V168&&want('m168')){ await m168Tests(); }
 if(V169&&want('m169')){ await m169Tests(); }
 if(V170&&want('m170')){ await m170Tests(); }
 if(V171&&want('m171')){ await m171Tests(); }
 if(V172&&want('m172')){ await m172Tests(); }
 if(V173&&want('m173')){ await m173Tests(); }
+if(V174&&want('m174')){ await m174Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 if(V1731&&want('m1731')){ await m1731Tests(); }
@@ -3195,6 +3998,7 @@ process.exit(failed?1:0);
 // =====================================================================
 // M1.1 regression tests: one per approved fix (A1-A9, B1-B8)
 // =====================================================================
+
 async function regressionTests(){
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const phoneOpts={viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:2};

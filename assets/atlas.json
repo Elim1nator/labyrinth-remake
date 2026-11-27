@@ -293,7 +293,7 @@
     },
     "creep": {
       "file": "mobs/creep.png",
-      "frames": 5,
+      "frames": 4,
       "k": 1.5
     },
     "bigspider": {

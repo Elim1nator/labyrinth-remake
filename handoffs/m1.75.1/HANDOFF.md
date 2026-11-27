@@ -1,3 +1,5 @@
+Follow-up: **M1.75.2** (same branch) retouches the moss wall tile so it wraps seamlessly left to right. This M1.75.1 freeze is left intact.
+
 # M1.75.1 handoff
 
 Two Jacob corrections on the same M1.75.1 freeze, cut from remote `Grok-Code-16` at `9dbd070` (Mr Lead's five Sovereign PNG commits on top of the M1.75 text/HTML). Branch `Grok-Code-16`. No PR, no merge, no force-push. Grok-Code-14 and Grok-Code-15 were left alone. The M1.75 freeze (`builds/m1.75*` and its hashes) is left intact.

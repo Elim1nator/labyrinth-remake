@@ -24,8 +24,9 @@ There is no CORS: the API is not meant to be called from other origins.
 
 Sorted by score (highest first), ties broken by earliest `created_at`. `created_at` is an
 ISO 8601 UTC timestamp. `version` is optional on old rows (treat a missing value as
-unknown). From M1.66 the game requests `limit=50` so a “This version” filter still has
-enough rows, then shows the top 10 after filtering.
+unknown). From M1.66 the game requests `limit=50` (from M1.74.1 `limit=100`, the maximum) so a
+“This version” filter still has enough rows, then shows the top 10 after filtering. The
+API has no version filter, so a version outside the top 100 can show fewer than 10 rows.
 
 ### `POST /api/labyrinth/scores`
 

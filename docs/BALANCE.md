@@ -328,7 +328,7 @@ The Jailer's Eye is a run item (max 1): while you hold it, iron fences (tile typ
 The intro camera prefers a vantage with a clear line of sight to the boss; if none is found it keeps the view and skips wall rendering between the camera and the boss. Fog is lifted for the cut-scene, then the exact previous fog is restored, including item and Slick Man clamps. A new floor no longer inherits the previous floor's fog distance.
 
 ## Shared high scores (M1.66)
-Each POST includes a `version` field (the build string, at most 16 characters from `[A-Za-z0-9._-]`). The board can show All versions or This version (client-side filter; a missing version on an old row is unknown). GET still uses `/api/labyrinth/scores?limit=N` (the client asks for 50, then shows the top 10 after filtering). A 404, error, or unreachable API still falls back to the local top 10.
+Each POST includes a `version` field (the build string, at most 16 characters from `[A-Za-z0-9._-]`). The board can show All versions or This version (client-side filter; a missing version on an old row is unknown). GET still uses `/api/labyrinth/scores?limit=N` (the client asks for 50, from M1.74.1 for 100, the API maximum, then shows the top 10 after filtering). A 404, error, or unreachable API still falls back to the local top 10.
 
 
 
@@ -353,6 +353,11 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 ## Paid coin doors and the score board (M1.73.1)
 - Paying a coin door writes the post-payment coin total into the floor save with `coinPaid`, so CONTINUE no longer refunds the first payment. The door still stays open and is not charged again.
 - The high-score board GET is cached for the page load; All/This filters on the client. A 429 on GET or POST falls back to the local top 10 with no retry loop.
+
+## CONTINUE coins, score board retry, ice spikes (M1.74.1)
+- The floor save keeps the floor-start coins. Coin changes that CONTINUE keeps go in `sv.coinAdj`: coin door price, Ferryman +3, shop run items, permanent buys and the Mystery Box price, claimed coin-room bags (+10) and maxed coin-room items (+5), and the revive cost. CONTINUE coins = `coins + coinAdj - coinDebt`; below 0 the rest is owed (`sv.coinDebt`) and repaid by the first floor coins and non-loot coin bags you pick up. Debt does not carry to the next floor. This replaces the M1.73.1 total, which let a floor's coins be collected twice.
+- A failed board load is retried on a later open after `HS_RETRY_MS` = 60 s (a retry is 2 requests, inside the live API's 5 a minute). GET asks for `limit=100`.
+- Ice spikes aim for the open spot nearest straight behind you (offsets up to 180 degrees, line of sight from you) and keep at least `ICEWIZ.spikeMin` = 0.5 cells away; bite range stays 0.6.
 
 ## Snowball (M1.74)
 - Rare Snowman drop only (`noPool`, max 1 per run): 7% per kill (`SNOWBALL.drop`), skipped if you already hold one or one is already on the floor. Isolated 1000-roll checks and an Icy Prison seed sweep are in the M1.74 tests.

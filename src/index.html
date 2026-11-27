@@ -510,7 +510,7 @@ var BATHER={r:.34,life:4.5,gap:.55,slickT:1.4}; /* M1.57 Bather trail: pool-blue
 var DOLL={rustT:15,flee:1.15,fleeMul:1.45,atkCD:1.1,biteR:.52,walk:10,hitH:.58}; /* M1.62 Rafter Doll: Rust 15 s, hit-and-run, half-size; M1.65 hitH keeps level-aimed throws on the sprite */
 var SLICK={fog:5,reflect:.3,range:10,fogLerp:3.2}; /* M1.57 Slick Man: 30% reflect; fog forced to 5 while within 10 cells */
 var SPORE={r:.36,life:5};
-var ICEWIZ={hp:30,hpPer:4,speed:.9,sight:9,keep:[3,6],cast:[1.6,2.4],castT:.45,smallN:3,smallSpd:6,smallSpread:.22,bigSpd:3.2,bigR:1.3,bigDmg:1,bigChance:.35,storm:[14,22],stormLen:[5,10],stormView:3,shieldAt:[.75,.5,.25],spikes:[2,5],spikeHp:2,spikeSpd:2.6,behind:1.2,rollLife:2.6}; /* M1.69 the Ice Wizard (every Icy Prison floor) and his ice spikes; rollLife: how long a Frozen Wand balloon rolls on the floor */
+var ICEWIZ={hp:30,hpPer:4,speed:.9,sight:9,keep:[3,6],cast:[1.6,2.4],castT:.45,smallN:3,smallSpd:6,smallSpread:.22,bigSpd:3.2,bigR:1.3,bigDmg:1,bigChance:.35,storm:[14,22],stormLen:[5,10],stormView:3,shieldAt:[.75,.5,.25],spikes:[2,5],spikeHp:2,spikeSpd:2.6,behind:1.2,spikeMin:.5,rollLife:2.6}; /* M1.69 the Ice Wizard (every Icy Prison floor) and his ice spikes; rollLife: how long a Frozen Wand balloon rolls on the floor */
 var COLLECTOR={steal:3,dmg:2,paid:12,trade:1.6}; /* M1.65 the Debt Collector (Old Vaults only): its hit takes steal coins (dmg hearts when you have none); after paid coins it stops and trades like a shopkeeper */
 var GARG={wake:3,sleep:8,burst:3,gap:.3,cd:[2.4,3.4],room:40,chance:.1,alive:.5,convert:.1}; /* M1.62 the Weeping Gargoyle: a rare statue in big rooms; on Stone Keep floors some are alive (stone and unhurtable until you come within wake cells; red-eyed bursts of 3 sonic rings; back to sleep past sleep cells) and some monsters spawn as them (convert) */
 var MORTAR={sight:9,look:.8,tele:.45,open:1.6,cd:[2.2,3.4],hw:.36,v0:.14,v1:.86,off:.3,repath:.25}; /* M1.53 the Mortared Man: a face in the brick walls (Brick Halls only). look: it fires when the angle to it is wider than acos(look) (off screen) */
@@ -568,8 +568,14 @@ function updateIceWiz(e,dt,p){var C=ICEWIZ,dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx
   if(e.blindT>0)return;
   if(!(e.castT>0)){e.castCd-=dt;if(e.castCd<=0&&d<C.sight+3&&los(e.x,e.y,p.x,p.y)){e.castT=C.castT;e.castCd=C.cast[0]+Math.random()*(C.cast[1]-C.cast[0]);SFX.charge();}}
   if(!(e.castT>0)){var mv=d>C.keep[1]?1:d<C.keep[0]?-1:0,sx=dx/d*mv,sy=dy/d*mv;if(!mv){var a=Math.sin(e.ph*.7);sx=-dy/d*a*.6;sy=dx/d*a*.6;}var sp=C.speed*dt*(e.slowT>0?.5:1);if(sx||sy){moveBody(e,sx*sp,sy*sp,.3,'g');e.moving=true;}}}
-function updateIceSpike(e,dt,p){var C=ICEWIZ,a=p.ang,tx=p.x-Math.cos(a)*C.behind,ty=p.y-Math.sin(a)*C.behind,dx=tx-e.x,dy=ty-e.y,dd=Math.hypot(dx,dy)||1e-6,pd=Math.hypot(p.x-e.x,p.y-e.y),sp=C.spikeSpd*dt*(e.slowT>0?.5:1);
+function spikeTarget(p,C){var offs=[0,.5,-.5,1,-1,1.5,-1.5,2,-2,2.6,-2.6,Math.PI];
+  for(var i=0;i<offs.length;i++){var a=p.ang+Math.PI+offs[i],tx=p.x+Math.cos(a)*C.behind,ty=p.y+Math.sin(a)*C.behind,ok=!blocked(tx,ty,.22,false);
+    for(var k=1;ok&&k<=4;k++)if(solidAt(p.x+(tx-p.x)*k/4,p.y+(ty-p.y)*k/4))ok=false;if(ok)return {x:tx,y:ty};}
+  return null;} /* M1.74.1: the open spot nearest to straight behind you (a wall behind you no longer pins the spike onto you) */
+function updateIceSpike(e,dt,p){var C=ICEWIZ,t=spikeTarget(p,C),pd=Math.hypot(p.x-e.x,p.y-e.y),sp=C.spikeSpd*dt*(e.slowT>0?.5:1),tx,ty,dx,dy,dd;
+  if(!t){var ux=(e.x-p.x)/(pd||1e-6),uy=(e.y-p.y)/(pd||1e-6);t={x:p.x+ux*C.spikeMin,y:p.y+uy*C.spikeMin};}tx=t.x;ty=t.y;dx=tx-e.x;dy=ty-e.y;dd=Math.hypot(dx,dy)||1e-6;
   if(e.state==='idle')e.state='chase';if(dd>.05)moveBody(e,dx/dd*Math.min(sp,dd),dy/dd*Math.min(sp,dd),.22,false); /* it circles round to get behind you */
+  pd=Math.hypot(p.x-e.x,p.y-e.y);if(pd<C.spikeMin){var ox=e.x-p.x,oy=e.y-p.y,od=Math.hypot(ox,oy);if(od<1e-3){ox=-Math.cos(p.ang);oy=-Math.sin(p.ang);od=1;}var push=Math.min(C.spikeMin-pd,C.spikeSpd*dt);moveBody(e,ox/od*push,oy/od*push,.22,false);pd=Math.hypot(p.x-e.x,p.y-e.y);} /* M1.74.1: never sits inside you */
   if(e.atkT>0)e.atkT-=dt;if(pd<.6&&e.atkT<=0){e.atkT=1.4;hurtPlayer(e);stats.spikeBites=(stats.spikeBites|0)+1;}}
 function fscreamerShatter(e){var m=newMob('screamer',e.x,e.y);applyMods(m,[]);scaleMob(m,G.levelIdx+1);m.state='chase';m.screamAnim=.5;G.ents.push(m);e.noLoot=true;addBoom(e.x,e.y,.8,.3,true);sparkle(e.x,e.y,.35,'spark',12);SFX.crumble();stats.fsShatters=(stats.fsShatters|0)+1;setMsg('THE ICE SHATTERS - A SCREAMER BREAKS FREE!',2);} /* M1.71 */
 var SNOWBALL={drop:.07,slow:1}; /* M1.74: 7% per Snowman kill, at most one per run */
@@ -579,7 +585,7 @@ var MASTERKEY={drop:.15}; /* M1.74: 15% floor spawn on Deep Labyrinth, at most o
 var FACE={speed:.9,alpha:.55,freeze:2.5,atkCD:1.5,recoil:3,recoilSpd:2.2,bob:.07}; /* M1.74: 0.9 cells/s (walk is 2.7); 2.5 s start freeze; 1.5 s bite CD; fades back 3 tiles */
 function shopHasFerryman(){return !!(G.shopState&&G.shopState.items&&G.shopState.items.indexOf('ferryman')>=0);}
 function maybeFerryDrop(lp){if(itemN('ferryman')||themeItemOnFloor('ferryman')||shopHasFerryman())return false;stats.ferryRolls=(stats.ferryRolls|0)+1;var r=FERRY.rng?FERRY.rng():Math.random();if(r>=FERRY.drop)return false;G.items.push({kind:'item',ptype:'ferryman',x:lp.x,y:lp.y,ph:0});stats.ferryDrops=(stats.ferryDrops|0)+1;return true;}
-function ferryPayout(wasLocked,wasCoin){if(itemN('ferryman')<=0||!(wasLocked||wasCoin))return 0;G.p.coins+=FERRY.coins;if(G.run)G.run.coins+=FERRY.coins;stats.ferryCoins=(stats.ferryCoins|0)+FERRY.coins;stats.ferryPays=(stats.ferryPays|0)+1;return FERRY.coins;}
+function ferryPayout(wasLocked,wasCoin){if(itemN('ferryman')<=0||!(wasLocked||wasCoin))return 0;G.p.coins+=FERRY.coins;coinKeep(FERRY.coins);if(G.run)G.run.coins+=FERRY.coins;stats.ferryCoins=(stats.ferryCoins|0)+FERRY.coins;stats.ferryPays=(stats.ferryPays|0)+1;return FERRY.coins;}
 function iceWizDeath(e){var lp=lootSpot(e.x,e.y);G.stormT=0;addBoom(e.x,e.y,2,.3,true);SFX.iceBoom();G.ents.forEach(function(q){if(q.type==='icespike'&&q.owner===e&&!q.gone&&q.state!=='dead'){q.state='dead';q.deadT=0;q.noLoot=true;}});
   if(!itemN('wand')){G.items.push({kind:'item',ptype:'wand',x:lp.x,y:lp.y,ph:0});setMsg('THE ICE WIZARD SHATTERS! HE DROPS A FROZEN WAND',3);}else{coinBurst(lp.x,lp.y,8);setMsg('THE ICE WIZARD SHATTERS!',3);}stats.wizKills=(stats.wizKills|0)+1;}
 /* M1.69 Frozen Wand: a frozen balloon bounces off whatever it hits, then rolls about on the floor for a while (harmless) */
@@ -968,9 +974,9 @@ function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 function startLevel(idx,carry){
   if(carry&&carry.perm)G.perm=permFrom(carry.perm); /* M1.12: before the level loads (floor 15's boss depends on it) */
   var r=loadLevel(idx);G.levelIdx=idx;G.L=r.L;G.items=r.items;G.ents=r.ents;G.shots=[];G.parts=[];G.eshots=[];G.puddles=[];
-  G.p={x:r.L.start.x,y:r.L.start.y,ang:r.L.def.ang,hearts:Math.max(1,Math.min(MAX_HEARTS+(carry.perm&&carry.perm.items?(carry.perm.items.heart|0):itemN('heart')),carry.hearts)),coins:carry.coins|0,keys:0,hurtT:0,inv:0,throwT:0,throwAnim:0,bob:0,moving:0,pitch:0,recenter:false,riseT:0,prevFrame:'idle',item:carry.item&&PU[carry.item]?carry.item:null,effect:null,goopT:0,slickT:0,slickVx:0,slickVy:0};G.hole=null;
+  G.p={x:r.L.start.x,y:r.L.start.y,ang:r.L.def.ang,hearts:Math.max(1,Math.min(MAX_HEARTS+(carry.perm&&carry.perm.items?(carry.perm.items.heart|0):itemN('heart')),carry.hearts)),coins:Math.max(0,(carry.coins|0)+(carry.coinAdj|0)-(carry.coinDebt|0)),keys:0,hurtT:0,inv:0,throwT:0,throwAnim:0,bob:0,moving:0,pitch:0,recenter:false,riseT:0,prevFrame:'idle',item:carry.item&&PU[carry.item]?carry.item:null,effect:null,goopT:0,slickT:0,slickVx:0,slickVy:0};G.hole=null;
   if(carry.perm){var bf9=G.perm&&G.perm.broodFloor;G.perm=permFrom(carry.perm);if(bf9)G.perm.broodFloor=bf9;} /* M1.73 keep the Broodmother's floor picked while loading */if(!G.perm)G.perm=permFrom({});if(!G.perm.items)G.perm.items={};var p9=G.p;p9.effects=[];p9.item2=carry.item2&&PU[carry.item2]&&G.perm.pack?carry.item2:null;p9.sel=carry.sel===1&&G.perm.pack?1:0;p9.ball=carry.ball&&BALLS[carry.ball]&&carry.ball!=='blue'&&itemN(carry.ball)?carry.ball:(ownedBalls().slice(-1)[0]||'blue');p9.shieldHits=0;p9.mirrorN=0;
-  G.ypuds=[];G.spores=[];G.stormT=0;G.iceballs=[];G.veilMist=0;G.bolts=[];G.webs=[];G.pots=[];G.fires=[];G.flashT=0;p9.st={};G.slotForce=null;G.shopState=null;G.fellPit=false;G.boss=null;G.flareT=0;G.musicBox=false;musicStop();G.coinTaken=!!(carry&&carry.coinTaken===idx);G.coinPaid=!!(carry&&carry.coinPaid===idx);G.lockOpened=lockMap(carry&&carry.locks);G.dmgNums=[];G.splats=[];G.hudDmg=[];G.sealMsgT=0;G.intro=null;G.shake=0;G.trapFall=false;G.itemLockT=0;G.bombs=[];G.booms=[];G.cracks=[];G.rings=[];G.signs=[];G.halis=[];G.carcosaT=0;if(carry.secret===idx&&G.L.crack)openSecret(G.L.crack,false); /* M19: a broken secret wall stays open on CONTINUE */
+  G.ypuds=[];G.spores=[];G.stormT=0;G.iceballs=[];G.veilMist=0;G.bolts=[];G.webs=[];G.pots=[];G.fires=[];G.flashT=0;p9.st={};G.slotForce=null;G.shopState=null;G.fellPit=false;G.boss=null;G.flareT=0;G.musicBox=false;musicStop();G.coinTaken=!!(carry&&carry.coinTaken===idx);G.coinPaid=!!(carry&&carry.coinPaid===idx);G.coinAdj=0;G.coinDebt=Math.max(0,(carry.coinDebt|0)-(carry.coinAdj|0)-(carry.coins|0));G.coinDebt0=G.coinDebt;G.coinStart=G.p.coins; /* M1.74.1: floor-start coins, and what CONTINUE still owes from coins spent before it */G.lockOpened=lockMap(carry&&carry.locks);G.dmgNums=[];G.splats=[];G.hudDmg=[];G.sealMsgT=0;G.intro=null;G.shake=0;G.trapFall=false;G.itemLockT=0;G.bombs=[];G.booms=[];G.cracks=[];G.rings=[];G.signs=[];G.halis=[];G.carcosaT=0;if(carry.secret===idx&&G.L.crack)openSecret(G.L.crack,false); /* M19: a broken secret wall stays open on CONTINUE */
   G.stats={coins0:G.p.coins,coinsTotal:r.items.filter(function(i){return i.kind==='coin';}).length+r.ents.length,enemiesTotal:r.ents.filter(function(e){return !(MOBS[e.type]&&MOBS[e.type].noKill);}).length,defeated:0};
   G.stats.elites=rollLevelElites(idx+1);G.stats.powerups=placePowerups(idx);G.stats.knight=carry.knight===idx?null:spawnKnight(idx);G.stats.extras=addFloorExtras(idx);spawnTurnedFace();maybePlaceMasterKey();G.L.worms=spawnWorms(idx);if(G.L.lectern)placeScript(idx);G.nearUse=null;G.L.spiderLvl=pitLevel(permN('pit'));p9.confuseT=0;p9.script=false;G.skitT=6+Math.random()*6;G.bigT=12+Math.random()*8;G.faceT=0;p9.slowT=0;runItemsFloorStart(!carry.cont); /* M1.11: after the elite and power-up rolls, so those stay as they were */
   if(carry.musicBox)applyMusicBox({quiet:true,noGrant:true}); /* M1.65: CONTINUE keeps doors open and the tune */
@@ -980,9 +986,10 @@ function startLevel(idx,carry){
   G.levelTime=0;G.mode='play';G.modeT=0;G.dist=null;G.distG=null;G.distT=0;VIEW.cur=viewDist(); /* M1.66: a new floor does not inherit the last floor's fog */
   if(carry.run)G.run={kills:carry.run.kills|0,elites:carry.run.elites|0,coins:carry.run.coins|0,deepest:Math.max(1,carry.run.deepest|0),cheated:!!carry.run.cheated,deaths:carry.run.deaths|0};if(!G.run)G.run=newRun();G.run.deepest=Math.max(G.run.deepest,Math.min(MAX_FLOOR,idx+1));
   G.slot={spins:0,anim:null,show:0,last:null};G.final=null;if(nameIn&&nameIn.className)closeName();
-  writeSave({v:1,knight:G.stats.knight===null&&carry.knight===idx?idx:undefined,level:idx,hearts:G.p.hearts,coins:G.p.coins,seed:G.seed,item:G.p.item,item2:G.p.item2,sel:G.p.sel,ball:G.p.ball,perm:permCopy(),secret:G.L.secretOpen?idx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),locks:(function(){var a=openedLockList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?idx:undefined,coinPaid:G.coinPaid?idx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
+  writeSave({v:1,knight:G.stats.knight===null&&carry.knight===idx?idx:undefined,level:idx,hearts:G.p.hearts,coins:G.p.coins,coinDebt:G.coinDebt||undefined,seed:G.seed,item:G.p.item,item2:G.p.item2,sel:G.p.sel,ball:G.p.ball,perm:permCopy(),secret:G.L.secretOpen?idx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),locks:(function(){var a=openedLockList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?idx:undefined,coinPaid:G.coinPaid?idx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
   setMsg(idx===0?'FIND THE GOLD KEY, THEN THE EXIT!':(idx+1===TIER_FLOORS[texTier(idx+1)]&&idx>0&&texTier(idx+1)>0?'DEEPER! NEW WALLS: '+DEEP_THEMES[texTier(idx+1)-1].name:(G.L.def.boss?(G.L.bossType==='yellow'?'FIND THE PLAY SCRIPT. HIS LECTERN WAITS...':'BOSS FLOOR! '+bossName()+' GUARDS THE STAIRS'):'NEW MAZE! KEY FIRST, THEN THE EXIT.')),3.5);
   if(G.L.icy){setMsg('ICY PRISON: THE COLD SLOWS YOU',3.5);stats.icyFloors=(stats.icyFloors|0)+1;} /* M1.68 */
+  if(G.coinDebt>0)setMsg('THE NEXT '+G.coinDebt+' COINS YOU FIND ARE OWED',3.5); /* M1.74.1: CONTINUE after spending floor coins */
   SFX.start();
 }
 function attract(){var r=loadLevel(0);G.L=r.L;G.items=r.items;G.ents=r.ents;G.shots=[];G.parts=[];G.eshots=[];G.puddles=[];G.p=null;}
@@ -1482,8 +1489,8 @@ function updatePlay(dt){if(G.failNext){G.failNext=false;var te=new Error('test f
     if(it.kind==='item'){pickRunItem(it);continue;}
     if(it.kind==='piggy'){it.taken=true;if(it.coinLoot)markCoinTaken();G.perm.piggy=true;permSave();SFX.powerup();SFX.coin();setMsg('PIGGY BANK! EACH THROW COSTS A COIN, DOES DOUBLE',3);stats.piggyPicks++;continue;}
     if(it.kind==='webg'){it.taken=true;G.perm.web=true;permSave();SFX.portalOpen();setMsg('GOLDEN WEB! YOUR HITS SLOW MONSTERS',3);continue;}
-    if(it.kind==='bag'){it.taken=true;if(it.coinLoot)markCoinTaken();p.coins+=BAG_COINS;if(G.run)G.run.coins+=BAG_COINS;SFX.coin();SFX.powerup();setMsg('A BAG OF '+BAG_COINS+' COINS!',2);sparkle(it.x,it.y,.25,'spark',10);stats.bags++;continue;}
-    if(it.kind==='coin'){it.taken=true;var cv=itemN('clover')?2:1;p.coins+=cv;if(G.run)G.run.coins+=cv;SFX.coin();if(cv>1)stats.cloverCoins++;sparkle(it.x,it.y,.25,'spark',4);}
+    if(it.kind==='bag'){it.taken=true;if(it.coinLoot){p.coins+=BAG_COINS;coinKeep(BAG_COINS);markCoinTaken();}else gainFloorCoins(BAG_COINS);if(G.run)G.run.coins+=BAG_COINS;SFX.coin();SFX.powerup();setMsg('A BAG OF '+BAG_COINS+' COINS!',2);sparkle(it.x,it.y,.25,'spark',10);stats.bags++;continue;}
+    if(it.kind==='coin'){it.taken=true;var cv=itemN('clover')?2:1;gainFloorCoins(cv);if(G.run)G.run.coins+=cv;SFX.coin();if(cv>1)stats.cloverCoins++;sparkle(it.x,it.y,.25,'spark',4);}
     else if(it.kind==='key'){it.taken=true;p.keys++;SFX.key();setMsg('GOT THE GOLD KEY!',2.5);sparkle(it.x,it.y,.25,'spark',8);}
     else if(it.kind==='heart'&&p.hearts<maxHearts()){it.taken=true;p.hearts++;SFX.heart();setMsg('+1 HEART',1.5);}}}
   if(p.inv>0)p.inv-=dt;if(p.hurtT>0)p.hurtT-=dt;
@@ -1559,7 +1566,7 @@ function addFloorExtras(idx){var L=G.L,floor=idx+1,out={};if(idx<1)return out;va
 function hasJailer(){return itemN('jailer')>0;} /* M1.66: the Jailer's Eye is a passive run item */
 function findUse(){var p=G.p,ca=Math.cos(p.ang),sa=Math.sin(p.ang);for(var d=.1;d<=1.45;d+=.05){var c=cellAt(Math.floor(p.x+ca*d),Math.floor(p.y+sa*d));if(!c||c.t===1)return null;if(c.t===3){if(hasJailer()&&((c.open||0)<.99||c.state==='closing'))return c;return null;}if(c.t===5||c.t===7||c.t===8||c.t===10)return c;if(c.t===2){if(c.locked||c.open<.99||c.state==='closing')return c;return null;}}return null;}
 function doUse(){var d=G.useTarget;if(!d){if(G.nearUse)nearUseDo(G.nearUse);return;}if(d.t===5){slotUse();return;}if(d.t===7){openShop();return;}if(d.t===8){shrineUse(d);return;}if(d.t===10){lecternUse(d);return;}
-  if(d.coin){if(G.p.coins>=d.coin){var price=d.coin,wasLocked=!!d.locked;G.p.coins-=price;d.coin=0;d.locked=false;d.tex=5;d.state='opening';SFX.buy();SFX.door();stats.coinDoors++;var extra=ferryPayout(wasLocked,true);markCoinPaid();setMsg('PAID '+price+' COINS. THE DOOR CREAKS OPEN'+(extra?'. THE FERRYMAN PAYS +'+extra+' COINS':'')+'...',2.2);}else{setMsg('THIS DOOR WANTS '+d.coin+' COINS',2.2);SFX.locked();}return;} /* M1.12 coin door; M1.67: persist paid-open so CONTINUE cannot charge again; M1.74 Ferryman pays after a real payment, not a CONTINUE restore */
+  if(d.coin){if(G.p.coins>=d.coin){var price=d.coin,wasLocked=!!d.locked;G.p.coins-=price;d.coin=0;d.locked=false;d.tex=5;d.state='opening';SFX.buy();SFX.door();stats.coinDoors++;var extra=ferryPayout(wasLocked,true);markCoinPaid(price);setMsg('PAID '+price+' COINS. THE DOOR CREAKS OPEN'+(extra?'. THE FERRYMAN PAYS +'+extra+' COINS':'')+'...',2.2);}else{setMsg('THIS DOOR WANTS '+d.coin+' COINS',2.2);SFX.locked();}return;} /* M1.12 coin door; M1.67: persist paid-open so CONTINUE cannot charge again; M1.74 Ferryman pays after a real payment, not a CONTINUE restore */
   if(d.bossLock){setMsg('LOCKED UNTIL '+bossName()+' FALLS!',2.5);SFX.locked();return;}
   if(d.locked){var hasMaster=itemN('masterkey')>0;if(hasMaster||G.p.keys>0){if(!hasMaster)G.p.keys--;d.locked=false;d.tex=5;d.state='opening';SFX.unlock();SFX.door();var extra=ferryPayout(true,false);markLockOpened(d);setMsg(hasMaster?(extra?'THE MASTER KEY TURNS. THE FERRYMAN PAYS +'+extra+' COINS':'THE MASTER KEY TURNS.'):(extra?'UNLOCKED! THE FERRYMAN PAYS +'+extra+' COINS':'UNLOCKED!'),2);}else{setMsg('LOCKED! FIND THE GOLD KEY.',2.5);SFX.locked();}return;}
   if(d.t===3){tryOpenFence(d);return;}
@@ -1569,7 +1576,7 @@ function grantCoinLoot(d){var p=G.p,got=0;if(!p||!G.items)return 0;
   for(var i=0;i<G.items.length;i++){var it=G.items[i];if(it.taken||!it.coinLoot)continue;if(Math.hypot(it.x-d.x-.5,it.y-d.y-.5)>5)continue;
     if(it.kind==='power')pickPower(it);else if(it.kind==='item')pickRunItem(it);
     else if(it.kind==='piggy'){it.taken=true;G.perm.piggy=true;permSave();SFX.powerup();SFX.coin();stats.piggyPicks++;}
-    else if(it.kind==='bag'){it.taken=true;p.coins+=BAG_COINS;if(G.run)G.run.coins+=BAG_COINS;SFX.coin();SFX.powerup();stats.bags++;}
+    else if(it.kind==='bag'){it.taken=true;p.coins+=BAG_COINS;coinKeep(BAG_COINS);if(G.run)G.run.coins+=BAG_COINS;SFX.coin();SFX.powerup();stats.bags++;}
     if(it.taken)got++;}
   if(got){stats.coinDoors=(stats.coinDoors|0)+1;markCoinTaken();}return got;}
 function applyMusicBox(opt){var quiet=opt&&opt.quiet,noPay=!!(opt&&opt.noGrant),ferry=0;G.musicBox=true;
@@ -1578,7 +1585,7 @@ function applyMusicBox(opt){var quiet=opt&&opt.quiet,noPay=!!(opt&&opt.noGrant),
   musicBoxStart();return ferry;}
 function openMusicBox(){var ferry=applyMusicBox(null);
   G.shake=Math.max(G.shake||0,.12);setMsg('A TINNY TUNE. EVERY DOOR YIELDS!'+(ferry?(' THE FERRYMAN PAYS +'+ferry+' COINS'):''),2.5);stats.musicBoxUses=(stats.musicBoxUses|0)+1;
-  var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.musicBox=true;sv.item=G.p.item;sv.item2=G.p.item2;sv.sel=G.p.sel;if(G.L&&G.L.secretOpen)sv.secret=G.levelIdx;if(G.coinTaken)sv.coinTaken=G.levelIdx;if(G.coinPaid)sv.coinPaid=G.levelIdx;sv.coins=Math.max(0,G.p.coins|0);writeSave(sv);}} /* M1.65: persist the open doors and tune on CONTINUE */
+  var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.musicBox=true;sv.item=G.p.item;sv.item2=G.p.item2;sv.sel=G.p.sel;if(G.L&&G.L.secretOpen)sv.secret=G.levelIdx;if(G.coinTaken)sv.coinTaken=G.levelIdx;if(G.coinPaid)sv.coinPaid=G.levelIdx;sv.coinAdj=G.coinAdj||undefined;writeSave(sv);}} /* M1.65: persist the open doors and tune on CONTINUE */
 function tryOpenFence(c,opt){if(!c||c.t!==3||!hasJailer())return false;if(c.state==='opening'||c.state==='open'||(c.open||0)>=.99)return false;
   c.state='opening';c.held=true;c.open=c.open||0;if(!(opt&&opt.quiet)){SFX.door();setMsg('THE FENCE YIELDS!',2.2);}persistOpenFences();return true;}
 function bumpOpenFences(p,dx,dy,r){if(!hasJailer())return;var pts=[[p.x+dx-r,p.y-r],[p.x+dx+r,p.y-r],[p.x+dx-r,p.y+r],[p.x+dx+r,p.y+r],[p.x-r,p.y+dy-r],[p.x+r,p.y+dy-r],[p.x-r,p.y+dy+r],[p.x+r,p.y+dy+r]];
@@ -1589,7 +1596,7 @@ function persistOpenFences(){var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.
 function lockMap(list){var o={};if(list)list.forEach(function(p){o[p[0]+','+p[1]]=1;});return o;}
 function openedLockList(){var o=[],k;if(!G.lockOpened)return o;for(k in G.lockOpened)if(G.lockOpened[k]){var p=k.split(',');o.push([p[0]|0,p[1]|0]);}return o;}
 function markLockOpened(d){if(!d)return;G.lockOpened=G.lockOpened||{};G.lockOpened[d.x+','+d.y]=1;persistOpenedLocks();}
-function persistOpenedLocks(){var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){var a=openedLockList();sv.locks=a.length?a:undefined;sv.coins=Math.max(0,G.p.coins|0);writeSave(sv);}} /* M1.74: also keep a Ferryman +3 so CONTINUE cannot drop or re-pay it */
+function persistOpenedLocks(){var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){var a=openedLockList();sv.locks=a.length?a:undefined;sv.coinAdj=G.coinAdj||undefined;writeSave(sv);}} /* M1.74: also keep a Ferryman +3 so CONTINUE cannot drop or re-pay it (M1.74.1: as a coin change) */
 function applyOpenedLocks(){if(!G.lockOpened||!G.L||!G.L.doors)return;G.L.doors.forEach(function(d){if(!G.lockOpened[d.x+','+d.y])return;d.locked=false;if(d.tex===6)d.tex=5;d.held=true;d.open=1;d.state='open';});} /* M1.74: CONTINUE restores Master Key / key-opened locked doors without a Ferryman payout */
 function freeFloorCell(minD){var L=G.L,W0=L.w,H0=L.h,n0=W0*H0,dist=new Int16Array(n0).fill(-1),q=[],s0,best=null,used={};
   if(!L.start)return null;s0=Math.floor(L.start.y)*W0+Math.floor(L.start.x);dist[s0]=0;q.push(s0);
@@ -1610,8 +1617,10 @@ function updateTurnedFace(e,dt,p){var C=FACE,L=G.L,dx,dy,d,sp;
   if(e.atkT>0)e.atkT-=dt;
   d=Math.hypot(p.x-e.x,p.y-e.y);
   if(d<(.45+.1)&&e.atkT<=0){e.atkT=C.atkCD;hurtPlayer(e);var ux=dx/d,uy=dy/d;if(d<.08){ux=0;uy=1;}e.rx=e.x-ux*C.recoil;e.ry=e.y-uy*C.recoil;if(L){e.rx=Math.max(.2,Math.min(L.w-.2,e.rx));e.ry=Math.max(.2,Math.min(L.h-.2,e.ry));}e.recoilT=Math.max(.7,C.recoil/(C.speed*C.recoilSpd));}}
+function coinKeep(n){G.coinAdj=(G.coinAdj|0)+(n|0);var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinAdj=G.coinAdj||undefined;writeSave(sv);}} /* M1.74.1: a coin change that CONTINUE keeps (paid doors, the Ferryman, shop buys, claimed coin-room loot). The save's coins stay the floor-start total, because CONTINUE puts every floor coin back */
+function gainFloorCoins(n){if(G.coinDebt>0){var d=Math.min(G.coinDebt,n);G.coinDebt-=d;n-=d;if(G.coinDebt<=0)setMsg('PAID BACK. COINS ARE YOURS AGAIN',1.6);}G.p.coins+=n;} /* M1.74.1: coins that CONTINUE puts back repay what you spent from them first */
 function markCoinTaken(){G.coinTaken=true;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinTaken=G.levelIdx;writeSave(sv);}} /* M1.66: claimed coin-room loot stays claimed on CONTINUE */
-function markCoinPaid(){G.coinPaid=true;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinPaid=G.levelIdx;sv.coins=Math.max(0,G.p.coins|0);writeSave(sv);}} /* M1.67: a paid coin door stays open and is not charged again on CONTINUE */ /* M1.73.1: also store the post-payment coin total so CONTINUE does not refund the first payment */
+function markCoinPaid(price){G.coinPaid=true;G.coinAdj=(G.coinAdj|0)-(price|0);var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinPaid=G.levelIdx;sv.coinAdj=G.coinAdj||undefined;writeSave(sv);}} /* M1.67: a paid coin door stays open and is not charged again on CONTINUE */ /* M1.74.1: the price is kept as a coin change, not as a new coin total (M1.73.1 wrote the total, so the floor's coins came back on top of it) */
 function applyPaidCoinDoors(){if(!G.L||!G.L.doors)return;G.L.doors.forEach(function(d){if(!(d.coin>0))return;d.coin=0;d.locked=false;d.tex=5;d.held=true;d.open=1;d.state='open';});}
 function updateDoors(dt){G.L.doors.forEach(function(d){
   if(d.state==='opening'){d.open+=dt*1.8;if(d.open>=1){d.open=1;d.state='open';d.timer=4;}}
@@ -1822,7 +1831,7 @@ function reviveCost(){return REVIVE_COST*Math.max(1,(G.run&&G.run.deaths)|0);}
 function tryRevive(){if(G.mode!=='dead'||G.modeT<.4)return false;var p=G.p,c=reviveCost();if(p.coins<c){G.reviveMsg='YOU NEED '+c+' COINS';SFX.locked();return false;}
   p.coins-=c;p.hearts=maxHearts();p.inv=2;p.hurtT=0;if(G.fellPit){var sp=safeSpot(p.x,p.y);p.x=sp.x;p.y=sp.y;G.fellPit=false;}G.final=null;G.mode='play';G.modeT=0;resetInputs();
   G.eshots=[];G.puddles=[];G.halis=[];G.signs=[];G.splats=[];G.hudDmg=[];G.ents.forEach(function(e){if(!e.gone&&Math.hypot(e.x-p.x,e.y-p.y)<1.5&&!MOBS[e.type].boss)for(var k=0;k<10;k++)moveBody(e,(e.x-p.x||.1)*.08,(e.y-p.y||.1)*.08,.28,'g');});
-  writeSave({v:1,level:G.levelIdx,hearts:p.hearts,coins:p.coins,seed:G.seed,item:p.item,item2:p.item2,sel:p.sel,ball:p.ball,perm:permCopy(),secret:G.L.secretOpen?G.levelIdx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),locks:(function(){var a=openedLockList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?G.levelIdx:undefined,coinPaid:G.coinPaid?G.levelIdx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
+  G.coinAdj=(G.coinAdj|0)-c;writeSave({v:1,level:G.levelIdx,hearts:p.hearts,coins:G.coinStart|0,coinDebt:G.coinDebt0||undefined,coinAdj:G.coinAdj||undefined,seed:G.seed,item:p.item,item2:p.item2,sel:p.sel,ball:p.ball,perm:permCopy(),secret:G.L.secretOpen?G.levelIdx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),locks:(function(){var a=openedLockList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?G.levelIdx:undefined,coinPaid:G.coinPaid?G.levelIdx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
   SFX.portalOpen();SFX.heart();sparkle(p.x,p.y,.5,'spark',20);setMsg('REVIVED! (-'+c+' COINS)',2.5);stats.revives++;if(G.lastInput==='kb')requestLock();return true;}
 function onRunOver(){var r=G.run||newRun();G.final={cheated:!!r.cheated,score:scoreOf(r),floor:Math.max(1,Math.min(MAX_FLOOR,r.deepest|0)),seed:String(G.seed),kills:r.kills|0,coins:r.coins|0};clearSave();}
 var NAME_CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _.-';
@@ -1858,7 +1867,7 @@ function leaveScores(){toTitle();}
    the browser's existing same-origin auth is reused (credentials:'same-origin'). Offline / file:// -> local top 10. */
 var HS_API='/api/labyrinth',LOCAL_HS_KEY='labyrinthRemake.localScores.v1';
 var HS={online:null,loading:false,list:[],local:true,msg:'',hl:null,busy:false,loadSeq:0,filter:'all',fetched:false}; /* M1.66: filter all vs this version */ /* M1.73.1: fetched caches the leaderboard GET for the page session */
-var HS_LIST_LIMIT=50;
+var HS_LIST_LIMIT=100,HS_RETRY_MS=60000;
 function hsValidVer(v){return typeof v==='string'&&v.length>=1&&v.length<=16&&/^[A-Za-z0-9._-]+$/.test(v);}
 function hsNormVer(v){return hsValidVer(v)?v:'';}
 function hsThisVer(){return hsNormVer(VERSION);}
@@ -1891,11 +1900,11 @@ function hsTabRects(){var w1=textW('ALL VERSIONS',1)+14,w2=textW('THIS VERSION',
   return {all:[x0,y,w1,16],mine:[x0+w1+gap,y,w2,16]};}
 function hsTabHit(p){var t=hsTabRects();if(inRect(p,t.all))return 'all';if(inRect(p,t.mine))return 'mine';return null;}
 function hsToggle(to){if(to!=='all'&&to!=='mine')to=HS.filter==='all'?'mine':'all';if(HS.filter===to)return false;HS.filter=to;SFX.menu();return true;}
-function hsLoad(force){if(HS.fetched&&!force){HS.loading=false;return;} /* M1.73.1: one leaderboard GET per page load; reopen and the All/This toggle use the cached rows */var seq=++HS.loadSeq;HS.loading=true;
-  var useLocal=function(note){if(seq!==HS.loadSeq)return;HS.local=true;HS.list=localScores();HS.loading=false;HS.fetched=true;if(note&&!HS.msg)HS.msg=note;};
+function hsLoad(force){if(!force&&(HS.fetched||(HS.failT&&Date.now()-HS.failT<HS_RETRY_MS))){HS.loading=false;return;} /* M1.74.1: a failed load is retried on a later open, at most once a minute */ /* M1.73.1: one leaderboard GET per page load; reopen and the All/This toggle use the cached rows */var seq=++HS.loadSeq;HS.loading=true;
+  var useLocal=function(note){if(seq!==HS.loadSeq)return;HS.local=true;HS.list=localScores();HS.loading=false;HS.fetched=false;HS.failT=Date.now();if(note&&!HS.msg)HS.msg=note;};
   hsCheck(function(on){if(seq!==HS.loadSeq)return;if(!on){useLocal('');return;}
     hsFetch('/scores?limit='+HS_LIST_LIMIT,{},5000).then(function(r){if(!r.ok)throw new Error('status '+r.status);return r.json();}).then(function(j){if(seq!==HS.loadSeq)return;
-      HS.list=(j&&Array.isArray(j.scores)?j.scores:[]).map(hsRow).filter(Boolean);HS.local=false;HS.loading=false;HS.fetched=true;})
+      HS.list=(j&&Array.isArray(j.scores)?j.scores:[]).map(hsRow).filter(Boolean);HS.local=false;HS.loading=false;HS.fetched=true;HS.failT=0;})
     .catch(function(){useLocal('COULD NOT LOAD THE ONLINE BOARD - SHOWING LOCAL');});});}
 function cleanMsg(s){return String(s||'ERROR').toUpperCase().replace(/[^A-Z0-9 .,:!?\-\/()]/g,' ').slice(0,28);}
 function hsSubmit(entry,cb){var ver=hsNormVer(entry.version)||hsThisVer();entry.version=ver;var body=JSON.stringify({name:entry.name.trim(),score:entry.score,floor:entry.floor,seed:entry.seed,version:ver}); /* M1.66: shared board includes the build version */
@@ -1905,7 +1914,7 @@ function hsSubmit(entry,cb){var ver=hsNormVer(entry.version)||hsThisVer();entry.
     .then(function(o){
       if(o.status===201&&o.j&&o.j.ok){stats.hsPosts++;cb({msg:'SCORE SENT! YOUR RANK: '+(o.j.rank|0),highlight:{local:false,rank:o.j.rank|0}});}
       else if(o.status===400)cb({msg:'SCORE REJECTED: '+cleanMsg(o.j&&o.j.error)});
-      else{var r=localAdd(entry);if(o.status===429){HS.fetched=true;HS.local=true;HS.list=localScores();}cb({msg:'BOARD UNAVAILABLE ('+o.status+') - SAVED LOCALLY',highlight:r?{local:true,rank:r}:null});}}) /* M1.73.1: a 429 on GET or POST uses the local top-10 fallback, with no retry loop */
+      else{var r=localAdd(entry);if(o.status===429){HS.fetched=false;HS.failT=Date.now();HS.local=true;HS.list=localScores();}cb({msg:'BOARD UNAVAILABLE ('+o.status+') - SAVED LOCALLY',highlight:r?{local:true,rank:r}:null});}}) /* M1.73.1: a 429 on GET or POST uses the local top-10 fallback, with no retry loop */
     .catch(function(){HS.online=false;var r=localAdd(entry);cb({msg:'SERVER UNREACHABLE - SAVED LOCALLY',highlight:r?{local:true,rank:r}:null});});});}
 var THROW_ANIM=.25,THROW_CD=.8; /* M19: 0.80 s between balloons (was 0.42 s): about half the old fire rate */
 function throwBalloon(){var p=G.p;p.throwT=Math.max(ITEM_FX.minThrow,THROW_CD*Math.pow(ITEM_FX.coffee,itemN('coffee')))*(stOn('rust')?INF.rustMul:1)*(G.L&&G.L.icy?ICY.throwMul:1);p.throwAnim=THROW_ANIM; /* M1.68 cold: slower throws */
@@ -2172,7 +2181,7 @@ function maxHearts(){return MAX_HEARTS+itemN('heart');}
 function addRunItem(k){var p=G.p,I=ITEMS[k];if(!I||itemN(k)>=I.max)return false;if(!G.perm.items)G.perm.items={};G.perm.items[k]=itemN(k)+1;
   if(k==='heart')p.hearts=Math.min(maxHearts(),p.hearts+1);if(I.ball)p.ball=k;if(k==='bubble'){if(!effectIs('shield'))p.effects.push('shield');p.shieldHits=(p.shieldHits|0)+1;syncEffect();}
   if(k==='mirror')p.mirrorN=(p.mirrorN|0)+ITEM_FX.mirror;if(k==='map'||k==='compass')mapReveal();permSave();return true;}
-function pickRunItem(it){var p=G.p,k=it.ptype,I=ITEMS[k];it.taken=true;if(it.coinLoot)markCoinTaken();if(!I||!addRunItem(k)){p.coins+=5;setMsg((I?I.name:'ITEM')+' IS MAXED - 5 COINS',1.8);SFX.coin();return;}
+function pickRunItem(it){var p=G.p,k=it.ptype,I=ITEMS[k];it.taken=true;if(it.coinLoot)markCoinTaken();if(!I||!addRunItem(k)){p.coins+=5;if(it.coinLoot)coinKeep(5);setMsg((I?I.name:'ITEM')+' IS MAXED - 5 COINS',1.8);SFX.coin();return;}
   SFX.powerup();sparkle(it.x,it.y,.3,'spark',14);setMsg(I.name+'! '+I.desc+(I.max>=STACK?' (x'+itemN(k)+')':I.max>1?' ('+itemN(k)+'/'+I.max+')':''),3);stats.itemPicks++;}
 /* run items that act at the start of every floor */
 function mapReveal(){var L=G.L;if(!L)return;if(itemN('map')){for(var i=0;i<L.seen.length;i++)L.seen[i]=1;}
@@ -2269,9 +2278,9 @@ function shopBuy(i){var rows=shopRows(),r=rows[i],p=G.p;if(!r||G.mode!=='shop')r
   if(r.owned){G.shopMsg=r.kind==='perm'?'YOU ALREADY HAVE THOSE.':'SOLD OUT, WANDERER.';SFX.locked();stats.shopRefused++;return false;}
   if(p.coins<r.price){G.shopMsg='NOT ENOUGH COINS ('+r.price+' NEEDED)';SFX.locked();stats.shopRefused++;return false;}
   if(r.kind==='piggy'||r.kind==='box'){var ok=rareBuy(r);if(!ok)return false;}
-  else if(r.kind==='item'){if(!addRunItem(r.item)){G.shopMsg='YOU CAN\'T CARRY MORE OF THOSE.';SFX.locked();stats.shopRefused++;return false;}G.shopState.sold[r.id]=true;p.coins-=r.price;G.shopMsg=r.name+'! '+ITEMS[r.item].desc+'.';var sv1=loadSave();if(sv1&&sv1.level===G.levelIdx&&sv1.seed===G.seed){sv1.coins=Math.max(0,(sv1.coins|0)-r.price);sv1.perm=permCopy();writeSave(sv1);}}
+  else if(r.kind==='item'){if(!addRunItem(r.item)){G.shopMsg='YOU CAN\'T CARRY MORE OF THOSE.';SFX.locked();stats.shopRefused++;return false;}G.shopState.sold[r.id]=true;p.coins-=r.price;G.shopMsg=r.name+'! '+ITEMS[r.item].desc+'.';G.coinAdj=(G.coinAdj|0)-r.price;var sv1=loadSave();if(sv1&&sv1.level===G.levelIdx&&sv1.seed===G.seed){sv1.coinAdj=G.coinAdj||undefined;sv1.perm=permCopy();writeSave(sv1);}}
   else if(r.kind==='power'){if(!giveItem(r.pu)){G.shopMsg='YOUR ITEM SLOTS ARE FULL.';SFX.locked();stats.shopRefused++;return false;}G.shopState.sold[r.id]=true;p.coins-=r.price;G.shopMsg=r.name+'. USE IT WISELY.';}
-  else{G.perm[r.id]=true;p.coins-=r.price;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coins=Math.max(0,(sv.coins|0)-r.price);sv.perm=permCopy();writeSave(sv);} /* permanent: saved now (and paid for in the save too) */
+  else{G.perm[r.id]=true;p.coins-=r.price;G.coinAdj=(G.coinAdj|0)-r.price;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinAdj=G.coinAdj||undefined;sv.perm=permCopy();writeSave(sv);} /* permanent: saved now (and paid for in the save too) */
     G.shopMsg='A BACKPACK! '+slotHint()+' SWITCHES SLOT';}
   stats.shopBuys++;stats.shopSpent+=r.price;SFX.buy();return true;}
 var SHOP_RECT=[90,40,386,256],SHOP_ROW0=88,SHOP_ROWH=21,SHOP_ROWX=206,SHOP_ROWW=258; /* M1.9.1: below the HUD panel and right of the item bar, so hearts, coins, keys and item slots stay visible */
@@ -2280,7 +2289,7 @@ function rareBuy(r){var p=G.p,st=G.shopState;st.sold=st.sold||{};
   else{var x=Math.random(),k2;st.sold.r_box=true;if(x<.3&&(k2=randItem(Math.random))&&addRunItem(k2)){G.shopMsg='INSIDE: '+ITEMS[k2].name+'!';}
     else if(x<.7&&(k2=randPU(Math.random))&&giveItem(k2)){G.shopMsg='INSIDE: '+PU[k2].name+'!';}
     else{p.hearts=Math.min(maxHearts(),p.hearts+1);p.coins+=10;G.shopMsg='INSIDE: A HEART AND 10 COINS.';}}
-  p.coins-=r.price;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coins=Math.max(0,(sv.coins|0)-r.price);sv.perm=permCopy();writeSave(sv);}return true;}
+  p.coins-=r.price;G.coinAdj=(G.coinAdj|0)-r.price;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinAdj=G.coinAdj||undefined;sv.perm=permCopy();writeSave(sv);}return true;}
 function shopRowH(){return shopRows().length>8?19:SHOP_ROWH;} /* M1.17: 9 rows on the rare page */
 function shopRects(){var n=shopRows().length,rh=shopRowH(),o=[];for(var i=0;i<n;i++)o.push([SHOP_ROWX-4,SHOP_ROW0+i*rh-3,SHOP_ROWW,rh-2]);return o;}
 function shopClick(p){if(G.modeT<.15)return;var r=shopRects();for(var i=0;i<r.length;i++)if(inRect(p,r[i])){shopBuy(i);return;}if(!inRect(p,SHOP_RECT))closeShop();}
@@ -3051,7 +3060,7 @@ api.faceSlot=function(){var s=G.L.slot;if(!s)return false;var c=function(x,y){va
   for(var i=0;i<4;i++){var x=s.x+d[i][0],y=s.y+d[i][1];if(c(x,y)){G.p.x=x+.5;G.p.y=y+.5;G.p.ang=d[i][2];G.p.pitch=0;G.useTarget=findUse();render();return true;}}return false;};
 api.setCoins=function(n){G.p.coins=n;};
 api.hs=function(){return {online:HS.online,loading:HS.loading,local:HS.local,list:JSON.parse(JSON.stringify(HS.list)),shown:JSON.parse(JSON.stringify(hsShown())),filter:HS.filter,msg:HS.msg,hl:HS.hl,busy:HS.busy,nameBuf:G.nameBuf,nameErr:G.nameErr,inputValue:nameIn.value,inputOn:nameIn.className==='on',focused:document.activeElement===nameIn,version:VERSION,limit:HS_LIST_LIMIT,fetched:!!HS.fetched};};
-api.hsSubmit=function(e,cb){hsSubmit(e,cb||function(){});};api.hsResetLoad=function(){HS.fetched=false;};api.hsToggle=hsToggle;api.hsTabRects=function(){return hsTabRects();};api.hsThisVer=hsThisVer;api.hsValidVer=hsValidVer;api.version=function(){return VERSION;};
+api.hsSubmit=function(e,cb){hsSubmit(e,cb||function(){});};api.hsResetLoad=function(){HS.fetched=false;HS.failT=0;};api.hsAgeFail=function(ms){if(HS.failT)HS.failT-=ms;};api.hsToggle=hsToggle;api.hsTabRects=function(){return hsTabRects();};api.hsThisVer=hsThisVer;api.hsValidVer=hsValidVer;api.version=function(){return VERSION;};
 api.hsValidName=hsValidName;api.hsValidate=hsValidate;api.localScores=localScores;api.cleanName=cleanName;api.hsApi=HS_API;
 api.nameRects=function(){return {field:rectCss(NAME_FIELD),ok:rectCss(NAME_OK),skip:rectCss(NAME_SKIP)};};api.openScores=function(){openScores('',null);};
 api.shoot=function(vz){G.p.throwT=0;throwBalloon();if(vz!==undefined)G.shots[G.shots.length-1].vz=vz;};
@@ -3122,7 +3131,7 @@ api.intro=function(){var I=G.intro;return I?{t:G.modeT,type:I.e.type,slammed:I.s
 api.los=function(ax,ay,bx,by){return los(ax,ay,bx,by);};
 api.cam=function(){return {x:cam.x,y:cam.y,ang:cam.ang};};
 api.enemyRect=function(){return stats.enemyRect?{top:stats.enemyRect.top,bottom:stats.enemyRect.bottom,left:stats.enemyRect.left,right:stats.enemyRect.right,d:stats.enemyRect.d}:null;};
-api.coinTaken=function(){return !!G.coinTaken;};api.coinPaid=function(){return !!G.coinPaid;};
+api.coinTaken=function(){return !!G.coinTaken;};api.coinAdj=function(){return G.coinAdj|0;};api.coinDebt=function(){return G.coinDebt|0;};api.coinPaid=function(){return !!G.coinPaid;};
 api.arenaDoors=function(){var b=G.L.def.boss;return b?arenaDoors(b.room).map(function(d){return {x:d.x,y:d.y,open:d.open,state:d.state,locked:d.locked,bossLock:!!d.bossLock};}):[];};
 api.sealed=function(){return !!G.L.sealed;};api.status=function(){var o={};var p=G.p;if(p&&p.st)Object.keys(p.st).forEach(function(k){o[k]=+p.st[k].t.toFixed(2);});return o;};api.addStatus=function(k,t){addStatus(k,t);};api.infernalName=function(i){return infernalName(G.ents[i]);};api.inf=INF;api.layout9=LAYOUT;api.gen=GEN;api.genStats=function(seeds,floors){var o={keyBand:0,mobsEarly:0,mobsLate:0,heartsFar:0,hearts:0,floors:0,pathLen:0,minPath:1e9,maxPath:0,deadEnds:0,maxDeadEnds:0,stubs:0,braids:0,extra:0,pathLoops:0,attempts:0,treasure:0,tags:{},fallback:0};
   seeds.forEach(function(sd){floors.forEach(function(f){var d=genLevel(levelSeed(String(sd),f),f);if(d.fallback){o.fallback++;return;}var L=d.layout;o.floors++;o.pathLen+=L.pathLen;o.minPath=Math.min(o.minPath,L.pathLen);o.maxPath=Math.max(o.maxPath,L.pathLen);o.deadEnds+=L.deadEnds;o.maxDeadEnds=Math.max(o.maxDeadEnds,L.deadEnds);

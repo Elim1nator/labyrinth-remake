@@ -167,7 +167,7 @@ monster is the same red mark.
 ## Coins: pits, doors, shrines, trapdoors (M1.12)
 
 Next to a pit, E tosses a coin in (10 / 50 / 100 coins unlock pit spiders, big spiders and the
-Broodmother on floor 15). Coin doors, shrines and trapdoors ask for coins with E. From M1.67 a coin door you have paid stays open on CONTINUE and is not charged again. From M1.73.1 the payment itself is saved too, so CONTINUE does not give those coins back. Old Murkle's
+Broodmother on floor 15). Coin doors, shrines and trapdoors ask for coins with E. From M1.67 a coin door you have paid stays open on CONTINUE and is not charged again. From M1.73.1 the payment itself is saved too, so CONTINUE does not give those coins back. From M1.74.1 CONTINUE puts the floor's coins back but keeps what you paid: if you spent more than you started the floor with, the next coins you find repay it first. Old Murkle's
 second page (RARE WARES >) sells the Piggy Bank and a Mystery Box.
 
 ## The King in Yellow (floor 20)

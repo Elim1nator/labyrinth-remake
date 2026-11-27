@@ -50,6 +50,7 @@ const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk
 const V173=atLeast('1.73'); // M1.73+: 100 pit coins make the next boss floor the Broodmother
 const V1731=atLeast('1.73.1'); // M1.73.1+: paid coin-door coins stay deducted on CONTINUE; score board GET is cached for the session; a 429 falls back to the local board
 const V174=atLeast('1.74'); // M1.74+: Snowball, Ferryman's Coin, Master Key, Turned Face
+const V1741=atLeast('1.74.1'); // M1.74.1+: the save keeps floor-start coins plus kept coin changes (no double coins on CONTINUE); score board retries; ice spikes keep off you
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
@@ -3722,7 +3723,7 @@ async function m167Tests(){
     for(let i=0;i<3;i++){
       const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
       if(!sv)return {ok:false,err:'no save',found,afterPay};
-      const coinsAtSave=sv.coins;
+      const coinsAtSave=(sv.coins|0)+(sv.coinAdj|0)-(sv.coinDebt|0);
       sv.cont=true;
       G.startLevel(sv.level,sv);
       for(let k=0;k<24;k++)G.advance(1/60);
@@ -3839,7 +3840,7 @@ async function m1731Tests(){
     for(let i=0;i<3;i++){
       const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
       if(!sv)return {ok:false,err:'no save',found,afterPay};
-      const coinsAtSave=sv.coins;
+      const coinsAtSave=(sv.coins|0)+(sv.coinAdj|0)-(sv.coinDebt|0);
       sv.cont=true;
       G.startLevel(sv.level,sv);
       for(let k=0;k<24;k++)G.advance(1/60);
@@ -3852,7 +3853,7 @@ async function m1731Tests(){
         i,coinsAtSave,coins0,coins1:G.state().player.coins,
         door0:d0,door1:d1,
         coinPaid:!!(G.coinPaid&&G.coinPaid()),
-        saveCoins:(JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null')||{}).coins,
+        saveCoins:(s9=>(s9.coins|0)+(s9.coinAdj|0)-(s9.coinDebt|0))(JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null')||{}),
         savePaid:(JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null')||{}).coinPaid
       });
     }
@@ -3867,7 +3868,7 @@ async function m1731Tests(){
     return {ok:true,found,afterPay,want,cycles,legacy};
   });
   const paidOk=paid.ok&&paid.afterPay.coinPaid&&paid.afterPay.coins===paid.want
-    &&paid.afterPay.save&&paid.afterPay.save.coins===paid.want
+    &&paid.afterPay.save&&((paid.afterPay.save.coins|0)+(paid.afterPay.save.coinAdj|0)-(paid.afterPay.save.coinDebt|0))===paid.want
     &&paid.afterPay.save.coinPaid===paid.found.level
     &&paid.afterPay.door&&paid.afterPay.door.coin===0&&!paid.afterPay.door.locked;
   const stay=paid.ok&&paid.cycles.length===3&&paid.cycles.every(c=>
@@ -3879,12 +3880,80 @@ async function m1731Tests(){
   const legacyOk=paid.ok&&paid.legacy.mode==='play'&&paid.legacy.level===paid.found.level
     &&!paid.legacy.coinPaid&&paid.legacy.door&&paid.legacy.door.coin===paid.found.price
     &&paid.legacy.coins===40;
-  check('M1.73.1 paying a coin door writes the post-payment coin total into the save',
+  check('M1.73.1 paying a coin door leaves the post-payment coin total in the save',
     paidOk,JSON.stringify({found:paid.found,afterPay:paid.afterPay,err:paid.err}));
   check('M1.73.1 CONTINUE 3x keeps the paid door open, does not refund the payment, and does not charge again',
     stay,JSON.stringify(paid.cycles));
   check('M1.73.1 an old save without coinPaid still loads (door is priced as before)',
     legacyOk,JSON.stringify(paid.legacy));
+
+  // ---- M1.74.1: CONTINUE coin accounting (Playtest: double coins after a paid door; Collector coins lost; small refunds)
+  if(V1741){
+  const cc=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    const SAVE='labyrinthRemake.save.v1';
+    const rd=()=>JSON.parse(localStorage.getItem(SAVE)||'null');
+    const eff=s=>(s.coins|0)+(s.coinAdj|0)-(s.coinDebt|0);
+    function face(c){
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
+      for(const d of dirs){const x=c.x+d[0],y=c.y+d[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);return true;}}
+      return false;
+    }
+    function pay(c){face(c);G.advance(0.05);G.use();for(let k=0;k<40;k++)G.advance(1/60);}
+    function collectAll(){let n=0;for(let guard=0;guard<400;guard++){const it=G.state().items.find(i=>i.kind==='coin'&&!i.taken&&!i.fly&&!i.spray);if(!it)break;G.teleport(it.x,it.y,0);G.advance(2/60);n++;}return n;}
+    function cont(){const sv=rd();sv.cont=true;G.startLevel(sv.level,sv);G.clearMobs();G.advance(0.05);}
+    let found=null;
+    for(let sd=1;sd<=60&&!found;sd++)for(let f=2;f<=12&&!found;f++){
+      G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:40,perm:{items:{}}});
+      const e=G.extras&&G.extras();
+      const nCoins=G.state().items.filter(i=>i.kind==='coin').length;
+      if(e&&e.coinDoor&&e.coinDoor.price<=40&&nCoins>=10&&face(e.coinDoor))found={sd,f,price:e.coinDoor.price,c:e.coinDoor};
+    }
+    if(!found)return {err:'no coin door floor'};
+    const start=lv=>{localStorage.removeItem(SAVE);G.setSeed(found.sd);G.startLevel(found.f-1,{hearts:9,coins:lv,perm:{items:{}}});G.clearMobs();G.advance(0.05);};
+    // A: pick up the floor's coins, pay the door, CONTINUE, pick them up again
+    start(40);collectAll();const k1=G.state().player.coins-40;pay(found.c);const afterPay=G.state().player.coins;
+    cont();const atCont=G.state().player.coins;collectAll();const again=G.state().player.coins;
+    cont();const atCont2=G.state().player.coins;
+    const A={k1,price:found.price,afterPay,atCont,again,atCont2,door:(G.doors().find(d=>d.x===found.c.x&&d.y===found.c.y)||{}).coin};
+    // B: coins taken (as the Debt Collector does), then a paid door, then CONTINUE gives the floor-start coins back minus the door
+    start(40);G.setCoins(33);pay(found.c);const bPay=G.state().player.coins;cont();
+    const B={bPay,atCont:G.state().player.coins};
+    // C: the door costs more than the floor-start coins: CONTINUE leaves you owing the difference, repaid from floor coins
+    start(0);G.setCoins(found.price+3);pay(found.c);const cPay=G.state().player.coins;
+    const cyc=[];for(let i=0;i<3;i++){cont();cyc.push({coins:G.state().player.coins,debt:G.coinDebt(),eff:eff(rd()),msg:i===0?G.state().msg:undefined});}
+    const kN=collectAll();const cEnd=G.state().player.coins;const k3=k1; // same floor, same coins
+    const C={price:found.price,cPay,cyc,cEnd,debtEnd:G.coinDebt(),want:Math.max(0,k3-found.price)};
+    return {found,A,B,C};
+  });
+  check('M1.74.1 CONTINUE after picking up a floor\'s coins and paying its coin door does not let you collect those coins twice',
+    cc&&cc.A&&cc.A.k1>=10&&cc.A.afterPay===40+cc.A.k1-cc.A.price&&cc.A.atCont===40-cc.A.price&&cc.A.again===40+cc.A.k1-cc.A.price&&cc.A.atCont2===40-cc.A.price&&cc.A.door===0,
+    JSON.stringify(cc));
+  check('M1.74.1 coins lost on a floor (a Debt Collector theft) come back on CONTINUE even after paying a door',
+    cc&&cc.B&&cc.B.bPay===33-cc.found.price&&cc.B.atCont===40-cc.found.price,JSON.stringify(cc&&cc.B));
+  check('M1.74.1 a door that costs more than your floor-start coins gives no refund: CONTINUE owes the rest, the next floor coins repay it',
+    cc&&cc.C&&cc.C.cPay===3&&cc.C.cyc.every(c=>c.coins===0&&c.debt===cc.C.price&&c.eff===-cc.C.price)&&/ARE OWED/.test(cc.C.cyc[0].msg||'')
+    &&cc.C.cEnd===cc.C.want&&cc.C.debtEnd===Math.max(0,cc.C.price-cc.A.k1),JSON.stringify(cc&&cc.C));
+  const shopC=await G(page,()=>{const G=__game;const SAVE='labyrinthRemake.save.v1';localStorage.removeItem(SAVE);
+    G.setSeed(777);G.startLevel(1,{hearts:5,coins:0,perm:{}});G.faceShop();G.openShop();const rows=G.shopRows();const i=rows.findIndex(r=>r.kind==='item');if(i<0)return {err:'no item row'};
+    const price=rows[i].price;G.setCoins(price+2);const ok=G.shopBuy(i);const after=G.state().player.coins;
+    const sv=JSON.parse(localStorage.getItem(SAVE));sv.cont=true;G.startLevel(sv.level,sv);
+    return {price,ok,after,cont:G.state().player.coins,debt:G.coinDebt()};});
+  check('M1.74.1 a shop item bought with more than your floor-start coins is not partly refunded on CONTINUE',
+    shopC&&shopC.ok&&shopC.after===2&&shopC.cont===0&&shopC.debt===shopC.price,JSON.stringify(shopC));
+  // ---- M1.74.1: an Ice Spike no longer wedges onto you against a wall
+  const spk=await G(page,()=>{const G=__game;const out=[];
+    for(let lv=3;lv<9&&out.length<24;lv++){G.setSeed(1234+lv);G.startLevel(lv,{hearts:99,coins:0});const s=G.state();
+      for(let y=2;y<s.mapH-4&&out.length<24;y++)for(let x=2;x<s.mapW-4&&out.length<24;x++){
+        if(!G.solidAt(x+.5,y-.5)||G.solidAt(x+.5,y+.5)||G.solidAt(x+.5,y+1.5)||G.solidAt(x+.5,y+2.5)||G.solidAt(x+1.5,y+.5)||G.solidAt(x-.5,y+.5))continue;
+        G.clearMobs();G.teleport(x+.5,y+.25,Math.PI/2);const j=G.spawn('icespike',x+.5,y+2.2,true,[]);let minD=9;
+        for(let t=0;t<40;t++){G.advance(.05);if(t>=10){const e=G.state().enemies[j],p=G.state().player;minD=Math.min(minD,Math.hypot(e.x-p.x,e.y-p.y));}}
+        let dead=false;for(let k=0;k<5&&!dead;k++){const q=G.state().enemies[j],pp=G.state().player;G.teleport(pp.x,pp.y,Math.atan2(q.y-pp.y,q.x-pp.x));G.shoot(0);for(let t=0;t<14;t++)G.advance(1/60);const e2=G.state().enemies[j];dead=!e2||e2.state==='dead'||e2.hp<=0;}
+        out.push({x,y,lv,minD:+minD.toFixed(2),dead});}}
+    return out;});
+  check('M1.74.1 with you backed against a wall an Ice Spike stays at least 0.5 tiles away and a balloon thrown at it kills it',
+    spk.length>=12&&spk.every(o=>o.minD>=.45&&o.dead),JSON.stringify(spk.filter(o=>o.minD<.45||!o.dead).slice(0,6))+' n='+spk.length);
+  }
 
   // ---- score board: session cache + 429 fallback (mocked fetch only; never the live API)
   const hs=await G(page,()=>new Promise(done=>{
@@ -3955,6 +4024,13 @@ async function m1731Tests(){
         stillLocal:g429b.local,names2:(g429b.shown||g429b.list||[]).map(e=>e.name)
       };
 
+      let retry=null;
+      if(typeof G.hsAgeFail==='function'){ /* M1.74.1: a failed load is retried on a later open (not within a minute) */
+        mode='ok';const g0=gets().length;
+        G.openScores();await wait();const soon=gets().length-g0;
+        G.hsAgeFail(61000);G.toTitle();G.openScores();const back=await wait();
+        retry={soon,after:gets().length-g0,local:back.local,names:(back.shown||[]).map(e=>e.name)};
+      }
       localStorage.removeItem('labyrinthRemake.localScores.v1');
       mode='post429';log.length=0;
       const postP=new Promise(res=>G.hsSubmit({name:'RATEY',score:1234,floor:3,seed:'seed-9',version:ver},res));
@@ -3964,7 +4040,7 @@ async function m1731Tests(){
       const postGets=gets().length;
       const rpost={submitted,local,posts:posts.length,postGets,retries:log.filter(r=>r.method==='POST').length};
 
-      done({cache,r429,rpost,ver});
+      done({cache,r429,rpost,ver,retry});
     })().catch(e=>done({err:String(e&&e.stack||e)}));
   }));
 
@@ -3978,6 +4054,9 @@ async function m1731Tests(){
     hs&&hs.r429&&hs.r429.local&&/COULD NOT LOAD THE ONLINE BOARD/.test(hs.r429.msg||'')&&hs.r429.names.includes('LOCL')
     &&hs.r429.gets===1&&hs.r429.getsAfter===1&&hs.r429.stillLocal&&hs.r429.names2.includes('LOCL'),
     JSON.stringify({r429:hs&&hs.r429,err:hs&&hs.err}));
+  if(V1741)check('M1.74.1 after a failed load the board is not re-fetched within a minute, then a later open tries the online board again',
+    hs&&hs.retry&&hs.retry.soon===0&&hs.retry.after===1&&hs.retry.local===false&&hs.retry.names.join(',')==='OLDONE,CURA,OTHA',
+    JSON.stringify({retry:hs&&hs.retry,err:hs&&hs.err}));
   check('M1.73.1 a 429 on POST keeps the local save and does not retry',
     hs&&hs.rpost&&hs.rpost.submitted&&hs.rpost.submitted.highlight&&hs.rpost.submitted.highlight.local===true
     &&/BOARD UNAVAILABLE \(429\) - SAVED LOCALLY/.test(hs.rpost.submitted.msg||'')
@@ -5614,7 +5693,7 @@ async function m18Tests(){
     check('M1.8 browser offline: local board, no request attempted',h.local===true&&h.online===false);
     // request hygiene
     const foreign=reqs.filter(r=>!r.url.startsWith(stub.url+'/'));const paths=[...new Set(reqs.map(r=>r.method+' '+r.url.slice(stub.url.length)))].sort();
-    const allowed=new Set(['GET /index.html','GET /api/labyrinth/health',(typeof atLeast==='function'&&atLeast('1.66')?'GET /api/labyrinth/scores?limit=50':'GET /api/labyrinth/scores?limit=10'),'POST /api/labyrinth/scores']);
+    const allowed=new Set(['GET /index.html','GET /api/labyrinth/health',(typeof atLeast==='function'&&atLeast('1.74.1')?'GET /api/labyrinth/scores?limit=100':typeof atLeast==='function'&&atLeast('1.66')?'GET /api/labyrinth/scores?limit=50':'GET /api/labyrinth/scores?limit=10'),'POST /api/labyrinth/scores']);
     check('M1.8 stub online: every request is same-origin to the stub and uses only the spec endpoints',foreign.length===0&&paths.every(p=>allowed.has(p)),paths.join(', ')+(foreign.length?' FOREIGN '+foreign[0].url:''));
     check('M1.8 no credentials are sent by the game (no Authorization header on any request)',reqs.every(r=>!r.headers.authorization)&&stub.state.requests.every(r=>!r.headers.authorization));
     check('M1.8 stub pages: no script errors',probs.length===0,probs.slice(0,3).join(' | '));

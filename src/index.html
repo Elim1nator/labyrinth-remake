@@ -63,12 +63,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.79.4. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.79.5. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, art, sounds, levels) is original. Wall, monster, item and other
    world art is packed from PNG sheets in assets/. Sounds, music, the pixel font and some
    HUD or decoration sprites are still generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.79.4'; /* set by tools/release.mjs */
+var VERSION='M1.79.5'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=128,TK=TS/64; /* M1.51: wall tiles are 128x128; the effects painted on them are laid out on a 64-grid and scaled by TK */
 var SAVE_KEY='labyrinthRemake.save.v1',UNLOCK_KEY='labyrinthRemake.unlocks.v1'; /* M1.30: floors you can start on, kept across runs */
 var MAX_HEARTS=5;
@@ -253,7 +253,7 @@ var FX_SRC={hand:function(){var o=[];BALL_IDS.forEach(function(b){var h=SPR.hand
 SHOT_IDS.forEach(function(k){FX_SRC['shot_'+k]=function(){return [SPR.eshot[k]];};});
 var MOB_SHEETS=['hexeye','screamer','screamerO','springle','lichen','mortar','gargoyle','bather','slickman','rafterdoll','collector','icewiz','icespike','snowman','fscreamer','kettle','wisp','clunk','zapfly','zapflyC','skeleton','bonePile','knight','skitter','creep','bigspider','eggsac','worm','faceSpider','king','sovereign','sovereign_idle','sovereign_fall','owl','masque','masqueH','brood','yellow','turnedface','deep','deep_idle','deep_cast','deep_attack']; /* M1.21: what tools/assets.mjs export writes out */
 var TEXCH={'#':0,S:1,W:2,T:3,M:4,K:8,R:9,C:10,V:11,O:12,A:13,B:14,E:15,I:16,Z:17,'+':18,'=':19,'$':20,'@':21,';':22};
-var MAPCOL=['#a04a30','#6c7488','#8a5a32','#2f8f8a','#5a7a48'].map(HEX);MAPCOL[8]=HEX('#4c4c62');MAPCOL[9]=HEX('#9a5a2a');MAPCOL[10]=HEX('#566a80');MAPCOL[11]=HEX('#b8945a');MAPCOL[12]=HEX('#8a3a1e');['#c49a62','#8a8a92','#7a7468','#d0c8b0','#4e5a54','#4a4258','#6a6a74'].forEach(function(h,i){MAPCOL[13+i]=HEX(h);});
+var MAPCOL=['#a04a30','#6c7488','#8a5a32','#2f8f8a','#5a7a48'].map(HEX);MAPCOL[8]=HEX('#4c4c62');MAPCOL[9]=HEX('#9a5a2a');MAPCOL[10]=HEX('#566a80');MAPCOL[11]=HEX('#b8945a');MAPCOL[12]=HEX('#8a3a1e');['#c49a62','#8a8a92','#7a7468','#d0c8b0','#4e5a54','#4a4258','#6a6a74'].forEach(function(h,i){MAPCOL[13+i]=HEX(h);});MAPCOL[20]=HEX('#b8e4f4');MAPCOL[21]=HEX('#9ecce0');MAPCOL[22]=HEX('#c8eef8');function mapWallCol(tex){var c=MAPCOL[tex];return (c>>>24)===0xff?c:HEX('#b8e4f4');} /* M1.79.5 Icy Prison walls get a solid pale icy blue on the maps */
 
 /* M18 slot machine cabinet (original pixel art): frame 0/1 marquee lights alternate, frame 2 = reels spinning */
 function sprSlot(f){var s=new Pix(26,40,2),red=HEX('#b02a3a'),redD=HEX('#6e1222'),redL=HEX('#e0505e'),gold=HEX('#ffc630'),goldD=HEX('#9a6a10'),glass=HEX('#f4ecd8'),dk=HEX('#1a0a10'),grey=HEX('#8a8a9a');
@@ -380,7 +380,7 @@ var MOBS={ /* M1.64: no per-type map colours - every monster shows as the same r
  lichen:{name:'LICHEN FACE',hp:3,speed:1.65,h:.52,hitR:.30,voice:'lichen',ch:'f'},
  fscreamer:{name:'FROZEN SCREAMER',hp:4,speed:1.45,h:.42,hitR:.31,voice:'fscream',ch:'l'}, /* M1.71: Icy Prison only; +1 damage; shatters into a Screamer */
  snowman:{name:'SNOWMAN',hp:4,speed:1.05,h:.62,hitR:.32,voice:'snowman',ch:'j'}, /* M1.70: Icy Prison only; bobs along and throws snowballs */
- icewiz:{name:'ICE WIZARD',hp:30,speed:.9,h:1.05,hitR:.42,voice:'icewiz',ch:'y',extra:true}, /* M1.69: the Icy Prison's boss */
+ icewiz:{name:'ICE WIZARD',hp:30,speed:.9,h:1.05,hitR:.42,bodyR:.4,reach:.7,voice:'icewiz',ch:'y',extra:true,boss:true}, /* M1.69/M1.79.5: the Icy Prison's boss (arena, sealed stairs, intro) */
  icespike:{name:'ICE SPIKE',hp:2,speed:2.6,h:.4,hitR:.3,voice:'icewiz',ch:'`',extra:true,fly:true}, /* M1.69: his flying minions */
  collector:{name:'DEBT COLLECTOR',hp:6,speed:1.35,h:.62,hitR:.30,voice:'collector',ch:'u'}, /* M1.65: steals coins; paid off, it becomes a shop */
  gargoyle:{name:'WEEPING GARGOYLE',hp:6,speed:0,h:.9,hitR:.36,voice:'gargoyle',ch:'q'}, /* M1.62: a statue that wakes when you come close (Stone Keep) */
@@ -565,7 +565,7 @@ function wizCast(e,p){var C=ICEWIZ,a=Math.atan2(p.y-e.y,p.x-e.x);if(Math.random(
 function wizSpikes(e){var C=ICEWIZ,n=C.spikes[0]+Math.floor(Math.random()*(C.spikes[1]-C.spikes[0]+1));for(var k=0;k<n;k++){var a=k/n*Math.PI*2,x=e.x+Math.cos(a)*.8,y=e.y+Math.sin(a)*.8;if(solidAt(x,y)){x=e.x;y=e.y;}var m=newMob('icespike',x,y);m.owner=e;m.state='chase';m.maxHp=m.hp=C.spikeHp;m.ph=k;G.ents.push(m);}
   setMsg('A SHIELD OF ICE! SHATTER HIS '+n+' SPIKES',2.5);SFX.icewiz();stats.wizShields=(stats.wizShields|0)+1;stats.wizSpikes=(stats.wizSpikes|0)+n;}
 function updateIceWiz(e,dt,p){var C=ICEWIZ,dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1e-6;
-  if(!e.init){e.init=true;e.maxHp=e.hp=C.hp+C.hpPer*(G.levelIdx+1);e.shieldIdx=0;e.castCd=1.2;e.stormCd=C.storm[0]*.5;}
+  if(!e.init){e.init=true;if(!(e.arena||e.tier!=null)){e.maxHp=e.hp=C.hp+C.hpPer*(G.levelIdx+1);}if(e.shieldIdx==null)e.shieldIdx=0;if(e.castCd==null)e.castCd=1.2;if(e.stormCd==null)e.stormCd=C.storm[0]*.5;}
   e.moving=false;if(e.castT>0){e.castT-=dt;if(e.castT<=0)wizCast(e,p);}
   if(!e.woke){if(d<C.sight&&los(e.x,e.y,p.x,p.y)){e.woke=true;e.state='chase';SFX.icewiz();setMsg('THE ICE WIZARD!',2.5);stats.wizWakes=(stats.wizWakes|0)+1;}return;}
   if(e.shield){var alive=G.ents.some(function(q){return q.type==='icespike'&&q.owner===e&&!q.gone&&q.state!=='dead';});if(!alive){e.shield=false;setMsg('HIS SHIELD SHATTERS!',2);SFX.crumble();stats.wizShieldBreaks=(stats.wizShieldBreaks|0)+1;}}
@@ -593,8 +593,8 @@ var FACE={speed:.9,alpha:.55,freeze:2.5,atkCD:1.5,recoil:3,recoilSpd:2.2,bob:.07
 function shopHasFerryman(){return !!(G.shopState&&G.shopState.items&&G.shopState.items.indexOf('ferryman')>=0);}
 function maybeFerryDrop(lp){if(itemN('ferryman')||themeItemOnFloor('ferryman')||shopHasFerryman())return false;stats.ferryRolls=(stats.ferryRolls|0)+1;var r=FERRY.rng?FERRY.rng():Math.random();if(r>=FERRY.drop)return false;G.items.push({kind:'item',ptype:'ferryman',x:lp.x,y:lp.y,ph:0});stats.ferryDrops=(stats.ferryDrops|0)+1;return true;}
 function ferryPayout(wasLocked,wasCoin){if(itemN('ferryman')<=0||!(wasLocked||wasCoin))return 0;G.p.coins+=FERRY.coins;coinKeep(FERRY.coins);if(G.run)G.run.coins+=FERRY.coins;stats.ferryCoins=(stats.ferryCoins|0)+FERRY.coins;stats.ferryPays=(stats.ferryPays|0)+1;return FERRY.coins;}
-function iceWizDeath(e){var lp=lootSpot(e.x,e.y);G.stormT=0;addBoom(e.x,e.y,2,.3,true);SFX.iceBoom();G.ents.forEach(function(q){if(q.type==='icespike'&&q.owner===e&&!q.gone&&q.state!=='dead'){q.state='dead';q.deadT=0;q.noLoot=true;}});
-  if(!itemN('wand')){G.items.push({kind:'item',ptype:'wand',x:lp.x,y:lp.y,ph:0});setMsg('THE ICE WIZARD SHATTERS! HE DROPS A FROZEN WAND',3);}else{coinBurst(lp.x,lp.y,8);setMsg('THE ICE WIZARD SHATTERS!',3);}stats.wizKills=(stats.wizKills|0)+1;}
+function iceWizDeath(e){if(e.wizKilled)return;e.wizKilled=true;var lp=lootSpot(e.x,e.y);G.stormT=0;addBoom(e.x,e.y,2,.3,true);SFX.iceBoom();G.ents.forEach(function(q){if(q.type==='icespike'&&q.owner===e&&!q.gone&&q.state!=='dead'){q.state='dead';q.deadT=0;q.noLoot=true;}});
+  if(!itemN('wand')&&!e.wandDropped){e.wandDropped=true;G.items.push({kind:'item',ptype:'wand',x:lp.x,y:lp.y,ph:0});}else if(!e.wandDropped&&!MOBS.icewiz.boss){coinBurst(lp.x,lp.y,8);}if(!MOBS[e.type].boss)setMsg(e.wandDropped?'THE ICE WIZARD SHATTERS! HE DROPS A FROZEN WAND':'THE ICE WIZARD SHATTERS!',3);stats.wizKills=(stats.wizKills|0)+1;}
 /* M1.69 Frozen Wand: a frozen balloon bounces off whatever it hits, then rolls about on the floor for a while (harmless) */
 function frozenBounce(s){if(!G.iceballs)G.iceballs=[];var fl=s.z<=.03,k=fl?.45:-.35;if(G.iceballs.length>=24)G.iceballs.shift();G.iceballs.push({x:s.x,y:s.y,z:Math.max(.06,s.z),vx:s.vx*k,vy:s.vy*k,vz:fl?1.1:.4,life:ICEWIZ.rollLife});SFX.bonk();sparkle(s.x,s.y,s.z,'spark',3);stats.frozenBounces=(stats.frozenBounces|0)+1;}
 function updateIceballs(dt){var L=G.iceballs||[];for(var i=L.length-1;i>=0;i--){var b=L[i];b.life-=dt;if(b.life<=0){L.splice(i,1);continue;}b.vz-=6*dt;b.z+=b.vz*dt;if(b.z<.06){b.z=.06;b.vz=Math.abs(b.vz)>.5?-b.vz*.35:0;b.vx*=1-Math.min(1,1.3*dt);b.vy*=1-Math.min(1,1.3*dt);}
@@ -611,7 +611,7 @@ var ARENAS=[
  {name:'THE PIT RING',rows:['.............','.o.........o.','.....o.o.....','...o..B..o...','.............','..o...X...o..','.............','...o.....o...','.....o.o.....','.o.........o.','.............']},
  {name:'THE CROSSROADS',rows:['.............','.###.....###.','.#....B....#.','.#..o...o..#.','.............','......X......','.............','.#..o...o..#.','.#.........#.','.###.....###.','.............']}];
 function genCfg(lvl,seed){var c={};for(var k in GEN)c[k]=GEN[k];c.bands={path:GEN.bands.path,near:GEN.bands.near};c.criticalPathLoops=GEN.criticalPathLoops.slice();
-  c.width=25+2*Math.min(7,lvl);c.height=21+2*Math.min(5,lvl);c.roomAttempts=30+Math.min(lvl,DEEP_CAPS.roomLvl)*5;c.roomMax=lvl>=4?9:7;c.vault=lvl>=4;c.arena=!!bossFor(lvl);c.seed=seed;return c;}
+  c.width=25+2*Math.min(7,lvl);c.height=21+2*Math.min(5,lvl);c.roomAttempts=30+Math.min(lvl,DEEP_CAPS.roomLvl)*5;c.roomMax=lvl>=4?9:7;c.vault=lvl>=4;c.arena=!!bossFor(lvl)||(GEN_GSEED!==null&&icyAt(GEN_GSEED,lvl));c.seed=seed;return c;} /* M1.79.5: every Icy Prison floor is the Ice Wizard's arena */
 function genLayout(cfg){var R=rng(cfg.seed),w=cfg.width|1,h=cfg.height|1,N=w*h,reg=new Int32Array(N).fill(-1),g=new Uint8Array(N),rooms=[],nreg=0,x,y,i,j,k;
   function ri(a,b){return a+Math.floor(R()*(b-a+1));}function pick(a){return a[Math.floor(R()*a.length)];}
   function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(R()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
@@ -794,7 +794,7 @@ function genTry(s,lvl,lseed){
       var far9=[];for(j=0;j<N;j++)if(g[j]===1&&!obj[j]&&reachA[j]>=7&&!inRoom(shopRoom,j))far9.push(j);sh9(far9);moved.forEach(function(ch,ii){if(far9[ii]!==undefined)obj[far9[ii]]=ch;});}}
   // b2. M1.10 boss floors (every 5th): the boss guards an arena (the exit room if it has 35+ cells, else the biggest other room).
   // The exit door is not locked (the key it needed is gone; with a vault, the vault's spare key goes); the portal stays sealed until the boss falls.
-  var bossI=bossFor(lvl),arena=null,bossJ=-1;
+  var bossI=bossFor(lvl);if(!bossI&&GEN_GSEED!==null&&icyAt(GEN_GSEED,lvl))bossI={type:'icewiz',tier:0,hpMul:1,cdMul:1,spdMul:1};var arena=null,bossJ=-1;
   if(bossI){var ac=rooms.filter(function(rm){return rm!==start&&rm!==shopRoom&&rm!==slotRoom&&rm!==vault;}).sort(function(a,b){return b.w*b.h-a.w*a.h||rdist(b)-rdist(a);});
     var acL=ac.filter(function(rm){return prog(Ly.center(rm))>=.6&&rm!==treasure;});arena=exitRoom.w*exitRoom.h>=35?exitRoom:(acL[0]||ac.slice().sort(function(p,q){return prog(Ly.center(q))-prog(Ly.center(p));})[0]||exitRoom);arena.tag='arena'; /* M1.36: a big arena near the exit */var acx=arena.x+(arena.w>>1),acy=arena.y+(arena.h>>1),bc=[];
     for(y=arena.y;y<arena.y+arena.h;y++)for(x=arena.x;x<arena.x+arena.w;x++){j=y*w+x;if(g[j]===1&&!obj[j]&&!(arena===exitRoom&&Math.abs(x-exitJ%w)+Math.abs(y-((exitJ/w)|0))<2))bc.push(j);}
@@ -802,8 +802,8 @@ function genTry(s,lvl,lseed){
     if(Ly.arenaRoom===arena&&Ly.arenaB>=0){bc.unshift(Ly.arenaB);delete obj[Ly.arenaB];} /* M1.40: the design's boss spot */
     if(bc.length){bossJ=bc[0];var movedB=[];for(y=arena.y;y<arena.y+arena.h;y++)for(x=arena.x;x<arena.x+arena.w;x++){j=y*w+x;if(mobCh[obj[j]]){movedB.push(obj[j]);delete obj[j];}}
       var farB=[];for(j=0;j<N;j++)if(g[j]===1&&!obj[j]&&reachA[j]>=7&&!inRoom(arena,j)&&!(shopRoom&&inRoom(shopRoom,j)))farB.push(j);sh9(farB);movedB.forEach(function(ch,ii){if(farB[ii]!==undefined)obj[farB[ii]]=ch;});
-      obj[bossJ]=MOBS[bossI.type].ch;g[lockA]=2;for(j=0;j<N;j++)if(obj[j]==='k'&&(vault?inRoom(vault,j):true)){delete obj[j];break;}}
-    else{bossI=null;arena=null;}}
+      obj[bossJ]=MOBS[bossI.type].ch;if(bossFor(lvl)){g[lockA]=2;for(j=0;j<N;j++)if(obj[j]==='k'&&(vault?inRoom(vault,j):true)){delete obj[j];break;}}}
+    else{bossI=null;arena=null;}}if(!bossI&&GEN_GSEED!==null&&icyAt(GEN_GSEED,lvl))return null; /* M1.79.5: an Icy Prison floor must have his arena */
   // c. secret room: a sealed pocket of solid rock next to an open floor cell; the wall between them is the crack
   var secret=null;
   (function(){var sizes=[[3,3],[3,2],[2,3],[2,2],[2,2,1],[2,1,1],[1,2,1],[1,1,1]],dirs=[[1,0],[-1,0],[0,1],[0,-1]]; /* last 4: relaxed fit (only the pocket's own sides must be rock) for packed maps */
@@ -889,7 +889,7 @@ function genTry(s,lvl,lseed){
   if(themeName==='ICY PRISON'){var RI=rng(hashSeed(lseed+':icymobs:'+lvl));for(j=0;j<N;j++){var ti=mobCh[obj[j]];if(!ti||ti==='snowman'||ti==='fscreamer'||ti==='icewiz')continue;var TI=MOBS[ti];if(TI.boss||TI.mini)continue;obj[j]=MOBS[ICY_MOBS[Math.floor(RI()*ICY_MOBS.length)]].ch;}} /* M1.72: every other regular monster becomes a Snowman or a Frozen Screamer (the Treasure Knight stays) */
   if(themeName==='ICY PRISON')ensureThemeMob('snowman',lvl>=5?2:1);
   if(themeName==='ICY PRISON')ensureThemeMob('fscreamer',1);
-  if(themeName==='ICY PRISON'){var wq=-1,wd=-1;for(j=0;j<N;j++){if(g[j]!==1||obj[j]||pitA[j]||j===exitJ||!inAnyRoom(j))continue;var rr9=roomOf(j);if(!rr9||!fillable(rr9))continue;var dv=dAll[j];if(dv>wd){wd=dv;wq=j;}}if(wq>=0)obj[wq]=MOBS.icewiz.ch;} /* M1.69: the Ice Wizard waits in the room farthest from the start */
+  /* M1.79.5: the Ice Wizard is no longer placed as a regular mob; he is the floor's boss, in the arena */
   (function(){var RG=rng(hashSeed(lseed+':garg:'+lvl)),keep=themeName==='STONE KEEP',gch=MOBS.gargoyle.ch; /* M1.62: own RNG so other floors' layouts don't change */
     rooms.forEach(function(rm){if(rm===shopRoom||rm===arena||rm===pitRoom||rm===start||rm.w*rm.h<GARG.room||RG()>=GARG.chance)return;var cs=[];for(var yy=rm.y;yy<rm.y+rm.h;yy++)for(var xx=rm.x;xx<rm.x+rm.w;xx++){var q=yy*w+xx;if(decoOk(q,false))cs.push(q);}if(!cs.length)return;
       var cx=rm.x+rm.w/2,cy=rm.y+rm.h/2;cs.sort(function(a,b){return Math.hypot(a%w-cx,(a/w|0)-cy)-Math.hypot(b%w-cx,(b/w|0)-cy);});var q=cs[0];obj[q]=keep&&fillable(rm)&&RG()<GARG.alive?gch:'9';});
@@ -1001,7 +1001,7 @@ function startLevel(idx,carry){
   G.slot={spins:0,anim:null,show:0,last:null};G.final=null;if(nameIn&&nameIn.className)closeName();
   writeSave({v:1,knight:G.stats.knight===null&&carry.knight===idx?idx:undefined,level:idx,hearts:G.p.hearts,coins:G.p.coins,coinDebt:G.coinDebt||undefined,seed:G.seed,item:G.p.item,item2:G.p.item2,sel:G.p.sel,ball:G.p.ball,perm:permCopy(),secret:G.L.secretOpen?idx:undefined,musicBox:G.musicBox||undefined,fences:(function(){var a=openFenceList();return a.length?a:undefined;})(),locks:(function(){var a=openedLockList();return a.length?a:undefined;})(),coinTaken:G.coinTaken?idx:undefined,coinPaid:G.coinPaid?idx:undefined,run:{kills:G.run.kills,elites:G.run.elites,coins:G.run.coins,deepest:G.run.deepest,cheated:!!G.run.cheated,deaths:G.run.deaths|0,startFloor:G.run.startFloor|0},t:Date.now()});
   setMsg(idx===0?'FIND THE GOLD KEY, THEN THE EXIT!':(idx+1===TIER_FLOORS[texTier(idx+1)]&&idx>0&&texTier(idx+1)>0?'DEEPER! NEW WALLS: '+DEEP_THEMES[texTier(idx+1)-1].name:(G.L.def.boss?(G.L.bossType==='yellow'?'FIND THE PLAY SCRIPT. HIS LECTERN WAITS...':'BOSS FLOOR! '+bossName()+' GUARDS THE STAIRS'):'NEW MAZE! KEY FIRST, THEN THE EXIT.')),3.5);
-  if(G.L.icy){setMsg('ICY PRISON: THE COLD SLOWS YOU',3.5);stats.icyFloors=(stats.icyFloors|0)+1;} /* M1.68 */
+  if(G.L.icy){setMsg(G.L.def&&G.L.def.boss?'ICY PRISON: COLD. THE ICE WIZARD AWAITS':'ICY PRISON: THE COLD SLOWS YOU',3.5);stats.icyFloors=(stats.icyFloors|0)+1;} /* M1.68 / M1.79.5: boss line kept to 42 letters so the band can show it all */
   if(G.coinDebt>0)setMsg('THE NEXT '+G.coinDebt+' COINS YOU FIND ARE OWED',3.5); /* M1.74.1: CONTINUE after spending floor coins */
   SFX.start();
 }
@@ -1996,13 +1996,14 @@ function hitEnemy(e,src){if(e.state==='dead'||e.dormant)return;if(MOBS[e.type]&&
   e.regenT=0;var dmg9=Math.max(1,(src&&src.dmg)|0);if(hasMod(e,'bulwark'))dmg9=1;
   if(e.type==='sovereign'){var next=sovNextHp(e);if(next!=null&&e.hp-dmg9<next){var dealt=e.hp-next;e.hp=next;e.hurtT=.18;if(G.dmgNums.length<40)G.dmgNums.push({x:e.x+(Math.random()-.5)*.2,y:e.y+(Math.random()-.5)*.2,z:mobZ(e)+(e.hh||MOBS[e.type].h)*(e.scale||1)*.9,v:Math.max(1,dealt),t:.9});if(e.state==='idle')e.state='chase';startSovCollapse(e);return;}} /* M1.75 clamp: a hit cannot skip a phase */
   if(e.type==='deep'){var nxt=deepNextHp(e);if(nxt!=null&&e.hp-dmg9<nxt){var dealtD=e.hp-nxt;e.hp=nxt;e.hurtT=.18;if(G.dmgNums.length<40)G.dmgNums.push({x:e.x+(Math.random()-.5)*.2,y:e.y+(Math.random()-.5)*.2,z:mobZ(e)+(e.hh||MOBS[e.type].h)*(e.scale||1)*.9,v:Math.max(1,dealtD),t:.9});if(e.state==='idle')e.state='chase';e.deepPhase=(e.deepPhase||0)+1;SFX.bossRoar();stats.deepPhases=(stats.deepPhases|0)+1;return;}} /* M1.77 clamp: a hit cannot skip a Deep phase */
+  if(e.type==='icewiz'){var nxtW=wizNextHp(e);if(nxtW!=null&&e.hp-dmg9<nxtW){var dealtW=e.hp-nxtW;e.hp=nxtW;e.hurtT=.18;if(G.dmgNums.length<40)G.dmgNums.push({x:e.x+(Math.random()-.5)*.2,y:e.y+(Math.random()-.5)*.2,z:mobZ(e)+(e.hh||MOBS[e.type].h)*(e.scale||1)*.9,v:Math.max(1,dealtW),t:.9});if(e.state==='idle')e.state='chase';if(!e.woke){e.woke=true;e.state='chase';}if(!e.shield){e.shieldIdx=(e.shieldIdx|0)+1;e.shield=true;wizSpikes(e);}return;}} /* M1.79.5 clamp: a hit cannot skip a shield bubble */
   e.hp-=dmg9;e.hurtT=.18;if(G.dmgNums.length<40)G.dmgNums.push({x:e.x+(Math.random()-.5)*.2,y:e.y+(Math.random()-.5)*.2,z:mobZ(e)+(e.hh||MOBS[e.type].h)*(e.scale||1)*.9,v:dmg9,t:.9}); /* M1.17 damage numbers */if(e.state==='idle'){e.state='chase';}if(src&&src.green&&e.hp>0){e.poison={n:POISON.ticks,t:POISON.every};stats.poisoned++;}if(src&&src.ice&&e.hp>0){e.slowT=Math.max(e.slowT||0,ITEM_FX.chill);stats.chills++;}if(src&&src.snow&&e.hp>0){e.slowT=Math.max(e.slowT||0,ITEM_FX.snow);stats.snowSlow++;}
   if(e.mods&&e.mods.length&&src&&!src.self){var p9=G.p;
     if(hasMod(e,'vengeance')&&p9&&Math.random()<INF.vengeance&&Math.hypot(p9.x-e.x,p9.y-e.y)<INF.vengeanceR){if(hurtPlayerBy(1,e.x,e.y,'shot'))stats.vengeance++;sparkle(p9.x,p9.y,.4,'spark',6);}
     if(hasMod(e,'firework')){addBoom(e.x,e.y,.6,.15);for(var fw=0;fw<10;fw++){var fa=fw/10*Math.PI*2;G.parts.push({kind:'spark',x:e.x,y:e.y,z:.4,vx:Math.cos(fa)*2.4,vy:Math.sin(fa)*2.4,vz:1.2,life:.5,g:3});}SFX.eZap();if(p9&&Math.hypot(p9.x-e.x,p9.y-e.y)<INF.firework.r)hurtPlayerBy(1,e.x,e.y,'boom');stats.fireworks++;}
     if(hasMod(e,'mama')&&!e.mamaDone&&!e.child){e.mamaDone=true;if(Math.random()<INF.mama)spawnBabies(e);}
     if(e.hp<=0&&hasMod(e,'oneup')&&!e.usedLife){e.usedLife=true;e.hp=e.maxHp;e.hurtT=.3;sparkle(e.x,e.y,.6,'spark',16);SFX.portalOpen();setMsg('1UP! IT GETS BACK UP',1.8);stats.oneups++;return;}}
-  if(e.hp<=0&&e.type==='skeleton'){collapse(e);return;}if(e.hp<=0){e.state='dead';e.deadT=0;if(G.run){G.run.kills++;if(e.mods&&e.mods.length)G.run.elites++;}}else{if(e.type==='clunk')SFX.clank();else SFX.hit();if(e.state==='chase'&&Math.random()<.5)voice(e);}}
+  if(e.hp<=0&&e.type==='skeleton'){collapse(e);return;}if(e.hp<=0){e.state='dead';e.deadT=0;if(e.type==='icewiz')iceWizDeath(e);if(G.run){G.run.kills++;if(e.mods&&e.mods.length)G.run.elites++;}}else{if(e.type==='clunk')SFX.clank();else SFX.hit();if(e.state==='chase'&&Math.random()<.5)voice(e);}}
 function scream(e){e.screamT=3.5+Math.random()*2.5;e.screamAnim=.5;stats.screams++;SFX.scream();}
 function voice(e){e.sndT=3.5+Math.random()*2.5;stats.voices[e.type]=(stats.voices[e.type]||0)+1;if(e.type==='screamer'||e.type==='fscreamer')scream(e);else SFX[MOBS[e.type].voice]();}
 
@@ -2392,6 +2393,7 @@ function bossFan(e,n,spread,spd,kind,home){var a0=Math.atan2(G.p.y-e.y,G.p.x-e.x
 function bossRing(e,n,spd,kind){var a0=Math.random()*Math.PI;for(var i=0;i<n;i++)bossShot(e,a0+i/n*Math.PI*2,spd,kind,0);}
 function bossWake(e){var M=MOBS[e.type];e.woke=true;if(e.state==='idle')e.state='chase';G.boss=e;e.sndT=2.5;setMsg(M.name+' AWAKENS!',2.5);SFX.bossRoar();stats.bossWakes++;}
 function sovNextHp(e){var p=e.sovPhase||0;if(p>=SOV.thresh.length)return null;return Math.round(e.maxHp*SOV.thresh[p]);}
+function wizNextHp(e){var p=e.shieldIdx|0;if(p>=ICEWIZ.shieldAt.length)return null;return Math.round(e.maxHp*ICEWIZ.shieldAt[p]);}
 function deepNextHp(e){var p=e.deepPhase||0;if(p>=DEEP.thresh.length)return null;return Math.round(e.maxHp*DEEP.thresh[p]);}
 function holeWalkable(c,skipI){if(!c)return false;var i=c.y*G.L.w+c.x;if(skipI!=null&&i===skipI)return false;if(c.t===1||c.t===5||c.t===7||c.t===8||c.t===10||c.t===11||c.t===6)return false;if((c.t===2||c.t===3)&&(c.open||0)<.8)return false;return true;}
 function deepReachable(ax,ay,bx,by,skipI){var L=G.L,w=L.w,h=L.h,sx=ax|0,sy=ay|0,gx=bx|0,gy=by|0;if(sx===gx&&sy===gy)return true;var seen={},q=[sy*w+sx],qi=0;seen[q[0]]=1;
@@ -2408,7 +2410,7 @@ function deepConvertTile(c){if(c&&c.x!=null&&c.y!=null)c=cellAt(c.x,c.y);if(!c||
 function deepExplode(x,y){addBoom(x,y,1.0,.15);G.shake=Math.max(G.shake||0,.35);stats.deepFires=(stats.deepFires|0)+1;
   var p=G.p,r=DEEP.blastR;if(p&&Math.hypot(p.x-x,p.y-y)<r+.2)hurtPlayerBy(DEEP.dmg,x,y,'shot');
   var R=Math.ceil(r);for(var j=-R;j<=R;j++)for(var i=-R;i<=R;i++){if(i*i+j*j>r*r)continue;deepConvertTile(cellAt((x|0)+i,(y|0)+j));}}
-function applyDeepBossFloor(L,def,ents){var typ=L.bossType||(def.boss&&def.boss.type);if(!typ||!def.boss)return;if(typ==='yellow'||typ==='masque'||typ==='brood')return;if(!/Basalt (Depths|Heights)/i.test(def.name||''))return;
+function applyDeepBossFloor(L,def,ents){var typ=L.bossType||(def.boss&&def.boss.type);if(!typ||!def.boss)return;if(typ==='yellow'||typ==='masque'||typ==='brood'||typ==='icewiz')return;if(!/Basalt (Depths|Heights)/i.test(def.name||''))return;
   L.bossType='deep';L.openSky=true;L.deepBoss=true;L.deepHoles=0;if(def.name)def.name=def.name.replace(/BASALT DEPTHS/i,'BASALT HEIGHTS');
   ents.forEach(function(e){if(MOBS[e.type]&&MOBS[e.type].boss)e.type='deep';});
   var n=0;L.cells.forEach(function(c){if(c.t===1||c.t===6){c.t=11;c.tex=0;c.crack=0;c.dent=0;n++;}else if(c.t===2||c.t===3){c.t=0;c.locked=false;c.open=1;c.state='open';c.bossLock=false;}});
@@ -2433,7 +2435,7 @@ function updateBoss(e,dt,p){if(e.dormant)return;if(e.type==='sovereign'&&(e.stat
   if(!e.doorsLocked&&A&&p.x>A.x+.3&&p.x<A.x+A.w-.3&&p.y>A.y+.3&&p.y<A.y+A.h-.3){if(!e.introDone&&api.bossIntro){startBossIntro(e,null);return;}arenaLock(e,true);G.L.portalHidden=true;} /* M1.26: the barred portal vanishes once you're locked in */
   e.sndT-=dt;if(e.sndT<=0&&d<12)voice(e);
   if(e.atkT>0)e.atkT-=dt;
-  if(!e.enraged&&e.hp<=e.maxHp/2){e.enraged=true;setMsg(M.name+' IS FURIOUS!',2);SFX.bossRoar();stats.bossEnrages++;}
+  if(!e.enraged&&e.hp<=e.maxHp/2&&e.type!=='icewiz'){e.enraged=true;setMsg(M.name+' IS FURIOUS!',2);SFX.bossRoar();stats.bossEnrages++;}
   BOSS_AI[e.type](e,dt,p,dx,dy,d);bossClamp(e);
   for(var j=0;j<G.ents.length;j++){var o=G.ents[j];if(o===e||o.gone||o.state==='dead'||o.state==='pile')continue;var ox=o.x-e.x,oy=o.y-e.y,od=Math.hypot(ox,oy);if(od<M.bodyR+.25&&od>0)moveBody(o,ox/od*.03,oy/od*.03,.28,MOBS[o.type].ghost?true:(MOBS[o.type].fly?'w':'g'));} /* minions get nudged aside, the boss doesn't budge */
   if(Math.hypot(p.x-e.x,p.y-e.y)<M.reach&&e.atkT<=0){e.atkT=1.3;hurtPlayer(e);}}
@@ -2634,13 +2636,14 @@ BOSS_AI.brood=function(e,dt,p,dx,dy,d){var M=MOBS.brood;
         if((e.flip=!e.flip)&&bg<2)spawnSpider('bigspider',e.x+.6,e.y,'boss');else if(sk<3){spawnSpider('skitter',e.x-.5,e.y+.3,'boss');spawnSpider('skitter',e.x+.3,e.y-.5,'boss');}setMsg('SPIDERS POUR FROM THE BROODMOTHER!',1.8);}}return;}
   e.atkCD-=dt;if(e.atkCD<=0&&d<10){var r=Math.random();e.next=r<.4?'web':r<.7?'egg':'summon';e.tele=.5;e.atkCD=2.6*e.cdMul*(e.enraged?.8:1);SFX.charge();stats.telegraphs++;return;}
   bossMove(e,p.x,p.y,M.speed*e.spdMul*(e.enraged?1.3:1)*dt);};
+BOSS_AI.icewiz=function(e,dt,p,dx,dy,d){updateIceWiz(e,dt,p);}; /* M1.79.5: same fight AI, now on the boss path (intro, arena, HP bar) */
 function bossDefeated(e){var lp=lootSpot(e.x,e.y),L=G.L;arenaLock(e,false);SFX.pop();SFX.bossDie();
   for(var k=0;k<16;k++){var a=k/16*Math.PI*2;G.parts.push({kind:'puff',x:e.x,y:e.y,z:.35,vx:Math.cos(a)*1.4,vy:Math.sin(a)*1.4,vz:.5,life:.8,g:0,max:.9});}sparkle(e.x,e.y,.5,'spark',20);
   coinBurst(lp.x,lp.y,BOSS_LOOT.coins);var bpm=randItem(Math.random);G.items.push(bpm?{kind:'item',ptype:bpm,x:lp.x,y:lp.y,ph:0}:{kind:'heart',x:lp.x,y:lp.y,ph:0});var bpk=randPU(Math.random);if(bpk)G.items.push({kind:'power',ptype:bpk,x:lp.x,y:lp.y,ph:0}); /* M1.11: a permanent item (a heart once you have them all) */
   if(e.type==='brood'&&!perm('web'))G.items.push({kind:'webg',x:lp.x,y:lp.y,ph:0}); /* M1.12 golden web */
   G.stats.defeated++;G.stats.bossName=MOBS[e.type].name;if(G.run)G.run.elites++;stats.bossKills++;
   if(G.run&&!G.run.cheated&&unlockFloor(G.levelIdx+2))setTimeout(function(){setMsg('FLOOR '+(G.levelIdx+2)+' UNLOCKED AS A STARTING FLOOR!',3);},4200); /* M1.30 */
-  L.sealed=false;if(L.portalHidden){L.portalHidden=false;portalClear();}if(L.exit)sparkle(L.exit.x+.5,L.exit.y+.5,.5,'spark',16);setMsg(e.type==='deep'?'THE BASALT IS DEFEATED! THE STAIRS APPEAR!':MOBS[e.type].name+' DEFEATED! THE STAIRS APPEAR!',4);SFX.portalOpen();G.boss=null;}
+  L.sealed=false;if(L.portalHidden){L.portalHidden=false;portalClear();}if(L.exit)sparkle(L.exit.x+.5,L.exit.y+.5,.5,'spark',16);setMsg(e.type==='deep'?'THE BASALT IS DEFEATED! THE STAIRS APPEAR!':e.type==='icewiz'?'ICE WIZARD DEFEATED! THE STAIRS APPEAR!':MOBS[e.type].name+' DEFEATED! THE STAIRS APPEAR!',4);SFX.portalOpen();G.boss=null;}
 
 /* ---------- M1.4 sprites: power-up icons, world tokens, modifier icons, enemy shots, goo, elite glow masks ---------- */
 /* M1.11 icons: new power-ups, permanent items, the rock, golden tokens */
@@ -2669,7 +2672,7 @@ var MOD_ICO=sheetTiles('mods');SPR.mod={};MOD_IDS.forEach(function(m){SPR.mod[m]
 SPR.eshot={};SHOT_IDS.forEach(function(k){SPR.eshot[k]=sheetFrames('shot_'+k)[0];});
 /* M1.69: blue explosions (the boom art with red and blue swapped), the Ice Wizard's shield bubble and the Frozen Wand balloon */
 SPR.boomBlue=SPR.boom.map(function(b){var c=new Pix(b.w,b.h,1);c.k=b.k;c.px=b.px.slice();for(var i=0;i<c.px.length;i++){var v=c.px[i];c.px[i]=((v&0xff00ff00)|((v&255)<<16)|((v>>16)&255))>>>0;}return c;});
-SPR.bubble=(function(){var n=48,c=new Pix(n,n,1),C1=HEX('#bff4ff'),C2=HEX('#e8fbff'),m=(n-1)/2;for(var y=0;y<n;y++)for(var x=0;x<n;x++){var r=Math.hypot(x-m,y-m);if(r<n/2-.5&&(r>n/2-3.5||((x*3+y*5)%7===0&&r<n/2-6)))c.px[y*n+x]=r>n/2-3.5?C1:C2;}return c;})();
+SPR.bubble=(function(){var n=48,c=new Pix(n,n,1),C1=HEX('#bff4ff'),C2=HEX('#e8fbff'),C3=HEX('#ffffff'),m=(n-1)/2;for(var y=0;y<n;y++)for(var x=0;x<n;x++){var r=Math.hypot(x-m,y-m);if(r<n/2-.5&&(r>n/2-5.2||((x*3+y*5)%5===0&&r<n/2-7)))c.px[y*n+x]=r>n/2-3?C3:r>n/2-5.2?C1:C2;}return c;})();
 SPR.balloonIce=(function(){var b=SPR.balloon,c=new Pix(b.w,b.h,1);c.k=b.k;c.px=b.px.slice();var W2=HEX('#e6faff');for(var i=0;i<c.px.length;i++)if(c.px[i]>>>24)c.px[i]=mixC(c.px[i],W2,.55);return c;})(); /* M1.24: assets/boss/shot_*.png */
 SPR.goo=sheetFrames('goo');
 /* M19: tinted balloons + hands per balloon type, half-size power-up icons for the HUD effect row, backpack icon */
@@ -2784,7 +2787,7 @@ function renderSprites(){var list=[],t=G.time,i;stats.enemyBoxes=[];stats.enemyR
     var clk=hasMod(e,'cloak')&&e.state!=='dead'&&!(e.revealT>0)&&Math.hypot(e.x-cam.x,e.y-cam.y)>1.6; /* M1.28 cloaked: barely visible until hit or close */
     e._vis=false;list.push({s:spr,x:e.x,y:e.y,z:z,h:hh,sx:sq,tint:tint,enemy:true,alpha:clk?.1:((e.recoilT>0&&M.ethereal)?Math.max(.28,(M.alpha||FACE.alpha)*.7):(M.alpha||0)),noDepth:!!M.ethereal,ent:e});
     if(e.blindT>0&&e.state!=='dead'&&e.state!=='pile')list.push({s:SPR.blindMark,x:e.x,y:e.y,z:z+hh*.86,h:.12});
-    if(e.type==='icewiz'&&e.shield&&e.state!=='dead')list.push({s:SPR.bubble,x:e.x,y:e.y,z:-.05,h:1.3,alpha:.45}); /* M1.69 shield bubble */
+    if(e.type==='icewiz'&&e.shield&&e.state!=='dead')list.push({s:SPR.bubble,x:e.x,y:e.y,z:-.02,h:1.65,alpha:.58+.22*Math.abs(Math.sin((G.time||0)*5))}); /* M1.69/M1.79.5 shield bubble */
     if(e.mods&&e.mods.length&&e.state!=='dead'&&!clk&&ensureGlow(open?'screamerO':e.type)&&SPR.glowT[open?'screamerO':e.type][0][fr]){var gt=open?'screamerO':e.type,ed=Math.hypot(e.x-cam.x,e.y-cam.y),ti=0;while(ed>=GLOW_TIERS[ti].d)ti++;var T=GLOW_TIERS[ti],
         g=SPR.glowT[gt][ti][fr],pf=(spr.h+2*T.p)/spr.h,gd=SPR.glowD[gt][ti][fr],pd=(spr.h+2*T.dp)/spr.h,mi=e.mods.length>1?((G.time*2.5)|0)%e.mods.length:0,gc=e.tele>0?0xffffffff:HEX(MODS[e.mods[mi]].col);
       /* M16: a dark frame behind a stronger colour ring (wider when far) so the glow reads on red brick and next to blue mobs */
@@ -2901,7 +2904,7 @@ function drawMinimap(ghost){var L=G.L,p=G.p,R=MAP_RECT,cs=6,n=12,ox=R[0]+3,oy=R[
   blend(R[0],R[1],R[2],R[3],HEX('#0d0a1e'),ghost?.2:.7);frameBox(R[0],R[1],R[2],R[3],HEX('#4a4470'));
   var fx=p.x-Math.floor(p.x),fy=p.y-Math.floor(p.y),offx=Math.round((.5-fx)*cs),offy=Math.round((.5-fy)*cs);
   for(var j=-1;j<=n;j++)for(var i=-1;i<=n;i++){var mx=cx0+i,my=cy0+j;if(mx<0||my<0||mx>=L.w||my>=L.h)continue;var idx=my*L.w+mx;if(!L.seen[idx])continue;var c=L.cells[idx],col;
-    if(c.t===1)col=L.goldWalls?HEX('#a8821e'):MAPCOL[c.tex];else if(c.t===2)col=c.locked?HEX('#ffc630'):HEX('#7a9cff');else if(c.t===3)col=HEX('#5fa64e');else if(c.t===4&&!L.portalHidden)col=L.sealed?HEX('#5a4a6a'):((G.time*4)|0)&1?HEX('#4ae0ff'):HEX('#b46cff');else if(c.t===5)col=HEX('#ff5ad8');else if(c.t===6||c.t===11)col=PITC;else if(c.t===7)col=HEX('#c08aff');else if(c.t===8)col=HEX('#e0c050');else if(c.t===9)col=HEX('#8a5a2a');else if(c.t===10)col=HEX('#ffe27a');else{if(ghost)continue;col=HEX('#2a2640');}
+    if(c.t===1)col=L.goldWalls?HEX('#a8821e'):mapWallCol(c.tex);else if(c.t===2)col=c.locked?HEX('#ffc630'):HEX('#7a9cff');else if(c.t===3)col=HEX('#5fa64e');else if(c.t===4&&!L.portalHidden)col=L.sealed?HEX('#5a4a6a'):((G.time*4)|0)&1?HEX('#4ae0ff'):HEX('#b46cff');else if(c.t===5)col=HEX('#ff5ad8');else if(c.t===6||c.t===11)col=PITC;else if(c.t===7)col=HEX('#c08aff');else if(c.t===8)col=HEX('#e0c050');else if(c.t===9)col=HEX('#8a5a2a');else if(c.t===10)col=HEX('#ffe27a');else{if(ghost)continue;col=HEX('#2a2640');}
     for(var b=0;b<cs;b++)for(var a=0;a<cs;a++){var X=ox+i*cs+a+offx,Y=oy+j*cs+b+offy;if(X<R[0]+1||Y<R[1]+1||X>=R[0]+R[2]-1||Y>=R[1]+R[3]-1)continue;if(c.t===3&&((a+b)&1))continue;buf[Y*W+X]=c.t===6&&(a===0||b===0||a===cs-1||b===cs-1)?PITR:col;}}
   function dot(wx,wy,col,shape){var X=Math.round(ox+(wx-cx0)*cs+offx-cs/2)-1,Y=Math.round(oy+(wy-cy0)*cs+offy-cs/2)-1,pat=MAP_SHAPES[shape||'sq'];X+=Math.round(cs/2)-1;Y+=Math.round(cs/2)-1;for(var b=0;b<3;b++)for(var a=0;a<3;a++){if(pat[b*3+a]!=='1')continue;var xx=X+a,yy=Y+b;if(xx>R[0]&&yy>R[1]&&xx<R[0]+R[2]-1&&yy<R[1]+R[3]-1)buf[yy*W+xx]=col;}stats.mapShapes[shape||'sq']=(stats.mapShapes[shape||'sq']|0)+1;}
   G.items.forEach(function(it){if(it.taken)return;if(!L.seen[Math.floor(it.y)*L.w+Math.floor(it.x)])return;var kk=it.kind,isIt=kk==='power'||kk==='item'||kk==='piggy'||kk==='webg'||kk==='script';dot(it.x,it.y,kk==='key'?HEX('#ffe27a'):kk==='heart'?HEX(HEARTC):isIt?HEX('#7dffb0'):HEX('#c89a20'),kk==='key'?'sq':kk==='heart'?'heart':isIt?'ring':'plus');});
@@ -2925,7 +2928,7 @@ function drawFullMap(){var L=G.L,p=G.p,Y1=HEX('#ffe27a'),W1=HEX('#ffffff'),GR=HE
   blend(ox-3,oy-3,mw+6,mh+6,HEX('#000000'),.5);frameBox(ox-3,oy-3,mw+6,mh+6,HEX('#4a4470'));
   var nSeen=0,nOpen=0,nOpenSeen=0,ni=0,ne=0,exitSeen=false;
   for(var my=0;my<L.h;my++)for(var mx=0;mx<L.w;mx++){var idx=my*L.w+mx,c=L.cells[idx],open=c.t!==1;if(open)nOpen++;if(!L.seen[idx])continue;nSeen++;if(open)nOpenSeen++;var col;
-    if(c.t===1)col=L.goldWalls?HEX('#a8821e'):MAPCOL[c.tex];else if(c.t===2)col=c.locked?HEX('#ffc630'):HEX('#7a9cff');else if(c.t===3)col=HEX('#5fa64e');else if(c.t===4&&!L.portalHidden){exitSeen=true;col=L.sealed?HEX('#5a4a6a'):((G.time*3)|0)&1?HEX('#4ae0ff'):HEX('#b46cff');}else if(c.t===5)col=HEX('#ff5ad8');else if(c.t===6||c.t===11)col=PITC;else if(c.t===7)col=HEX('#c08aff');else if(c.t===8)col=HEX('#e0c050');else if(c.t===9)col=HEX('#8a5a2a');else if(c.t===10)col=HEX('#ffe27a');else col=HEX('#2e2a4c');
+    if(c.t===1)col=L.goldWalls?HEX('#a8821e'):mapWallCol(c.tex);else if(c.t===2)col=c.locked?HEX('#ffc630'):HEX('#7a9cff');else if(c.t===3)col=HEX('#5fa64e');else if(c.t===4&&!L.portalHidden){exitSeen=true;col=L.sealed?HEX('#5a4a6a'):((G.time*3)|0)&1?HEX('#4ae0ff'):HEX('#b46cff');}else if(c.t===5)col=HEX('#ff5ad8');else if(c.t===6||c.t===11)col=PITC;else if(c.t===7)col=HEX('#c08aff');else if(c.t===8)col=HEX('#e0c050');else if(c.t===9)col=HEX('#8a5a2a');else if(c.t===10)col=HEX('#ffe27a');else col=HEX('#2e2a4c');
     for(var b=0;b<cs;b++)for(var a=0;a<cs;a++){if(c.t===3&&((a+b)&1))continue;if(c.t===2&&cs>=6&&(a===0||a===cs-1||b===0||b===cs-1))continue;px(ox+mx*cs+a,oy+my*cs+b,c.t===6&&(a===0||a===cs-1||b===0||b===cs-1)?PITR:col);}}
   G.items.forEach(function(it){if(it.taken)return;if(!L.seen[Math.floor(it.y)*L.w+Math.floor(it.x)])return;ni++;var X=ox+it.x*cs,Y=oy+it.y*cs,c=HEX(ITEMCOL[it.kind]||'#ffffff');
     if(it.kind==='key'){fillDiamond(X,Y,Math.max(2.6,cs*.45),HEX('#5a3e0e'));fillDiamond(X,Y,Math.max(1.8,cs*.45-1),c);}else if(it.kind==='heart')fillHeart(X,Y,Math.max(2,cs*.32),HEX(HEARTC));else if(it.kind==='coin')fillCirc(X,Y,Math.max(1,cs*.17),c);else{fillDiamond(X,Y,Math.max(2.4,cs*.4),HEX('#0d0a1e'));fillDiamond(X,Y,Math.max(1.6,cs*.4-1),c);}});
@@ -3107,6 +3110,7 @@ api.shotsDetail=function(){return G.shots.map(function(q){return {x:q.x,y:q.y,z:
 api.spriteData=function(name,i){var sp=SPR[name][i];return {w:sp.w,h:sp.h,px:Array.from(sp.px)};};
 api.fogInfo=function(){var L=G.L,sn=0;for(var i=0;i<L.seen.length;i++)if(L.seen[i])sn++;var on=function(x,y){return !!L.seen[Math.floor(y)*L.w+Math.floor(x)];};return {seen:sn,mobsOnSeen:G.ents.filter(function(e){return !e.gone&&e.state!=='dead'&&on(e.x,e.y);}).length,mobs:G.ents.length,itemsOnSeen:G.items.filter(function(it){return !it.taken&&on(it.x,it.y);}).length};};
 api.seeAll=function(frac){var L=G.L;for(var i=0;i<L.seen.length;i++)if(frac===undefined||(i%L.w)<frac*L.w)L.seen[i]=1;};api.mobPools={pools:MOB_POOLS,featured:FEATURED};
+  api.mapColInfo=function(){function info(c){return c==null?{ok:false,a:0,r:0,g:0,b:0}:{ok:(c>>>24)===255,a:c>>>24,r:c&255,g:c>>8&255,b:c>>16&255};}var themes=[].concat(THEMES,DEEP_THEMES,[ICY.theme]);return {tex:TEX_NAMES.map(function(n,i){var o=info(MAPCOL[i]);o.name=n;o.i=i;o.wall=i!==5&&i!==6&&i!==7;return o;}),themes:themes.map(function(t){var chs=[t.base].concat(t.rooms||[]);return {name:t.name,walls:chs.map(function(ch){var tex=TEXCH[ch],o=info(MAPCOL[tex]);o.ch=ch;o.tex=tex;return o;})};})};};
 api.levelHp=function(seed,lvl){var d=genLevelFor(seed,lvl),hp=0,n=0,t={};d.map.forEach(function(r){for(var i=0;i<r.length;i++){var m=MOB_BY_CH[r[i]];if(m){hp+=MOBS[m].hp;n++;t[m]=(t[m]||0)+1;}}});return {hp:hp,n:n,types:t};};
 api.damageMob=function(i,n){for(var k=0;k<(n||1);k++)hitEnemy(G.ents[i]);};
 api.modCols=function(){var o={};MOD_IDS.forEach(function(k){o[k]=MODS[k].col;});return o;};api.twoModChance=function(f){return twoModChance(f);};api.lootSpot=function(x,y){return lootSpot(x,y);};api.clearPath=function(a,b,c,d){return clearPath(a,b,c,d);};api.settings=function(){return JSON.parse(JSON.stringify(settings));};api.minimapOn=function(){return !!G.minimap;};api.giantSplash=function(x,y){giantSplash(x,y);};api.itemList=function(){return G.items.filter(function(i){return !i.taken;}).map(function(i){return {kind:i.kind,ptype:i.ptype,x:i.x,y:i.y,solid:solidAt(i.x,i.y)};});};api.solidAt=function(x,y){return solidAt(x,y);};api.solidWings=function(x,y){return solidWings(x,y);};api.heightPitUnder=function(x,y,m){return heightPitUnder(x,y,m);};api.shotSolid=function(x,y){return shotSolid(x,y);};api.mapEdgeAt=function(x,y){return mapEdgeAt(x,y);};
@@ -3162,7 +3166,7 @@ api.nextFloorViaExit=function(){var e=G.L.exit;G.p.x=e.x+.5;G.p.y=e.y+.5;return 
 api.genSecret=function(seed,f){var d=genLevel(levelSeed(seed,f),f);return d.secret||null;};
 api.crackHit=function(){var s=G.L.def.secret;return s?crackHit(s.cx+.5,s.cy+.5):false;};
 /* M1.10 hooks */
-api.bosses={};BOSS_ORDER.forEach(function(k){api.bosses[k]=MOBS[k];});api.bossOrder=BOSS_ORDER.slice();api.bossFor=bossFor;api.bossLoot=BOSS_LOOT;
+api.bosses={};BOSS_ORDER.forEach(function(k){api.bosses[k]=MOBS[k];});if(MOBS.icewiz)api.bosses.icewiz=MOBS.icewiz;api.bossOrder=BOSS_ORDER.slice();api.bossFor=bossFor;api.bossLoot=BOSS_LOOT;
 api.boss=function(){var e=null;G.ents.forEach(function(o){if(MOBS[o.type].boss)e=o;});var d=G.L.def.boss;if(!e&&!d)return null;
   return {def:d?JSON.parse(JSON.stringify(d)):null,sealed:!!G.L.sealed,active:!!bossActive(),i:G.ents.indexOf(e),ent:e?{type:e.type,x:e.x,y:e.y,z:mobZ(e),hp:e.hp,maxHp:e.maxHp,state:e.state,gone:e.gone,woke:!!e.woke,enraged:!!e.enraged,stack:e.stack,hh:e.hh,tele:e.tele||0,tier:e.tier,cdMul:e.cdMul,spdMul:e.spdMul,split:e.split||0,happy:!!e.happy,chargeT:e.chargeT||0,swoopT:e.swoopT||0,frame:animFrame(e),sovPhase:e.sovPhase||0,sovAnimT:e.sovAnimT||0,deepPhase:e.deepPhase||0,atkPose:e.atkPose||0,moving:!!e.moving}:null};};
 api.faceBoss=function(dist){var b=null;G.ents.forEach(function(o){if(MOBS[o.type].boss&&!o.gone)b=o;});if(!b)return false;var A=b.arena,d=dist||2.5,best=null;
@@ -3173,8 +3177,9 @@ api.hitBossOnce=function(n){var b=null;G.ents.forEach(function(o){if(MOBS[o.type
 api.sov=SOV;api.deep=DEEP;api.deepExplode=deepExplode;api.deepShot=function(x,y,ang,spd){spd=spd||DEEP.shotSpd;G.eshots.push({kind:'deepfire',x:x,y:y,z:.45,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,spd:spd,home:0,life:DEEP.range/spd,age:0,from:'deep',fc:-1,dmg:1});};api.eshots=function(){return (G.eshots||[]).map(function(s){return {kind:s.kind,x:s.x,y:s.y,z:s.z,life:s.life,age:s.age};});};api.deepReachable=function(ax,ay,bx,by,sx,sy){var skip=sx==null?null:(sy*G.L.w+(sx|0));return deepReachable(ax,ay,bx,by,skip);};api.deepHoles=function(){return G.deepHoles|0;};api.openSky=function(){return !!(G.L&&G.L.openSky);};api.deepBoss=function(){return !!(G.L&&G.L.deepBoss);};api.deepConvert=deepConvertTile;
 api.skipBossIntro=function(){api.bossIntro=false;if(G.mode==='intro'&&G.intro){var I=G.intro,e=I.e,p=G.p,ab;if(I.fogWas!=null)VIEW.cur=I.fogWas;if(e){if(!e.doorsLocked&&e.arena)arenaLock(e,true);e.introDone=true;bossWake(e);if(p){ab=Math.atan2(e.y-p.y,e.x-p.x);p.ang=ab;}}G.mode='play';G.modeT=0;G.intro=null;if(G.L)G.L.portalHidden=true;}render();};
 api.setMsg=setMsg;
+api.unseal=function(){var L=G.L;if(!L)return;L.sealed=false;L.portalHidden=false;};
 api.defeatBoss=function(){api.skipBossIntro();var get=function(){var b=null;G.ents.forEach(function(o){if(MOBS[o.type].boss&&!o.gone)b=o;});return b;},b=get(),n=0;
-  while(b&&b.state!=='dead'&&n++<12){hitEnemy(b,{dmg:Math.max(9999,b.maxHp||1)});
+  while(b&&b.state!=='dead'&&n++<12){if(b.type==='icewiz'){b.shield=false;b.shieldHp=0;b.shieldIdx=3;b.spikes=[];}hitEnemy(b,{dmg:Math.max(9999,b.maxHp||1)});
     var k=0;while(b&&(b.state==='sovfall'||b.state==='sovdown'||b.state==='sovup')&&k++<80){if(G.p)G.p.hearts=Math.max(G.p.hearts,5);var ticks=Math.round(.1/STEP);for(var i=0;i<ticks;i++){pollPad();update(STEP);}}
     b=get();}
   syncTouchUI();render();return api.boss();};
@@ -3221,7 +3226,7 @@ api.layoutTime=function(wd,ht,seed){var c=genCfg(10,0);c.width=wd;c.height=ht;c.
     for(var y=0;y<H;y++)for(var x=0;x<Wd;x++){if(!op(x,y))continue;V++;var n=(op(x+1,y)?1:0)+(op(x-1,y)?1:0)+(op(x,y+1)?1:0)+(op(x,y-1)?1:0);if(op(x+1,y))E++;if(op(x,y+1))E++;if(n===1)dead.push([x,y]);}
     var md=0;dead.forEach(function(t){var len=0,px=-1,py=-1,cx=t[0],cy=t[1];while(len<200){var nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(q){var nx=cx+q[0],ny=cy+q[1];return op(nx,ny)&&!(nx===px&&ny===py);});var deg=nb.length+(px>=0?1:0);if(deg!==2&&len>0)break;if(!nb.length)break;px=cx;py=cy;cx+=nb[0][0];cy+=nb[0][1];len++;}md=Math.max(md,len);});
     o.floors++;o.deadEnds+=dead.length;o.maxDead=Math.max(o.maxDead,md);o.loops+=E-V+1;o.cells+=V;});});o.deadPerFloor=o.deadEnds/o.floors;o.loopsPerFloor=o.loops/o.floors;return o;};api.unlocks=function(){return loadUnlocks();};api.setUnlocks=function(o){saveUnlocks(o||{floors:[],last:1});G.startPicked=false;buildMenu();};api.startFloors=function(){return startFloors();};api.startFloor=function(){return G.startFloor||1;};api.cycleStart=function(d){cycleStart(d);};api.entSet=function(i,o){var e=G.ents[i];if(e)Object.keys(o).forEach(function(k){e[k]=o[k];});};api.clearBody=function(a,b,c,d,r){return clearBody(a,b,c,d,r);};api.keyHeld=function(c){return !!keys[c];};api.watchdog=function(){inputWatchdog();};api.hitWith=function(i,src){hitEnemy(G.ents[i],src||{dmg:1,ball:'blue',hits:[]});};api.infWorld=function(){return {bolts:G.bolts.length,webs:G.webs.length,pots:G.pots.length,fires:G.fires.length};};api.mounted=function(i){var e=G.ents[i];return e&&e.mount?G.ents.indexOf(e.mount):-1;};api.entInfo=function(i){var e=G.ents[i];return e?{type:e.type,hp:e.hp,maxHp:e.maxHp,state:e.state,gone:!!e.gone,stolen:e.stolen||null,usedLife:!!e.usedLife,x:e.x,y:e.y,child:!!e.child,flying:!!e.flying}:null;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.79.4-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.79.5-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

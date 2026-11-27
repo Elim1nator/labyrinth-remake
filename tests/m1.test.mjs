@@ -57,6 +57,7 @@ const V176=atLeast('1.76'); // M1.76+: Obsidian Column, Skittering Creep; moss w
 const V177=atLeast('1.77'); // M1.77+: the Awakened Deep is the Basalt Heights boss (pit-wall floor)
 const V178=atLeast('1.78'); // M1.78+: new Debt Collector and Skittering Creep walk sheets
 const V179=atLeast('1.79'); // M1.79+: Skittering Creep 4-frame sheet; Awakened Deep renamed/resprited as the Awakened Basalt
+const V1791=atLeast('1.79.1'); // M1.79.1+: green-screen despill on the Skittering Creep (and white matte crumbs on the Awakened Basalt)
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -5152,10 +5153,110 @@ async function m179Tests(){
   await ctxB.close();
 }
 
+
+async function m1791Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M1791='/workspace/labyrinth-main/m179.1';
+  fs.mkdirSync(M1791,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m1791_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M1791}/m1791_${name}.png`);
+  };
+  const save=(name,url)=>{
+    const dest=`${S}/m1791_${name}.png`;
+    fs.writeFileSync(dest,Buffer.from(url.split(',')[1],'base64'));
+    fs.copyFileSync(dest,`${M1791}/m1791_${name}.png`);
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m179.1',noFog:true});
+
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const GREEN_WL=new Set(['bonePile','skeleton']); /* intentional lime-green eyes */
+  const mobNames=Object.keys(atlas).filter(k=>atlas[k]&&String(atlas[k].file||'').startsWith('mobs/'));
+  const scan=await G(page,(names)=>{
+    const G=__game,out={};
+    for(const name of names){
+      const frames=[];
+      for(let i=0;i<16;i++){
+        let d=null;
+        try{d=G.spriteData(name,i);}catch(e){break;}
+        if(!d||!d.w)break;
+        let n=0,nLo=0;
+        for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++){
+          const p=d.px[y*d.w+x];
+          const r=p&255,g=(p>>>8)&255,b=(p>>>16)&255,a=(p>>>24)&255;
+          if(a>0&&g>r+25&&g>b+25){if(a>=24)n++;else nLo++;}
+        }
+        frames.push({i,w:d.w,h:d.h,green:n,greenLo:nLo});
+      }
+      out[name]={n:frames.length,green:frames.reduce((s,f)=>s+f.green,0),greenLo:frames.reduce((s,f)=>s+f.greenLo,0),frames};
+    }
+    return out;
+  },mobNames);
+  const offenders=Object.entries(scan).filter(([n,s])=>s.green>0&&!GREEN_WL.has(n)).map(([n,s])=>({name:n,green:s.green,frames:s.frames.filter(f=>f.green)}));
+  const wl=Object.fromEntries([...GREEN_WL].map(n=>[n,scan[n]?{green:scan[n].green,frames:scan[n].n}:null]));
+  check('M1.79.1 no shipped mob/boss PNG frame has green-dominant semi- or opaque pixels (bonePile and skeleton eyes are whitelisted)',
+    offenders.length===0&&scan.creep&&scan.creep.green===0&&scan.creep.greenLo===0&&scan.collector&&scan.collector.green===0
+    &&['deep','deep_idle','deep_cast','deep_attack'].every(n=>scan[n]&&scan[n].green===0&&scan[n].greenLo===0)
+    &&wl.bonePile&&wl.bonePile.green>0&&wl.skeleton&&wl.skeleton.green>0,
+    JSON.stringify({offenders,whitelist:wl,creep:scan.creep,collector:scan.collector,deep:['deep','deep_idle','deep_cast','deep_attack'].map(n=>({name:n,green:scan[n]&&scan[n].green,greenLo:scan[n]&&scan[n].greenLo})),nSheets:mobNames.length}));
+
+  const basalt=await G(page,()=>{
+    const G=__game;
+    for(let sd=1;sd<=40;sd++)for(const f of [9,11,12]){
+      if(G.icyAt&&G.icyAt(sd,f))continue;
+      G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:0});
+      if(G.basaltFloor&&G.basaltFloor())return {sd,f,theme:G.themeNow()};
+    }
+    return null;
+  });
+  const cboot=await G(page,(k)=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:9,coins:0});
+    G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.5,y+.5)&&!G.solidAt(x+2.5,y+.5)&&!G.solidAt(x+3.5,y+.5))spot={x:x+1.2,y:y+.5};
+    }
+    G.teleport(spot.x,spot.y,0);
+    const i=G.spawn('creep',spot.x+1.5,spot.y,true,[]);
+    if(G.seeAll)G.seeAll();
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.advance(0.05);G.render();
+    const e=G.state().enemies[i];
+    return {spot,i,type:e.type,theme:G.themeNow()};
+  },basalt);
+  await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.placeEnemy(i,p.x+1.15,p.y);G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+  },cboot.i);
+  await shot(page,'near');
+  check('M1.79.1 a near Skittering Creep screenshot was taken at the same angle as m179_near',
+    basalt&&cboot&&cboot.type==='creep'&&fs.existsSync(`${S}/m1791_near.png`),
+    JSON.stringify({basalt,type:cboot&&cboot.type,theme:cboot&&cboot.theme}));
+
+  const nearB64=fs.readFileSync(`${S}/m1791_near.png`).toString('base64');
+  const zoom=await G(page,async(b64)=>{
+    const im=new Image();im.src='data:image/png;base64,'+b64;await im.decode();
+    const x=460,y=685,w=380,h=115,s=6;
+    const c=document.createElement('canvas');c.width=w*s;c.height=h*s;
+    const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+    cx.drawImage(im,x,y,w,h,0,0,w*s,h*s);
+    return {url:c.toDataURL('image/png'),w:c.width,h:c.height,srcW:im.width,srcH:im.height};
+  },nearB64);
+  save('edge_zoom',zoom.url);
+  check('M1.79.1 an edge-zoom crop of the creep\'s legs was taken from the near shot (6x nearest-neighbour)',
+    zoom.w===380*6&&zoom.h===115*6&&zoom.srcW===1280&&zoom.srcH===800&&fs.existsSync(`${S}/m1791_edge_zoom.png`),
+    JSON.stringify({w:zoom.w,h:zoom.h,srcW:zoom.srcW,srcH:zoom.srcH}));
+
+  await ctx.close();
+}
+
 if(V176&&want('m176')){ await m176Tests(); }
 if(V177&&want('m177')){ await m177Tests(); }
 if(V178&&want('m178')){ await m178Tests(); }
 if(V179&&want('m179')){ await m179Tests(); }
+if(V1791&&want('m179.1')){ await m1791Tests(); }
 
 async function m176Tests(){
   const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});

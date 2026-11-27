@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.79.1: green-screen despill on the Skittering Creep
+- Jacob's `creep_v3.png` had leftover green-screen spill (919 pixels with alpha > 0, G > R+25 and G > B+25, e.g. (0,82,0,98) and (0,39,0,255)). They showed as a faint green fringe on the legs in `m179_near.png`. Those pixels are cleaned in `assets/mobs/creep.png`: 48 near-transparent (alpha < 24) green strays were dropped, and the other 871 had G replaced with a nearby dark-purple body colour (median of neighbouring non-green, non-eye pixels). Eyes, teeth and other body colours are unchanged. After the pass, 0 green-dominant pixels remain.
+- The four new Awakened Basalt sheets had no green-dominant spill. Near-transparent (alpha < 24) white-ish matte crumbs at the silhouette were dropped: 25 on `deep.png`, 18 on `deep_idle.png`, 7 on `deep_cast.png`, 9 on `deep_attack.png`. Mid-alpha light-gray edges that match the interior stone were left alone (they are antialiasing of the rock, not a keying halo).
+- The M1.78 Debt Collector sheet has no green-dominant spill and no white-ish halo; it is unchanged.
+- A test now checks that no shipped mob/boss PNG frame in `assets/mobs/` has green-dominant semi- or opaque pixels. The bone pile and the Rattlebone skeleton are whitelisted for their intentional lime-green eyes.
+
 ## M1.79: Skittering Creep 4-frame sheet; the Awakened Basalt
 - Jacob's new **Skittering Creep** sheet (`creep_v3.png`, 563×128, real transparency, 4 frames) replaces the M1.78 5-frame 885×132 art. Frame boundaries were detected from the alpha columns (runs 142 / 138 / 135 / 143 px, with 1 / 1 / 3 px gaps; not a flat 140-px split). Legs are uncropped. Each frame is feet-centred on the same baseline and horizontally centred within 0.5 px, with a 2 px pad so nothing touches a frame edge or bleeds into a neighbour. Packed 1:1 (nearest-neighbour identity) as `assets/mobs/creep.png` (four 147×132 frames, k 1.5). World height stays **0.30**. The walk cycle is now **0-1-2-3** (`((e.ph*14)|0)%4`). Spawn and combat logic are unchanged.
 - The Basalt Heights boss is renamed **the Awakened Basalt**. Player-facing name is `THE AWAKENED BASALT` (boss bar, intro banner `THE AWAKENED BASALT AWAKENS!`). Defeat banner: `THE BASALT IS DEFEATED! THE STAIRS APPEAR!` (42 characters). The internal type `deep`, the `DEEP` constants and the `deep*.png` file names are unchanged.

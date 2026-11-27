@@ -63,12 +63,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.79.3. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.79.4. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, art, sounds, levels) is original. Wall, monster, item and other
    world art is packed from PNG sheets in assets/. Sounds, music, the pixel font and some
    HUD or decoration sprites are still generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.79.3'; /* set by tools/release.mjs */
+var VERSION='M1.79.4'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=128,TK=TS/64; /* M1.51: wall tiles are 128x128; the effects painted on them are laid out on a 64-grid and scaled by TK */
 var SAVE_KEY='labyrinthRemake.save.v1',UNLOCK_KEY='labyrinthRemake.unlocks.v1'; /* M1.30: floors you can start on, kept across runs */
 var MAX_HEARTS=5;
@@ -2699,7 +2699,7 @@ function renderWorld(){stats.stairPx=0;stats.gratePx=0;stats.pitShaftPx=0;stats.
     var o=y*W;for(x=0;x<W;x++){buf[o+x]=c;depth[o+x]=d+.01;}}
   if(L.pits||L.traps||L.deepBoss||(L.exit&&!L.portalHidden)){var rx0=cam.dx-cam.px,ry0=cam.dy-cam.py,rx1=cam.dx+cam.px,ry1=cam.dy+cam.py,RIM=shade(fl,.5),P0=HEX('#16101e'),P1=HEX('#020104'); /* M19: pits are dark holes cast into the floor */
     for(y=Math.max(0,Math.ceil(HZ));y<H;y++){var dd=cam.z*PROJ/Math.max(.5,y+.5-HZ);if(dd>14)continue;var sx=(rx1-rx0)*dd/W,sy=(ry1-ry0)*dd/W,wx=cam.x+rx0*dd+sx*.5,wy=cam.y+ry0*dd+sy*.5,oo=y*W,ft=fogT(dd);
-      for(x=0;x<W;x++,wx+=sx,wy+=sy){var gx=Math.floor(wx),gy=Math.floor(wy);if(gx<0||gy<0||gx>=L.w||gy>=L.h)continue;var gc=L.cells[gy*L.w+gx];if(gc.t===9){var u9=wx-gx,v9=wy-gy,ed9=Math.min(u9,1-u9,v9,1-v9);if(ed9<.08)continue;var plank=((u9*5)|0)&1,pc9=ed9<.13?TRAPC[2]:Math.abs(u9-.5)<.12&&Math.abs(v9-.5)<.05?TRAPC[3]:TRAPC[plank];buf[oo+x]=fogMix(pc9,ft);depth[oo+x]=dd;continue;}if(gc.t===4&&!L.portalHidden){var su=wx-gx,sv=wy-gy,sed=Math.min(su,1-su,sv,1-sv),SD=stairDir(L);
+      for(x=0;x<W;x++,wx+=sx,wy+=sy){var gx=Math.floor(wx),gy=Math.floor(wy);if(gx<0||gy<0||gx>=L.w||gy>=L.h){if(L.openSky){buf[oo+x]=fogMix(mix(fl,HEX('#12101c'),.45),Math.min(.97,.38+ft*.3));depth[oo+x]=dd+1;}continue;}var gc=L.cells[gy*L.w+gx];if(gc.t===9){var u9=wx-gx,v9=wy-gy,ed9=Math.min(u9,1-u9,v9,1-v9);if(ed9<.08)continue;var plank=((u9*5)|0)&1,pc9=ed9<.13?TRAPC[2]:Math.abs(u9-.5)<.12&&Math.abs(v9-.5)<.05?TRAPC[3]:TRAPC[plank];buf[oo+x]=fogMix(pc9,ft);depth[oo+x]=dd;continue;}if(gc.t===4&&!L.portalHidden){var su=wx-gx,sv=wy-gy,sed=Math.min(su,1-su,sv,1-sv),SD=stairDir(L);
           if(sed<STAIR.rim){buf[oo+x]=fogMix(RIM,ft);depth[oo+x]=dd;continue;} /* the stone lip */
           if(L.sealed){stats.gratePx=(stats.gratePx|0)+1;var gb=((su*6)%1<.24)||((sv*6)%1<.24),gcol=gb?(((su*6)%1<.12||(sv*6)%1<.12)?STAIR.IRONL:STAIR.IRON):P1;buf[oo+x]=fogMix(gcol,ft);depth[oo+x]=dd;continue;} /* iron grate */
           stats.stairPx=(stats.stairPx|0)+1;var srx=(wx-cam.x)/dd,sry=(wy-cam.y)/dd,tq=dd,scol=P1,sdep=dd+1,pk=-1;
@@ -2717,6 +2717,7 @@ function renderWorld(){stats.stairPx=0;stats.gratePx=0;stats.pitShaftPx=0;stats.
         var rdx=(wx-cam.x)/dd,rdy=(wy-cam.y)/dd,cxp=gx,cyp=gy,qx=wx,qy=wy,tAcc=dd,pc=P1,hd=-1,hu=0,hs=false;
         for(var stp=0;stp<4;stp++){var tx=rdx>0?(cxp+1-qx)/rdx:rdx<0?(cxp-qx)/rdx:1e9,ty=rdy>0?(cyp+1-qy)/rdy:rdy<0?(cyp-qy)/rdy:1e9,tm=Math.min(tx,ty);tAcc+=tm;qx+=rdx*tm;qy+=rdy*tm;var dB=cam.z*(tAcc-dd)/dd;if(dB>PIT_DEEP)break;
           var xs=tx<ty,nx=cxp+(xs?(rdx>0?1:-1):0),ny=cyp+(xs?0:(rdy>0?1:-1)),nc=(nx<0||ny<0||nx>=L.w||ny>=L.h)?null:L.cells[ny*L.w+nx];if(nc&&(nc.t===6||nc.t===11)){cxp=nx;cyp=ny;continue;}
+          if(!nc)break; /* M1.79.4: past the map edge the shaft opens into dark fog, not a stone wall */
           hd=dB;hu=xs?qy-Math.floor(qy):qx-Math.floor(qx);hs=xs;break;}
         if(hd>=0){var PT=TEX[1],tcx=Math.min(TS-1,(hu*TS)|0),tcy=Math.min(TS-1,((hd%1)*TS)|0),tc=(hs?PT.dark:PT).px[tcy*TS+tcx];pc=hd<.035?RIM:shade(tc,Math.max(.04,.62-hd*.42));}
         if(gc.t===11)stats.pitShaft11=(stats.pitShaft11|0)+1;else stats.pitShaft6=(stats.pitShaft6|0)+1;stats.pitShaftPx=(stats.pitShaftPx|0)+1;buf[oo+x]=fogMix(pc,fogT(tAcc));depth[oo+x]=hd>=0?tAcc:tAcc+1;}}}
@@ -2728,7 +2729,7 @@ function renderWorld(){stats.stairPx=0;stats.gratePx=0;stats.pitShaftPx=0;stats.
     if(rdy<0){sty=-1;sdy=(cam.y-my)*ddy;}else{sty=1;sdy=(my+1-cam.y)*ddy;}
     masked.length=0;stats.rays++;
     for(var n=0;n<80;n++){var tEnter,side;if(sdx<sdy){tEnter=sdx;sdx+=ddx;mx+=stx;side=0;}else{tEnter=sdy;sdy+=ddy;my+=sty;side=1;}
-      if(mx<0||my<0||mx>=L.w||my>=L.h){drawSlice(x,tEnter,TEX[1],.5,side===1,false);break;}
+      if(mx<0||my<0||mx>=L.w||my>=L.h){if(!L.openSky){var wxO=side===0?cam.y+tEnter*rdy:cam.x+tEnter*rdx,uO=wxO-Math.floor(wxO);if((side===0&&rdx>0)||(side===1&&rdy<0))uO=1-uO;drawSlice(x,tEnter,TEX[1],uO,side===1,false);}break;} /* M1.79.4: Heights has no roof or world-edge wall; a fixed u=.5 used to smear one texel column across the view */
       var ci=my*L.w+mx,cell=L.cells[ci];if(tEnter<VIEW.cur+.6)L.seen[ci]=1; /* M1.17: the map only learns what you can actually see */
       if(cell.t===1){if(introSkip&&tEnter<introBossD-.2)continue;var wx=side===0?cam.y+tEnter*rdy:cam.x+tEnter*rdx,u=wx-Math.floor(wx);var flp=(side===0&&rdx>0)||(side===1&&rdy<0);if(flp)u=1-u;var ovf=null,ovu=0;if(MF.length){var pl=side===0?(rdx>0?mx:mx+1):(rdy>0?my:my+1),nn=side===0?(rdx>0?-1:1):(rdy>0?-1:1);for(var mfi=0;mfi<MF.length;mfi++){var mf=MF[mfi];if(mf.ay===(side===0)&&mf.plane===pl&&mf.n===nn&&Math.abs(wx-mf.c)<MORTAR.hw){ovf=mf;ovu=(wx-(mf.c-MORTAR.hw))/(2*MORTAR.hw);if(flp)ovu=1-ovu;break;}}}
         drawSlice(x,tEnter,cell.crack?crackOf(cell.tex,itemN('trowel')?3:Math.min(2,cell.hits)):cell.dent?dentOf(cell.tex):L.goldWalls?GOLDTEX():cell.v?texVariant(cell.tex,cell.v):TEX[cell.tex],u,side===1,false,ovf,ovu);stats.wallPx++;break;}
@@ -3220,7 +3221,7 @@ api.layoutTime=function(wd,ht,seed){var c=genCfg(10,0);c.width=wd;c.height=ht;c.
     for(var y=0;y<H;y++)for(var x=0;x<Wd;x++){if(!op(x,y))continue;V++;var n=(op(x+1,y)?1:0)+(op(x-1,y)?1:0)+(op(x,y+1)?1:0)+(op(x,y-1)?1:0);if(op(x+1,y))E++;if(op(x,y+1))E++;if(n===1)dead.push([x,y]);}
     var md=0;dead.forEach(function(t){var len=0,px=-1,py=-1,cx=t[0],cy=t[1];while(len<200){var nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(q){var nx=cx+q[0],ny=cy+q[1];return op(nx,ny)&&!(nx===px&&ny===py);});var deg=nb.length+(px>=0?1:0);if(deg!==2&&len>0)break;if(!nb.length)break;px=cx;py=cy;cx+=nb[0][0];cy+=nb[0][1];len++;}md=Math.max(md,len);});
     o.floors++;o.deadEnds+=dead.length;o.maxDead=Math.max(o.maxDead,md);o.loops+=E-V+1;o.cells+=V;});});o.deadPerFloor=o.deadEnds/o.floors;o.loopsPerFloor=o.loops/o.floors;return o;};api.unlocks=function(){return loadUnlocks();};api.setUnlocks=function(o){saveUnlocks(o||{floors:[],last:1});G.startPicked=false;buildMenu();};api.startFloors=function(){return startFloors();};api.startFloor=function(){return G.startFloor||1;};api.cycleStart=function(d){cycleStart(d);};api.entSet=function(i,o){var e=G.ents[i];if(e)Object.keys(o).forEach(function(k){e[k]=o[k];});};api.clearBody=function(a,b,c,d,r){return clearBody(a,b,c,d,r);};api.keyHeld=function(c){return !!keys[c];};api.watchdog=function(){inputWatchdog();};api.hitWith=function(i,src){hitEnemy(G.ents[i],src||{dmg:1,ball:'blue',hits:[]});};api.infWorld=function(){return {bolts:G.bolts.length,webs:G.webs.length,pots:G.pots.length,fires:G.fires.length};};api.mounted=function(i){var e=G.ents[i];return e&&e.mount?G.ents.indexOf(e.mount):-1;};api.entInfo=function(i){var e=G.ents[i];return e?{type:e.type,hp:e.hp,maxHp:e.maxHp,state:e.state,gone:!!e.gone,stolen:e.stolen||null,usedLife:!!e.usedLife,x:e.x,y:e.y,child:!!e.child,flying:!!e.flying}:null;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.79.3-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.79.4-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

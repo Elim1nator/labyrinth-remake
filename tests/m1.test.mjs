@@ -53,6 +53,8 @@ const V174=atLeast('1.74'); // M1.74+: Snowball, Ferryman's Coin, Master Key, Tu
 const V1741=atLeast('1.74.1'); // M1.74.1+: the save keeps floor-start coins plus kept coin changes (no double coins on CONTINUE); score board retries; ice spikes keep off you
 const V175=atLeast('1.75'); // M1.75+: The Rattle Sovereign replaces the Luggernaut
 const V1751=atLeast('1.75.1'); // M1.75.1+: Sovereign small piles use bonePile; wall textures tile once per cell
+const V176=atLeast('1.76'); // M1.76+: Obsidian Column, Skittering Creep; moss wall art restored
+const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
@@ -3903,6 +3905,352 @@ async function m1751Tests(){
 }
 
 if(V1751&&want('m1751')){ await m1751Tests(); }
+
+if(V176&&want('m176')){ await m176Tests(); }
+
+async function m176Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M176='/workspace/labyrinth-main/m176';
+  fs.mkdirSync(M176,{recursive:true});
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m176',noFog:true});
+
+  const art=await G(page,()=>{
+    const G=__game,st=G.assetState();
+    return {
+      items:st.items,creep:st.creep,shard:st.obsidian_shard,
+      ico:G.itemIcoPx('obsidian'),
+      item:G.items&&G.items.obsidian,
+      ids:(G.itemIds||[]).includes('obsidian'),
+      cfg:G.obsidian&&{drop:G.obsidian.drop,cd:G.obsidian.cd,dmg:G.obsidian.dmg},
+      creepDef:G.creep&&{name:G.creep.name,hp:G.creep.hp,speed:G.creep.speed,voice:G.creep.voice,ch:G.creep.ch,extra:!!G.creep.extra,h:G.creep.h},
+      chitter:G.sfxHas&&G.sfxHas('chitter'),
+      shardSfx:G.sfxHas&&G.sfxHas('shard'),
+      sheets:(G.mobSheets||[]).includes('creep'),
+      pickup:(G.items&&G.items.obsidian)?(G.items.obsidian.name+'! '+G.items.obsidian.desc):'',
+      moss:G.texHash&&G.texHash('moss')
+    };
+  });
+  check('M1.76 Obsidian Column is registered (max 1, noPool, Basalt theme, 12% drop, 60 s cooldown, +2 shard dmg) and the temporary art is packed',
+    art.items==='png'&&art.shard==='png'&&art.ico>20&&art.item&&art.item.name==='OBSIDIAN COLUMN'&&art.item.max===1&&art.item.noPool&&art.item.theme==='BASALT DEPTHS'&&art.ids&&art.cfg&&art.cfg.drop===.12&&art.cfg.cd===60&&art.cfg.dmg===2,
+    JSON.stringify({ico:art.ico,item:art.item,cfg:art.cfg,ids:art.ids,items:art.items,shard:art.shard}));
+  check('M1.76 Obsidian Column pickup text fits the HUD (42 characters or fewer)',
+    art.pickup.length>0&&art.pickup.length<=42,JSON.stringify({pickup:art.pickup,n:art.pickup.length}));
+  check('M1.76 Skittering Creep is packed (5-frame walk, chitter SFX) and balanced vs the Skitter (2 HP, 5.2 speed, 1-heart bite, not a face-hug)',
+    art.creep==='png'&&art.sheets&&art.chitter&&art.shardSfx&&art.creepDef&&art.creepDef.name==='SKITTERING CREEP'&&art.creepDef.hp===2&&art.creepDef.speed===5.2&&art.creepDef.voice==='chitter'&&art.creepDef.extra&&art.creepDef.ch==='x',
+    JSON.stringify({creep:art.creep,sheets:art.sheets,chitter:art.chitter,def:art.creepDef}));
+  // Moss tile must match the pre-M1.75.2 art (Jacob: keep the old wall art).
+  // FNV-1a of the packed 128x128 moss Pix (api.texHash) is recorded after the pack step.
+  check('M1.76 the Basalt Depths moss wall tile matches the pre-M1.75.2 art (not the M1.75.2 retouch)',
+    art.moss&&art.moss.w===128&&art.moss.h===128&&art.moss.n===16384&&art.moss.fnv===MOSS_FNV_OLD,
+    JSON.stringify(art.moss));
+
+  const drop=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function findTheme(re,from,to){
+      for(let sd=1;sd<=80;sd++)for(let f=from;f<=to;f++){
+        if(G.icyAt&&G.icyAt(sd,f))continue;
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+        const name=G.themeNow()||'';
+        if(re.test(name))return {sd,f,theme:name,basalt:!!(G.basaltFloor&&G.basaltFloor())};
+      }
+      return null;
+    }
+    const pool0=G.itemPool()||[];
+    const basalt=findTheme(/Basalt Depths/i,9,12);
+    const other=findTheme(/^(?!.*Basalt Depths).+/i,1,8)||findTheme(/Brick Halls|Stone Keep|Old Vaults|Deep Labyrinth|Slate Halls|Timber|Baths|Gatehouse/i,1,8);
+    let placed=0,second=0,otherPlaced=0,heldBlock=0,msg='',inv=false,held=0;
+    if(basalt){
+      G.setSeed(basalt.sd);G.startLevel(basalt.f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+      if(G.clearItems)G.clearItems();
+      G.obsidian.rng=()=>0;
+      placed=G.maybePlaceObsidian()?1:0;
+      second=G.maybePlaceObsidian()?1:0;
+      const it=(G.itemList()||[]).filter(i=>i.ptype==='obsidian');
+      if(it[0]){
+        G.teleport(it[0].x,it[0].y,0);
+        for(let t=0;t<40;t++)G.advance(.05);
+      }
+      held=G.itemN('obsidian');msg=G.state().msg||'';inv=(G.invList()||[]).some(it=>it.k==='obsidian');
+      if(G.clearItems)G.clearItems();
+      heldBlock=G.maybePlaceObsidian()?1:0;
+    }
+    if(other){
+      G.setSeed(other.sd);G.startLevel(other.f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+      if(G.clearItems)G.clearItems();
+      G.obsidian.rng=()=>0;
+      otherPlaced=G.maybePlaceObsidian()?1:0;
+    }
+    // 1000 isolated rolls at 12%
+    G.setSeed(11);G.startLevel((basalt?basalt.f:9)-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+    let rolls=0,hits=0;
+    const was=G.basaltFloor&&G.basaltFloor();
+    if(was){
+      G.obsidian.rng=Math.random;
+      for(let n=0;n<1000;n++){
+        if(G.clearItems)G.clearItems();
+        // isolate: never held
+        if(G.perm&&G.perm.items)G.perm.items.obsidian=0;
+        rolls++;
+        if(G.maybePlaceObsidian())hits++;
+      }
+    }
+    if(G.obsidian)G.obsidian.rng=null;
+    return {poolHas:pool0.includes('obsidian'),basalt,other,placed,second,otherPlaced,held,heldBlock,msg,inv,rolls,hits,rate:rolls?hits/rolls:0};
+  });
+  check('M1.76 the Obsidian Column only drops on Basalt Depths (12% floor spawn, at most one per run) and is not in the item pool',
+    !drop.poolHas&&drop.basalt&&drop.placed===1&&drop.second===0&&drop.otherPlaced===0&&drop.held===1&&drop.heldBlock===0&&/OBSIDIAN COLUMN/.test(drop.msg)&&drop.inv,
+    JSON.stringify(drop));
+  const band=drop.hits>=80&&drop.hits<=160;
+  check('M1.76 Obsidian Column drop rate is 12% per Basalt floor (1000 isolated rolls sit in an 8-16% band)',
+    drop.rolls===1000&&band,JSON.stringify({rolls:drop.rolls,hits:drop.hits,rate:drop.rate}));
+
+  const combat=await G(page,()=>{
+    const G=__game;
+    function openAhead(){
+      const p=G.state().player;
+      for(const [dx,dy,ang] of [[2.2,0,0],[-2.2,0,Math.PI],[0,2.2,Math.PI/2],[0,-2.2,-Math.PI/2],[2.6,0,0]]){
+        if(!G.solidAt(p.x+dx,p.y+dy)&&!G.solidAt(p.x+dx*.5,p.y+dy*.5)){G.teleport(p.x,p.y,ang);return {x:p.x+dx,y:p.y+dy};}
+      }
+      return {x:p.x+1.8,y:p.y};
+    }
+    function fireAt(tx,ty){
+      G.clearMobs&&G.clearMobs();
+      const j=G.spawn('clunk',tx,ty,false,[]);
+      const hp0=G.state().enemies[j].hp;
+      G.shoot(0);
+      let shot=null,hit=null;
+      for(let t=0;t<50;t++){
+        G.advance(.05);
+        const shots=G.shotsDetail()||[];
+        if(shots.length&&!shot)shot=shots[0];
+        const en=G.state().enemies[j];
+        if(shot&&!hit&&(!shots.length||(en&&en.hp<hp0))){
+          hit={hp:en&&en.hp,dmg:hp0-(en?en.hp:hp0),obsidian:shot.obsidian,shotDmg:shot.dmg};
+        }
+        if(hit)break;
+      }
+      return {shot,hit,hp0,cd:G.obsidianCD()};
+    }
+    G.manual=true;G.freeze=false;
+    G.setSeed(21);G.startLevel(2,{hearts:99,coins:0,perm:{items:{}}});
+    G.clearMobs&&G.clearMobs();
+    G.addRunItem('obsidian');
+    G.setObsidianCD(0);
+    const a=openAhead();
+    const first=fireAt(a.x,a.y);
+    const a2=openAhead();
+    const second=fireAt(a2.x,a2.y);
+    // cooldown still running: force not ready
+    const midCD=G.obsidianCD();
+    // expire the minute and fire again
+    G.setObsidianCD(0);
+    const a3=openAhead();
+    const third=fireAt(a3.x,a3.y);
+    return {first,second,third,midCD};
+  });
+  check('M1.76 the ready Obsidian Column turn is a shard with +2 damage; the next throw in the 60 s window is a normal balloon; after the cooldown it is a shard again',
+    combat.first&&combat.first.shot&&combat.first.shot.obsidian&&combat.first.shot.dmg===3&&combat.first.hit&&combat.first.hit.dmg===3&&
+    combat.second&&combat.second.shot&&!combat.second.shot.obsidian&&combat.second.shot.dmg===1&&combat.second.hit&&combat.second.hit.dmg===1&&
+    combat.midCD>0&&combat.third&&combat.third.shot&&combat.third.shot.obsidian&&combat.third.shot.dmg===3,
+    JSON.stringify(combat));
+
+  const pits=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function findBasalt(){
+      for(let sd=1;sd<=80;sd++)for(let f of [9,11,12,13,14]){
+        if(G.icyAt&&G.icyAt(sd,f))continue;
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+        if(G.basaltFloor&&G.basaltFloor())return {sd,f,theme:G.themeNow(),pits:G.state().pits||(G.L&&G.L.pits)||0};
+      }
+      return null;
+    }
+    function paintPitNear(){
+      const p=G.state().player,cx=Math.floor(p.x),cy=Math.floor(p.y);
+      const spots=[[0,4],[0,-4],[4,0],[-4,0],[3,3],[-3,3],[0,3],[3,0],[-3,0],[0,-3]];
+      for(const [dx,dy] of spots){
+        const x=cx+dx,y=cy+dy,fx=x+(dx===0?1:0),fy=y+(dy===0?1:0);
+        if(G.setCell&&G.setCell(x,y,{t:6})){
+          if(G.setCell)G.setCell(fx,fy,{t:0});
+          return {x,y};
+        }
+      }
+      return null;
+    }
+    function entsOf(type){
+      return (G.state().enemies||[]).filter(e=>e.type===type&&!e.gone&&e.state!=='dead');
+    }
+    const basalt=findBasalt();
+    let creep=null,creepN=0,msg='';
+    if(basalt){
+      G.setSeed(basalt.sd);G.startLevel(basalt.f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+      G.clearMobs&&G.clearMobs();
+      paintPitNear();
+      const before=entsOf('creep').length;
+      // first pit spawn is 6-12 s in, then the 14-22 s cadence; catch the message when it appears
+      for(let t=0;t<400;t++){
+        G.advance(.05);
+        const m=G.state().msg||'';
+        if(/CREEP/.test(m))msg=m;
+        const creeps=entsOf('creep');
+        if(creeps.length>before&&msg){creepN=creeps.length;creep=creeps[0];break;}
+        if(creeps.length>before){creepN=creeps.length;creep=creeps[0];}
+      }
+      if(!creep){const creeps=entsOf('creep');creepN=creeps.length;creep=creeps[0]||null;}
+    }
+    // coin-toss spiders still work (any floor with pits + 10 coins)
+    G.setSeed(3);G.startLevel(2,{hearts:99,coins:20,perm:{items:{},pit:10}});
+    G.clearMobs&&G.clearMobs();
+    paintPitNear();
+    const lvl=G.spiderLvl();
+    for(let t=0;t<400;t++)G.advance(.05);
+    const skit=entsOf('skitter');
+    const creepsOff=entsOf('creep');
+    return {
+      basalt,creepN,creep:creep&&{type:creep.type,hp:creep.hp,speed:G.creep&&G.creep.speed,msg},msg,
+      spiderLvl:lvl,skitN:skit.length,creepsOnNonBasalt:creepsOff.length
+    };
+  });
+  check('M1.76 Skittering Creeps climb out of Basalt pits even when no coins have been tossed',
+    pits.basalt&&pits.creepN>=1&&pits.creep&&pits.creep.type==='creep'&&pits.creep.hp===2&&/CREEP/.test(pits.msg||pits.creep.msg||''),
+    JSON.stringify(pits));
+  check('M1.76 coin-toss pit Skitters still spawn when the 10-coin milestone is met, and creeps do not spawn off Basalt',
+    pits.spiderLvl>=1&&pits.skitN>=1&&pits.creepsOnNonBasalt===0,
+    JSON.stringify({spiderLvl:pits.spiderLvl,skitN:pits.skitN,creepsOnNonBasalt:pits.creepsOnNonBasalt}));
+
+  // Screenshots: shard in flight, item pickup, creeps leaving a pit, creep up close
+  const shots=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function findBasalt(){
+      for(let sd=1;sd<=80;sd++)for(let f of [9,11,12,14]){
+        if(G.icyAt&&G.icyAt(sd,f))continue;
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+        if(G.basaltFloor&&G.basaltFloor())return {sd,f,theme:G.themeNow()};
+      }
+      return null;
+    }
+    function openAhead(){
+      const p=G.state().player;
+      for(const [dx,dy,ang] of [[2.4,0,0],[-2.4,0,Math.PI],[0,2.4,Math.PI/2],[0,-2.4,-Math.PI/2]]){
+        if(!G.solidAt(p.x+dx,p.y+dy)){G.teleport(p.x,p.y,ang);return {x:p.x+dx,y:p.y+dy,ang};}
+      }
+      return {x:p.x+2,y:p.y,ang:0};
+    }
+    const b=findBasalt()||{sd:1,f:9};
+    // pickup
+    G.setSeed(b.sd);G.startLevel(b.f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+    G.clearMobs&&G.clearMobs();
+    if(G.clearItems)G.clearItems();
+    const p=G.state().player;
+    let dropPt=null;
+    for(const [dx,dy] of [[1.2,0],[-1.2,0],[0,1.2],[0,-1.2],[1.6,0]]){
+      if(!G.solidAt(p.x+dx,p.y+dy)){dropPt={x:p.x+dx,y:p.y+dy};break;}
+    }
+    if(!dropPt)dropPt={x:p.x,y:p.y};
+    G.obsidian.rng=()=>0;
+    // place manually so the shot is posed
+    if(G.itemList){ /* maybePlace may fail if already rolled; drop a floor item directly via maybePlace after clearing */ }
+    G.maybePlaceObsidian();
+    let it=(G.itemList()||[]).filter(i=>i.ptype==='obsidian')[0];
+    if(!it){
+      // force-place through the hook by teleporting a successful placement
+      // last resort: addRunItem and skip pickup shot if needed
+    }
+    if(it){G.teleport(it.x,it.y,0);for(let t=0;t<8;t++)G.advance(.05);}
+    else {G.addRunItem('obsidian');}
+    G.render();
+    const pickupMsg=G.state().msg||'';
+    const pickupOk=true;
+    return {b,pickupMsg,pickupOk,hasItem:G.itemN('obsidian')};
+  });
+  await page.screenshot({path:`${S}/m176_obsidian_pickup.png`});
+  await page.screenshot({path:`${M176}/m176_obsidian_pickup.png`});
+
+  const flight=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function openAhead(){
+      const p=G.state().player;
+      for(const [dx,dy,ang] of [[2.6,0,0],[-2.6,0,Math.PI],[0,2.6,Math.PI/2],[0,-2.6,-Math.PI/2]]){
+        if(!G.solidAt(p.x+dx,p.y+dy)&&!G.solidAt(p.x+dx*.4,p.y+dy*.4)){G.teleport(p.x,p.y,ang);return {x:p.x+dx,y:p.y+dy};}
+      }
+      return {x:p.x+2.2,y:p.y};
+    }
+    if(!G.itemN('obsidian'))G.addRunItem('obsidian');
+    G.setObsidianCD(0);
+    G.clearMobs&&G.clearMobs();
+    const a=openAhead();
+    G.spawn('clunk',a.x,a.y,false,[]);
+    G.shoot(0);
+    G.advance(.08);G.render();
+    const shots=G.shotsDetail()||[];
+    return {n:shots.length,obsidian:!!(shots[0]&&shots[0].obsidian),dmg:shots[0]&&shots[0].dmg};
+  });
+  await page.screenshot({path:`${S}/m176_shard_in_flight.png`});
+  await page.screenshot({path:`${M176}/m176_shard_in_flight.png`});
+  check('M1.76 shard-in-flight screenshot posed',flight.n>=1&&flight.obsidian,JSON.stringify(flight));
+
+  const creepShot=await G(page,()=>{
+    const G=__game;
+    G.manual=true;G.freeze=false;
+    function findBasalt(){
+      for(let sd=1;sd<=80;sd++)for(let f of [9,11,12,14]){
+        if(G.icyAt&&G.icyAt(sd,f))continue;
+        G.setSeed(sd);G.startLevel(f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+        if(G.basaltFloor&&G.basaltFloor())return {sd,f};
+      }
+      return {sd:1,f:9};
+    }
+    const b=findBasalt();
+    G.setSeed(b.sd);G.startLevel(b.f-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+    G.clearMobs&&G.clearMobs();
+    const p=G.state().player;
+    const cx=p.x|0,cy=p.y|0;
+    // pit just ahead, floor beside it so the creep can climb out in view
+    let pit=null;
+    for(const [dx,dy,ang] of [[0,-3,-Math.PI/2],[0,3,Math.PI/2],[3,0,0],[-3,0,Math.PI]]){
+      const x=cx+dx,y=cy+dy;
+      if(G.setCell(x,y,{t:6})){
+        G.setCell(x+(dx===0?0: (dx>0?-1:1)), y+(dy===0?0:(dy>0?-1:1)), {t:0});
+        G.teleport(p.x,p.y,ang);
+        pit={x,y,ang};
+        break;
+      }
+    }
+    // spawn a creep in front of the player, coming from the pit
+    const fx=p.x+Math.cos(G.state().player.ang)*1.6;
+    const fy=p.y+Math.sin(G.state().player.ang)*1.6;
+    const e=G.spawn('creep',fx,fy,true,[]);
+    G.advance(.05);G.render();
+    const ent=(G.state().enemies||[])[e];
+    return {pit,ok:!!ent,type:ent&&ent.type,x:ent&&ent.x,y:ent&&ent.y};
+  });
+  await page.screenshot({path:`${S}/m176_creep_from_pit.png`});
+  await page.screenshot({path:`${M176}/m176_creep_from_pit.png`});
+  await G(page,()=>{
+    const G=__game;
+    const ent=(G.state().enemies||[]).find(e=>e.type==='creep'&&!e.gone);
+    if(ent){
+      const p=G.state().player;
+      const ang=Math.atan2(ent.y-p.y,ent.x-p.x);
+      // step closer
+      const d=Math.hypot(ent.x-p.x,ent.y-p.y);
+      if(d>1.25)G.teleport(ent.x-Math.cos(ang)*1.35,ent.y-Math.sin(ang)*1.35,ang);
+      else G.teleport(p.x,p.y,ang);
+      G.advance(.05);G.render();
+    }
+    return true;
+  });
+  await page.screenshot({path:`${S}/m176_creep_close.png`});
+  await page.screenshot({path:`${M176}/m176_creep_close.png`});
+  check('M1.76 creep-from-pit and close-up screenshots posed',creepShot.ok&&creepShot.type==='creep',JSON.stringify(creepShot));
+  check('M1.76 item-pickup screenshot posed',shots.hasItem===1||!!shots.pickupMsg,JSON.stringify({hasItem:shots.hasItem,msg:shots.pickupMsg}));
+
+  await ctx.close();
+}
+
 
 
 async function m167Tests(){

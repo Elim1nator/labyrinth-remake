@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.77: the Awakened Deep, Basalt Heights
+- The **Awakened Deep** is the boss of **Basalt Heights**. It replaces the rotating `BOSS_ORDER` boss on Basalt boss floors only. On the usual floor 10 that is the Rattle Sovereign; a later Basalt roll of the King or Coghoot slot is also replaced. The Sovereign (and the rest of the rotation) still appears on non-Basalt floors. The Grand Masque, the Broodmother and the King in Yellow are left alone, even if that floor happens to be Basalt.
+- The Heights floor uses the Basalt floor texture. Every wall cell is a **solid dark pit** with a rim (no wall faces, doors or fences). Pits block movement like walls and you cannot fall in. Passages that were doors or fences stay open floor so rooms stay connected. There is **no ceiling**: the top of the view fades into the fog.
+- **Skittering Creeps** still climb out of the pit cells, reusing the M1.76 creep, on a tighter boss-fight cadence (**8–12 s**, cap **2**, +1 while the Deep is furious).
+- The Deep walks, stops to **cast**, and hurls a **fireball**. The fireball explodes on impact or at the end of its range, deals **1 heart** in a **1.15**-cell blast, and turns hit floor tiles into the same solid pits. A tile is skipped if converting it would cut the path between you and the boss, trap you, or sit on your tile or the boss. At most **14** fireball-holes per fight.
+- Three phase clamps at **75%, 50% and 25%** HP (a huge hit cannot skip a phase), base HP **50**, walk **1.0** cells/s, fireball **4.0** cells/s after a **0.55 s** tell, cadence **2.3 / 2.0 / 1.7 / 1.45 s** by phase (times `cdMul`). Defeat opens the sealed stairs: "THE DEEP IS DEFEATED! THE STAIRS APPEAR!" (40 characters), in the same loot flow as the other bosses.
+- Art: Jacob's walk (4 frames), front, cast and attack poses, white background removed (dark stone, orange cracks and the body kept; stray pebbles dropped), nearest-neighbour scaled and feet-centred; the fireball's fake checkerboard and faint smoke removed. Packed through `assets/atlas.json`.
+
 ## M1.76: Obsidian Column, Skittering Creep; moss wall art restored
 - Jacob asked to keep the old moss wall art. `assets/walls.png` is restored to the pre-M1.75.2 tile (the vine-covered stone on Basalt Depths). The wall renderer is unchanged.
 - New run item, the **Obsidian Column** (max 1, never sold or found in the usual pool). Rare **12%** floor spawn on **Basalt Depths** only, at most one per run. Once per minute, the next throw after the **60 s** cooldown becomes an **obsidian shard** instead of a balloon: **+2 damage** on top of your base damage (dumbbell and piggy still count; balloon colours, the Frozen Wand, the Snowball and the pump do not apply to the shard). The column icon in the effect row glows when a shard is ready.

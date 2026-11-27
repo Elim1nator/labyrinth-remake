@@ -54,6 +54,7 @@ const V1741=atLeast('1.74.1'); // M1.74.1+: the save keeps floor-start coins plu
 const V175=atLeast('1.75'); // M1.75+: The Rattle Sovereign replaces the Luggernaut
 const V1751=atLeast('1.75.1'); // M1.75.1+: Sovereign small piles use bonePile; wall textures tile once per cell
 const V176=atLeast('1.76'); // M1.76+: Obsidian Column, Skittering Creep; moss wall art restored
+const V177=atLeast('1.77'); // M1.77+: the Awakened Deep is the Basalt Heights boss (pit-wall floor)
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -119,6 +120,26 @@ async function newPage(opts={}){
   return {ctx,page};
 }
 const G=(page,fn,arg)=>page.evaluate(fn,arg);
+// M1.77: floor 10 is the Basalt Heights / Awakened Deep fight (solid pits, no doors). Tests that need the
+// rotating Rattle Sovereign and its arena doors use a later non-Basalt Sovereign floor (25, 40, …).
+async function findSovFloor(page){
+  if(!V177)return {sd:777,f:10,theme:'LEVEL 10: BASALT DEPTHS',type:'sovereign'};
+  return G(page,()=>{
+    const G=__game;
+    for(const f of [25,40,55,70,85]){
+      for(let sd=1;sd<=240;sd++){
+        if(G.icyAt&&G.icyAt(sd,f))continue;
+        const th=G.themeFor(sd,f),name=(th&&th.name)||'';
+        if(/Basalt/i.test(name))continue;
+        G.setSeed(sd);G.startLevel(f-1,{hearts:5,coins:0});
+        const typ=(G.bossType&&G.bossType())||(G.boss()&&G.boss().ent&&G.boss().ent.type);
+        if(typ==='sovereign')return {sd,f,theme:G.themeNow(),type:typ,doors:(G.arenaDoors()||[]).length};
+      }
+    }
+    return null;
+  });
+}
+
 
 // ---------- desktop functional tests ----------
 {
@@ -388,7 +409,7 @@ async function m110Tests(){
     const per=await G(page,()=>{const out={};for(const f of [5,10,15]){__game.setSeed(777);__game.startLevel((f===15&&__game.bossType?30:f)-1); /* M1.12: floor 15 has its own boss; Coghoot first shows on floor 30 */__game.setEffect(null);const b0=__game.boss(),A=b0.def.room;
         const idle0=__game.boss().ent.woke;__game.faceBoss(2.5);const s1=__game.advance(0.1),woke=__game.boss().ent.woke,bar=s1.stats.bossBar;
         let outside=0,maxShots=0,hurt=0,h0=5;for(let i=0;i<120;i++){__game.setHearts(5);const s=__game.advance(0.1);const e=__game.boss().ent;if(e.x<A.x||e.x>A.x+A.w||e.y<A.y||e.y>A.y+A.h)outside++;if(s.player.hearts<5||s.player.inv>0.5)hurt++;maxShots=s.stats.bossShots;}
-        out[f]={idle0,woke,msg:s1.msg,bar:!!bar,outside,shots:maxShots,hurt,type:b0.ent.type,fly:!!__game.bosses[b0.ent.type].fly};}return out;});
+        out[f]={idle0,woke,msg:s1.msg,bar:!!bar,outside,shots:maxShots,hurt,type:b0.ent.type,fly:!!((__game.bosses[b0.ent.type]||{}).fly)};}return out;});
     check('M1.10 each boss sleeps until you come near, then wakes with a message and the health bar shows',[5,10,15].every(f=>!per[f].idle0&&per[f].woke&&/AWAKENS|LOCKS YOU IN/.test(per[f].msg)&&per[f].bar),JSON.stringify(per));
     check('M1.10 each boss stays inside its arena, shoots at you and can hurt you (12 s each, standing 2.5 cells away)',[5,10,15].every(f=>per[f].outside===0&&per[f].shots>0&&per[f].hurt>0),JSON.stringify(per));
     if(V126)check(V175?'M1.26 Coghoot and the Screamer King fly (cross pits); the Rattle Sovereign walks':'M1.26 Coghoot and the Screamer King fly (cross pits); the Luggernaut walks',per[15].fly&&per[5].fly&&!per[10].fly);
@@ -413,13 +434,15 @@ async function m110Tests(){
     const owl=await G(page,()=>{__game.setSeed(777);if('bossIntro' in __game)__game.bossIntro=false;__game.startLevel(__game.bossType?29:14);__game.faceBoss(3);__game.advance(0.1);let home=0,gear=0;for(let i=0;i<300&&!gear;i++){ /* attacks are random (swoop or gears): watch up to 30 s */__game.setHearts(5);const s=__game.advance(0.1);s.eshots.forEach(q=>{if(q.kind==='gear')gear++;});}return {gear,z:__game.boss().ent.z};});
     check('M1.10 Coghoot hovers above the floor and fires gears',owl.gear>0&&owl.z>0.1,JSON.stringify(owl));
     // arena doors lock behind you and open when the boss falls
-    const lock=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const b=__game.boss(),A=b.def.room,d0=__game.arenaDoors();
+    // M1.77: floor 10 has no doors (Basalt Heights pits), so the lock/intro checks use a non-Basalt Sovereign floor
+    const sovAt=V177?(await findSovFloor(page)):{sd:777,f:10};
+    const lock=await G(page,(sov)=>{__game.setSeed(sov.sd);__game.startLevel(sov.f-1);const b=__game.boss(),A=b.def.room,d0=__game.arenaDoors();
       const door=d0[0];const out=[door.x-(door.x<A.x?1:door.x>=A.x+A.w?-1:0),door.y-(door.y<A.y?1:door.y>=A.y+A.h?-1:0)];__game.teleport(out[0]+.5,out[1]+.5,0);__game.advance(0.2);const before=__game.arenaDoors().some(d=>d.bossLock);
       __game.faceBoss(2.5);let s=__game.advance(1.2);const locked=__game.arenaDoors(),msg=s.msg;
       const fx=door.x<A.x?A.x:door.x>=A.x+A.w?A.x+A.w-1:door.x,fy=door.y<A.y?A.y:door.y>=A.y+A.h?A.y+A.h-1:door.y;__game.teleport(fx+.5,fy+.5,Math.atan2(door.y-fy,door.x-fx));__game.setHearts(5);const keys0=s.player.keys;__game.use();s=__game.advance(0.6);const tried=__game.arenaDoors().find(d=>d.x===door.x&&d.y===door.y),useMsg=s.msg;
       if(__game.defeatBoss)__game.defeatBoss();else __game.hitBoss(999);__game.advance(1.6);const after=__game.arenaDoors();
       __game.teleport(fx+.5,fy+.5,Math.atan2(door.y-fy,door.x-fx));__game.setHearts(5);__game.use();s=__game.advance(0.8);const opened=__game.arenaDoors().find(d=>d.x===door.x&&d.y===door.y);
-      return {n:d0.length,before,allLocked:locked.every(d=>d.bossLock&&d.locked),closed:locked.every(d=>d.open<0.8),msg,triedOpen:tried.open,useMsg,keys0,afterLocked:after.some(d=>d.bossLock||d.locked),opened:opened.open};});
+      return {n:d0.length,before,allLocked:locked.every(d=>d.bossLock&&d.locked),closed:locked.every(d=>d.open<0.8),msg,triedOpen:tried.open,useMsg,keys0,afterLocked:after.some(d=>d.bossLock||d.locked),opened:opened.open};},sovAt);
     check('M1.10 stepping into the arena slams and locks every door in its walls; no key opens them; they unlock when the boss falls',lock.n>0&&!lock.before&&lock.allLocked&&lock.closed&&/(LUGGERNAUT|THE RATTLE SOVEREIGN) LOCKS YOU IN/.test(lock.msg)&&lock.triedOpen<0.1&&/LOCKED UNTIL (LUGGERNAUT|THE RATTLE SOVEREIGN)/.test(lock.useMsg)&&!lock.afterLocked&&lock.opened>0.9,JSON.stringify(lock));
     // death: loot, score, portal opens, clear screen names the boss, next floor
     const win=await G(page,()=>{__game.setSeed(777);__game.startLevel(4,{hearts:5,coins:0});__game.setRun({kills:0,elites:0,coins:0,deepest:5});__game.faceBoss(2.5);__game.advance(0.1);const sc0=__game.state().score,bx=__game.boss().ent.x,by=__game.boss().ent.y,near=i=>Math.hypot(i.x-bx,i.y-by)<1.2;
@@ -440,7 +463,7 @@ async function m110Tests(){
       return {idle,w0,w1,inBand:R[0]>=H.band[0]&&R[1]>=H.band[1]&&R[0]+R[2]<=H.band[0]+H.band[2]&&R[1]+R[3]<=H.band[1]+H.band[3]};});
     check('M1.10 the boss health bar appears once the boss wakes, sits inside the message band (no new screen space) and shrinks with the boss HP',bar.idle===0&&bar.inBand&&bar.w0>0&&Math.abs(bar.w1/bar.w0-0.5)<0.08,JSON.stringify(bar));
     await G(page,()=>{__game.setSeed(777);__game.startLevel(4);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'king_gloop');
-    await G(page,()=>{__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'luggernaut');
+    await G(page,(sov)=>{__game.setSeed(sov.sd);__game.startLevel((sov.f||10)-1);__game.faceBoss(2.6);__game.advance(0.3);},V177?(sovAt||{sd:777,f:10}):{sd:777,f:10});await shot(page,'luggernaut');
     await G(page,()=>{__game.setSeed(777);__game.startLevel(__game.bossType?29:14);__game.faceBoss(2.6);__game.advance(0.3);});await shot(page,'coghoot');
     // a deeper boss is tougher; CONTINUE on a boss floor brings the boss back and the portal sealed
     const deep=await G(page,()=>{__game.setSeed(4242);__game.startLevel(__game.kiy?34:19);const a=__game.boss().ent; /* M1.14: floor 20 is the King in Yellow; King Gloop's 3rd round is floor 35 */__game.startLevel(79);const b=__game.boss().ent;const B=__game.bosses;return {a:[a.type,a.maxHp,a.tier],b:[b.type,b.maxHp,b.tier,b.cdMul,b.spdMul],base:B.king.hp};});
@@ -452,15 +475,16 @@ async function m110Tests(){
   // ---- 2b. M1.10.2 cut scene: opening the arena door pulls you in, slams the doors, shows VS <BOSS> for 5 s, then the fight starts
   if(atLeast('1.10.2')){
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m1102-intro'});
-    const r=await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.startLevel(9);__game.state().enemies.forEach((e,i)=>{if(!__game.bosses[e.type])__game.damageMob(i,99);});__game.advance(0.3);
+    const sovAt=V177?(await findSovFloor(page)):{sd:777,f:10};
+    const r=await G(page,(sov)=>{__game.manual=true;localStorage.clear();__game.setSeed(sov.sd);__game.startLevel(sov.f-1);__game.state().enemies.forEach((e,i)=>{if(!__game.bosses[e.type])__game.damageMob(i,99);});__game.advance(0.3);
       const A=__game.boss().def.room,d=__game.arenaDoors()[0],ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);__game.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox)); /* face the door (M1.40: arena doors can be on any side) */if(__game.setKeys)__game.setKeys(1); /* M1.40: the arena door is a key door */__game.render();__game.use();
       const out=[];for(let i=0;i<=56;i++){__game.setHearts(5);const s=__game.advance(0.1),I=__game.intro(),p=s.player,inA=p.x>A.x&&p.x<A.x+A.w&&p.y>A.y&&p.y<A.y+A.h;
         out.push({t:+(i*0.1).toFixed(1),mode:s.mode,inA,locked:__game.arenaDoors().every(q=>q.bossLock),open:Math.max(...__game.arenaDoors().map(q=>q.open)),woke:__game.boss().ent.woke,shots:s.eshots.length,hearts:p.hearts,ang:p.ang,face:Math.abs(Math.atan2(Math.sin(Math.atan2(__game.boss().ent.y-p.y,__game.boss().ent.x-p.x)-p.ang),Math.cos(Math.atan2(__game.boss().ent.y-p.y,__game.boss().ent.x-p.x)-p.ang)))});
-        if(i===30)window.__introShot=true;}return out;});
+        if(i===30)window.__introShot=true;}return out;},sovAt);
     const at=t=>r.find(x=>Math.abs(x.t-t)<0.05);
     check('M1.10.2 opening the boss room door starts a 5 s cut scene: you are pulled inside, the doors slam and lock behind you',at(0.5).mode==='intro'&&at(2).inA&&at(2).locked&&at(2.5).open<0.1&&at(4.5).mode==='intro',JSON.stringify([at(0.5),at(2),at(4.5)]));
     check('M1.10.2 during the cut scene the view turns to the boss and nothing attacks you; at 5 s the fight starts',at(3).face<0.15&&r.filter(x=>x.mode==='intro').every(x=>x.hearts===5&&x.shots===0&&!x.woke)&&at(5.5).mode==='play'&&at(5.5).woke,JSON.stringify([at(3),at(4.9),at(5.5)]));
-    await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const A=__game.boss().def.room,d=__game.arenaDoors()[0],ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);__game.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox)); /* face the door (M1.40: arena doors can be on any side) */if(__game.setKeys)__game.setKeys(1); /* M1.40: the arena door is a key door */__game.render();__game.use();__game.advance(3);});await shot(page,'intro_vs');
+    await G(page,(sov)=>{__game.setSeed(sov.sd);__game.startLevel(sov.f-1);const A=__game.boss().def.room,d=__game.arenaDoors()[0],ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);__game.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox)); /* face the door (M1.40: arena doors can be on any side) */if(__game.setKeys)__game.setKeys(1); /* M1.40: the arena door is a key door */__game.render();__game.use();__game.advance(3);},sovAt);await shot(page,'intro_vs');
     const again=await G(page,()=>{__game.advance(3);const A=__game.boss().def.room;const s=__game.advance(0.1);return {mode:s.mode,intros:s.stats.bossIntros};});
     check('M1.10.2 the cut scene plays once per fight',again.mode==='play',JSON.stringify(again));
     await ctx.close();
@@ -586,9 +610,15 @@ async function m112Tests(){
   await shot(page,'face_hug');
   const sk2=await G(page,()=>{__game.advance(3.2);return __game.faceT();});
   check('M1.12 a skitter runs at you fast and jumps on your face: the screen is covered for 3 s (no damage), then it fades',sk&&sk.t<1.5&&sk.hearts===5&&sk.face>2.8&&sk.gone&&sk2===0,JSON.stringify({sk,sk2}));
-  const sp=await G(page,()=>{const G=__game;let skitt=0,big=0,floors=0;for(const sd of [777,4242,1,2]){G.setSeed(sd);G.startLevel(9,{hearts:5,coins:0,perm:{pit:50}});if(!G.pits().length)continue;floors++;G.state().enemies.forEach((e,i)=>G.damageMob(i,99));PITs:{}
-      for(let k=0;k<700;k++){G.setHearts(5);const s=G.advance(0.1);const pits=G.pits();if(k%50===0&&pits.length){const pp=pits[k/50%pits.length|0];const st0=G.state(),inMap=(x,y)=>x>0&&y>0&&x<st0.mapW-1&&y<st0.mapH-1;const spots=[[pp.x+.5,pp.y-2.5],[pp.x+.5,pp.y+3.5],[pp.x-2.5,pp.y+.5],[pp.x+3.5,pp.y+.5]].filter(([x,y])=>inMap(x,y)&&!G.solidAt(x,y));if(spots.length)G.teleport(spots[0][0],spots[0][1]);} /* M1.36: stay inside the map (pits can sit near its edge) */s.enemies.forEach(e=>{if(e.spawned&&e.type==='skitter')skitt++;if(e.spawned&&e.type==='bigspider')big++;});}}
-    G.startLevel(9,{hearts:5,coins:0,perm:{pit:50}});const b=G.spawn('bigspider',1,1,false,[]);return {floors,skitt:skitt>0,big:big>0,lvl:G.spiderLvl(),bigHp:__game.state().enemies[b].hp};});
+  const sp=await G(page,()=>{const G=__game;let skitt=0,big=0,floors=0,boot=null;
+    /* M1.77: floor 10 (startLevel 9) is Basalt Heights — wall and falling pits are solid t===11, so G.pits() is empty. Use other floors that still have falling pits. */
+    const tryLvl=[8,10,11,7,6,4,3];
+    for(const sd of [777,4242,1,2]){for(const li of tryLvl){G.setSeed(sd);G.startLevel(li,{hearts:5,coins:0,perm:{pit:50}});if(!G.pits().length)continue;floors++;boot={sd,li};G.state().enemies.forEach((e,i)=>G.damageMob(i,99));
+      for(let k=0;k<700;k++){G.setHearts(5);const s=G.advance(0.1);const pits=G.pits();if(k%50===0&&pits.length){const pp=pits[k/50%pits.length|0];const st0=G.state(),inMap=(x,y)=>x>0&&y>0&&x<st0.mapW-1&&y<st0.mapH-1;const spots=[[pp.x+.5,pp.y-2.5],[pp.x+.5,pp.y+3.5],[pp.x-2.5,pp.y+.5],[pp.x+3.5,pp.y+.5]].filter(([x,y])=>inMap(x,y)&&!G.solidAt(x,y));if(spots.length)G.teleport(spots[0][0],spots[0][1]);} /* M1.36: stay inside the map (pits can sit near its edge) */s.enemies.forEach(e=>{if(e.spawned&&e.type==='skitter')skitt++;if(e.spawned&&e.type==='bigspider')big++;});}
+      break;}}
+    if(boot){G.setSeed(boot.sd);G.startLevel(boot.li,{hearts:5,coins:0,perm:{pit:50}});}
+    else G.startLevel(8,{hearts:5,coins:0,perm:{pit:50}});
+    const b=G.spawn('bigspider',1,1,false,[]);return {floors,skitt:skitt>0,big:big>0,lvl:G.spiderLvl(),bigHp:__game.state().enemies[b].hp,boot};});
   check('M1.12 at 50 coins big Brood Spiders (8 HP) also climb out of the pits and attack, alongside the skitters',sp.lvl===2&&sp.skitt&&sp.big&&sp.bigHp===8,JSON.stringify(sp));
   // ---- floor 15
   const f15=await G(page,()=>{const G=__game;G.setSeed(777);G.startLevel(14,{hearts:5,coins:0,perm:{pit:99}});const a=G.bossType(),an=G.state().msg;G.startLevel(14,{hearts:5,coins:0,perm:{pit:100}});const b=G.bossType(),bn=G.state().msg;G.startLevel(29,{hearts:5,coins:0,perm:{pit:100}});return {a,b,an,bn,f30:G.bossType()};});
@@ -2696,10 +2726,23 @@ async function m166Tests(){
   const bosses=await G(page,V=>{
     const G=__game;G.manual=true;G.freeze=false;
     function faceDoor(){
-      const A=G.boss().def.room,d=G.arenaDoors()[0];
+      const A=G.boss().def.room,doors=G.arenaDoors()||[],d=doors[0];
+      if(!d||!A)return false;
       const ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);
       G.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox));
       if(G.setKeys)G.setKeys(1);
+      return true;
+    }
+    /* M1.77: the rotating boss on a Basalt floor is the Awakened Deep (no doors). Walk the same slot every 15 floors until the expected type has arena doors. */
+    function bootCase(c,sd){
+      for(let f=c.floor;f<=90;f+=15){
+        G.bossIntro=true;G.setSeed(sd);
+        G.startLevel(f-1,{hearts:9,coins:0,perm:c.perm||{}});
+        const typ=G.boss()&&G.boss().ent&&G.boss().ent.type;
+        const doors=(G.arenaDoors&&G.arenaDoors())||[];
+        if(typ===c.type&&(c.lectern||doors.length))return f;
+      }
+      return 0;
     }
     function faceLectern(){
       const l=G.lectern();
@@ -2718,8 +2761,8 @@ async function m166Tests(){
     const out=[];
     for(const c of cases){
       for(const sd of c.seeds){
-        G.bossIntro=true;G.setSeed(sd);
-        G.startLevel(c.floor-1,{hearts:9,coins:0,perm:c.perm||{}});
+        const f=bootCase(c,sd);
+        if(!f)continue;
         const p=G.state().player;
         if(G.clearMobs)G.state().enemies.forEach((e,i)=>{if(!G.bosses[e.type])G.damageMob(i,99);});
         // glasses would lift view to 6; a Slick Man in range clamps it back to 5; intro must restore that clamp
@@ -2729,7 +2772,7 @@ async function m166Tests(){
         const fogBefore=G.viewCur();
         const wantBefore=G.viewDist();
         if(c.lectern){faceLectern();G.advance(0.05);G.use();}
-        else{faceDoor();G.render();G.use();}
+        else{if(!faceDoor())continue;G.render();G.use();}
         // run to the VS / look-at-boss beat (1/60 so the camera lands on a real frame)
         let mid=null;
         for(let t=0;t<300;t++){
@@ -2768,7 +2811,17 @@ async function m166Tests(){
     const shot=await G(page,(type)=>{
       const G=__game;G.manual=true;G.freeze=false;G.bossIntro=true;
       const plan={king:{f:5,sd:777},lugg:{f:10,sd:777},sovereign:{f:10,sd:777},masque:{f:15,sd:777,perm:{}},brood:{f:15,sd:777,perm:{pit:100}},yellow:{f:20,sd:777,lectern:true},owl:{f:30,sd:777}}[type];
-      G.setSeed(plan.sd);G.startLevel(plan.f-1,{hearts:9,coins:0,perm:plan.perm||{}});
+      /* M1.77: skip Basalt Heights (no arena doors); walk the same rotation slot every 15 floors. */
+      let booted=null;
+      const seeds=[plan.sd,1,777,4242,9,42];
+      for(const sd of seeds){if(booted)break;for(let f=plan.f;f<=90;f+=15){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:0,perm:plan.perm||{}});
+        const typ=G.boss()&&G.boss().ent&&G.boss().ent.type;
+        const doors=(G.arenaDoors&&G.arenaDoors())||[];
+        if(typ===type&&(plan.lectern||doors.length)){booted={sd,f};break;}
+      }}
+      if(!booted)return {mode:'none',type:null,t:0,on:false,err:'no door floor'};
+      G.setSeed(booted.sd);G.startLevel(booted.f-1,{hearts:9,coins:0,perm:plan.perm||{}});
       G.state().enemies.forEach((e,i)=>{if(!G.bosses[e.type])G.damageMob(i,99);});
       if(plan.lectern){
         const l=G.lectern();const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
@@ -2776,7 +2829,8 @@ async function m166Tests(){
         for(const d of dirs){const x=l.x+d[0],y=l.y+d[1];if(!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);break;}}
         G.advance(0.05);G.use();
       }else{
-        const A=G.boss().def.room,d=G.arenaDoors()[0];
+        const A=G.boss().def.room,d=(G.arenaDoors()||[])[0];
+        if(!d||!A)return {mode:G.state().mode,type:null,t:0,on:false,err:'no door'};
         const ox=(d.x<A.x?1:d.x>=A.x+A.w?-1:0),oy=(d.y<A.y?1:d.y>=A.y+A.h?-1:0);
         G.teleport(d.x+.5-ox,d.y+.5-oy,Math.atan2(oy,ox));if(G.setKeys)G.setKeys(1);G.render();G.use();
       }
@@ -3687,9 +3741,10 @@ if(V1731&&want('m1731')){ await m1731Tests(); }
 async function m175Tests(){
   const S=`${OUT}/screens`;const shot=async(page,name)=>page.screenshot({path:`${S}/m175_${name}.png`});
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m175',noFog:true});
-  await G(page,()=>{window._sovBoot=function(){__game.manual=true;if(__game.bossIntro!==undefined)__game.bossIntro=false;try{localStorage.clear();}catch(e){}__game.setSeed(777);__game.startLevel(9,{hearts:5,coins:0});
+  const sovAt=await findSovFloor(page);
+  await G(page,(sovAt)=>{window._sovAt=sovAt;window._sovBoot=function(){__game.manual=true;if(__game.bossIntro!==undefined)__game.bossIntro=false;try{localStorage.clear();}catch(e){}__game.setSeed((window._sovAt&&window._sovAt.sd)||777);__game.startLevel(((window._sovAt&&window._sovAt.f)||10)-1,{hearts:5,coins:0});
     __game.state().enemies.forEach((e,i)=>{if(!__game.bosses[e.type])__game.damageMob(i,99);});
-    if(__game.seeAll)__game.seeAll();__game.faceBoss(3.2);__game.advance(0.15);if(__game.setMsg)__game.setMsg('',0.01);if(__game.state().player){/* keep the HUD clean for shots */} };});
+    if(__game.seeAll)__game.seeAll();__game.faceBoss(3.2);__game.advance(0.15);if(__game.setMsg)__game.setMsg('',0.01);if(__game.state().player){/* keep the HUD clean for shots */} };},sovAt);
 
   // 1. one huge hit clamps at 75% and starts the collapse
   const clamp=await G(page,()=>{window._sovBoot();const mx=__game.boss().ent.maxHp,want=Math.round(mx*__game.sov.thresh[0]);
@@ -3883,10 +3938,27 @@ async function m1751Tests(){
       results.push({name:st.name,i:st.i,nFull:cells.length,spans:cells.map(c=>+c.uSpan.toFixed(3)),tx:cells.map(c=>[c.txmin,c.txmax]),tiled,stretched,okPaint});
     }
     // Jacob's case: the natural 6-cell moss run on Basalt Depths seed 1, floor 10 (y=22, x=6..11)
-    G.setSeed(1);G.startLevel(9,{hearts:9,coins:0});
+    // M1.77: floor 10 is the pit-wall Heights fight, so use floor 9 (always Basalt, with walls) or keep floor 10 pre-1.77
+    const mossFloor=G.deep&&G.deep.holeCap?8:9; /* startLevel idx: 8 = floor 9 under M1.77, else floor 10 */
+    G.setSeed(1);G.startLevel(mossFloor,{hearts:9,coins:0});
     (G.state().enemies||[]).forEach((e,i)=>{try{G.damageMob(i,99);}catch(err){}});
-    G.teleport(9.0,25.5,-Math.PI/2);G.advance(0.05);G.render();
-    const moss=summarize(trace()).filter(c=>c.my===22&&c.x0>0&&c.x1<W-1);
+    let mossX=9,mossY=22,standX=9.0,standY=25.5;
+    if(mossFloor===8){
+      // find a run of 3+ moss (tex 4) wall cells and stand in front of it
+      const L=G.state(),w=(G.currentMap&&G.currentMap().w)||32,h=(G.currentMap&&G.currentMap().h)||32;
+      let found=null;
+      for(let y=1;y<60&&!found;y++)for(let x=1;x<60;x++){
+        if(G.cellType(x,y)!==1)continue;
+        let n=1;while(G.cellType(x+n,y)===1)n++;
+        if(n>=4){
+          // prefer a row with open floor south of it
+          if(G.cellType(x+1,y+1)===0){found={x:x+Math.floor(n/2),y,standX:x+n/2,standY:y+3.5};break;}
+        }
+      }
+      if(found){mossX=found.x;mossY=found.y;standX=found.standX;standY=found.standY;}
+    }
+    G.teleport(standX,standY,-Math.PI/2);G.advance(0.05);G.render();
+    const moss=summarize(trace()).filter(c=>c.my===mossY&&c.x0>0&&c.x1<W-1);
     const mossTiled=moss.length>=2&&moss.every(c=>c.uSpan>=0.85&&c.txmin<=4&&c.txmax>=123);
     const mossStretched=moss.length>=2&&moss.every(c=>c.uSpan<0.45);
     return {
@@ -3906,7 +3978,404 @@ async function m1751Tests(){
 
 if(V1751&&want('m1751')){ await m1751Tests(); }
 
+
+async function m177Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M177='/workspace/labyrinth-main/m177';
+  fs.mkdirSync(M177,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m177_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M177}/m177_${name}.png`);
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m177',noFog:true});
+
+  const meta=await G(page,()=>{
+    const G=__game;
+    G.manual=true;if(G.bossIntro!==undefined)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    const D=G.deep||{};
+    const rot=typeof G.bossFor==='function'?[5,10,15,20,25,30].map(f=>{const b=G.bossFor(f);return b?`${f}:${b.type}`:'none';}):[];
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    const st=G.state();
+    const cells=(function(){
+      const w=(G.currentMap&&G.currentMap().w)||0,h=(G.currentMap&&G.currentMap().h)||0;
+      let t1=0,t2=0,t3=0,t6=0,t11=0,t0=0,solidPit=0,fell=0,n=0;
+      const ww=w||64,hh=h||64;
+      for(let y=0;y<hh;y++)for(let x=0;x<ww;x++){
+        const t=G.cellType(x,y);if(t<0)continue;n++;
+        if(t===0)t0++;else if(t===1)t1++;else if(t===2)t2++;else if(t===3)t3++;else if(t===6)t6++;else if(t===11)t11++;
+        if(t===11&&G.solidAt(x+.5,y+.5))solidPit++;
+        if(t===11&&G.pitUnder&&G.pitUnder(x+.5,y+.5))fell++;
+      }
+      return {n,t0,t1,t2,t3,t6,t11,solidPit,fell};
+    })();
+    const b=G.boss()||{};
+    const typ=(G.bossType&&G.bossType())||(b.ent&&b.ent.type);
+    return {
+      theme:G.themeNow(),basalt:!!(G.basaltFloor&&G.basaltFloor()),openSky:!!(G.openSky&&G.openSky()),deepBoss:!!(G.deepBoss&&G.deepBoss()),
+      typ,name:(G.bosses&&G.bosses.deep&&G.bosses.deep.name)||(b.ent&&b.ent.type),
+      ent:b.ent&&{type:b.ent.type,hp:b.ent.hp,maxHp:b.ent.maxHp,tele:b.ent.tele},
+      sealed:!!b.sealed,ch:G.deep&&G.creep, /* placeholder */
+      deepName:(function(){try{return (G.state().enemies||[]).find(e=>e.type==='deep');}catch(e){return null;}})(),
+      mobDeep:G.mobSheets&&G.mobSheets.includes('deep'),
+      cfg:{hp:D&&null, ...D},
+      rot,order:G.bossOrder&&G.bossOrder.slice(),
+      cells,level:st.level,levelName:st.levelName
+    };
+  });
+  // pull MOBS.deep via a second look
+  const def=await G(page,()=>{
+    const G=__game;
+    const st=G.assetState?G.assetState():{};
+    const b=G.boss()&&G.boss().ent;
+    // name from the wake would need wake; read from a probe shot of damage labels later
+    return {
+      sheets:G.mobSheets,hasDeep:!!st.deep,hasIdle:!!st.deep_idle,hasCast:!!st.deep_cast,hasAtk:!!st.deep_attack,hasShot:!!st.shot_deepfire,
+      sigWalk:G.frameSig&&G.frameSig('deep',0),sigIdle:G.frameSig&&G.frameSig('deepIdle',0),
+      cfg:G.deep,order:G.bossOrder,bossFor10:G.bossFor(10),bossFor25:G.bossFor(25),
+      type:b&&b.type,hp:b&&b.hp,maxHp:b&&b.maxHp,theme:G.themeNow(),ch:(G.state().enemies||[]).some(e=>e.type==='deep')
+    };
+  });
+  check('M1.77 floor 10 is Basalt Heights and the Awakened Deep (rotation still lists sovereign at floor 10)',
+    /BASALT HEIGHTS/i.test(meta.theme||meta.levelName||'')&&meta.deepBoss&&meta.openSky&&meta.basalt&&def.type==='deep'&&def.bossFor10&&def.bossFor10.type==='sovereign'&&(def.order||[]).join()==='king,sovereign,owl',
+    JSON.stringify({theme:meta.theme,levelName:meta.levelName,typ:def.type,rot:def.bossFor10,order:def.order,deepBoss:meta.deepBoss,openSky:meta.openSky}));
+  check('M1.77 Deep art is packed (walk, idle, cast, attack, fireball) under original names',
+    def.sheets.includes('deep')&&def.sheets.includes('deep_idle')&&def.sheets.includes('deep_cast')&&def.sheets.includes('deep_attack')&&def.hasDeep&&def.hasIdle&&def.hasCast&&def.hasAtk&&def.hasShot&&!!def.sigWalk&&!!def.sigIdle,
+    JSON.stringify({sheets:def.sheets.filter(s=>/deep/.test(s)),st:{d:def.hasDeep,i:def.hasIdle,c:def.hasCast,a:def.hasAtk,s:def.hasShot}}));
+  check('M1.77 wall cells became solid pits: no wall, door or fence cells, pits block movement and do not drop you',
+    meta.cells.t1===0&&meta.cells.t2===0&&meta.cells.t3===0&&meta.cells.t11>=8&&meta.cells.solidPit===meta.cells.t11&&meta.cells.fell===0&&meta.cells.t6===0,
+    JSON.stringify(meta.cells));
+  const cfg=def.cfg||{};
+  check('M1.77 Deep balance sits next to the Rattle Sovereign (HP 50, 3 phase clamps, walk 1.0, fireball 4.0, cadence 2.3/2.0/1.7/1.45, blast 1.15, hole cap 14, creep 8-12s cap 2)',
+    cfg.thresh&&cfg.thresh.join()==='0.75,0.5,0.25'&&cfg.cd&&cfg.cd.join()==='2.3,2,1.7,1.45'&&cfg.tele===.55&&cfg.shotSpd===4&&cfg.range===7.2&&cfg.blastR===1.15&&cfg.holeCap===14&&cfg.dmg===1&&cfg.creepEvery&&cfg.creepEvery.join()==='8,12'&&cfg.creepCap===2&&def.maxHp>=50,
+    JSON.stringify({cfg,maxHp:def.maxHp}));
+  const names=await G(page,()=>{
+    const G=__game;if(G.bossIntro!==undefined)G.bossIntro=false;
+    G.skipBossIntro&&G.skipBossIntro();G.faceBoss&&G.faceBoss(3.2);
+    const b=G.boss()&&G.boss().ent;
+    if(b&&!b.woke&&G.wakeAll)G.wakeAll();
+    G.advance(0.05);
+    const msg=G.state().msg||'';
+    return {msg,len:(msg||'').length,type:b&&b.type,woke:b&&b.woke,nameMsg:/AWAKENED DEEP/.test(msg)||/THE DEEP/.test(msg)};
+  });
+  // Floor 5 (King) and a non-boss Basalt floor stay unchanged; a non-Basalt Sovereign floor keeps the Sovereign
+  const others=await G(page,()=>{
+    const G=__game;G.manual=true;if(G.bossIntro!==undefined)G.bossIntro=false;
+    const out={};
+    G.setSeed(777);G.startLevel(4,{hearts:9,coins:0});
+    const b5=G.boss()&&G.boss().ent;
+    let walls5=0,pits5=0;
+    for(let y=0;y<40;y++)for(let x=0;x<40;x++){const t=G.cellType(x,y);if(t===1)walls5++;if(t===11)pits5++;}
+    out.f5={type:(G.bossType&&G.bossType())||(b5&&b5.type),walls:walls5,pits11:pits5,openSky:!!(G.openSky&&G.openSky()),theme:G.themeNow()};
+    G.setSeed(777);G.startLevel(10,{hearts:9,coins:0}); // floor 11, always Basalt Depths, not a boss floor
+    let walls11=0,pits11=0,doors11=0;
+    for(let y=0;y<50;y++)for(let x=0;x<50;x++){const t=G.cellType(x,y);if(t===1)walls11++;if(t===11)pits11++;if(t===2)doors11++;}
+    out.f11={theme:G.themeNow(),basalt:!!(G.basaltFloor&&G.basaltFloor()),boss:!!(G.boss()&&G.boss().ent),walls:walls11,pits11,doors:doors11,openSky:!!(G.openSky&&G.openSky()),deepBoss:!!(G.deepBoss&&G.deepBoss())};
+    // reserved floors stay Masque / Brood / KIY even if the theme happens to be Basalt
+    G.setSeed(777);G.startLevel(14,{hearts:9,coins:0,perm:{pit:0}});
+    out.f15={type:G.bossType&&G.bossType(),theme:G.themeNow(),deepBoss:!!(G.deepBoss&&G.deepBoss()),openSky:!!(G.openSky&&G.openSky())};
+    G.setSeed(777);G.startLevel(19,{hearts:9,coins:0});
+    out.f20={type:G.bossType&&G.bossType(),deepBoss:!!(G.deepBoss&&G.deepBoss())};
+    // find a non-Basalt and a Basalt floor 25
+    let sov=null,deep25=null;
+    for(let sd=1;sd<=200&&(!sov||!deep25);sd++){
+      if(G.icyAt&&G.icyAt(sd,25))continue;
+      const th=G.themeFor(sd,25),name=(th&&th.name)||'';
+      const isB=/Basalt/i.test(name);
+      if(isB&&deep25)continue;
+      if(!isB&&sov)continue;
+      G.setSeed(sd);G.startLevel(24,{hearts:9,coins:0});
+      const typ=(G.bossType&&G.bossType())||(G.boss()&&G.boss().ent&&G.boss().ent.type);
+      const rec={sd,theme:G.themeNow(),type:typ,deepBoss:!!(G.deepBoss&&G.deepBoss()),openSky:!!(G.openSky&&G.openSky())};
+      if(isB)deep25=rec;else sov=rec;
+    }
+    out.sov=sov;out.deep25=deep25;
+    return out;
+  });
+  check('M1.77 other floors are unchanged: floor 5 is still the King with walls and a ceiling, floor 11 is still Basalt Depths with walls',
+    (others.f5.type==='king'||others.f5.type==='yellow')&&others.f5.walls>0&&others.f5.pits11===0&&!others.f5.openSky&&/BASALT DEPTHS/i.test(others.f11.theme||'')&&!others.f11.boss&&others.f11.walls>0&&others.f11.pits11===0&&!others.f11.openSky&&!others.f11.deepBoss,
+    JSON.stringify({f5:others.f5,f11:others.f11}));
+  check('M1.77 Masque and the King in Yellow are not replaced, even on a Basalt theme',
+    others.f15.type!=='deep'&&!others.f15.deepBoss&&others.f20.type==='yellow'&&!others.f20.deepBoss,
+    JSON.stringify({f15:others.f15,f20:others.f20}));
+  check('M1.77 the Rattle Sovereign still appears on non-Basalt rotation floors; on a later Basalt boss floor the Deep takes the slot',
+    others.sov&&others.sov.type==='sovereign'&&!others.sov.deepBoss&&!others.sov.openSky&&others.deep25&&others.deep25.type==='deep'&&others.deep25.deepBoss&&others.deep25.openSky,
+    JSON.stringify({sov:others.sov,deep25:others.deep25}));
+
+  // reload floor 10 for fight tests
+  await G(page,()=>{
+    const G=__game;G.manual=true;if(G.bossIntro!==undefined)G.bossIntro=false;try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){try{G.damageMob(i,99);}catch(err){}}});
+    if(G.seeAll)G.seeAll();
+    G.faceBoss(3.4);G.skipBossIntro&&G.skipBossIntro();G.advance(0.1);
+  });
+
+  const clamp=await G(page,()=>{
+    const G=__game,b0=G.boss().ent,mx=b0.maxHp,want=Math.round(mx*G.deep.thresh[0]);
+    G.hitBossOnce(mx);
+    const b=G.boss().ent,s=G.state();
+    return {mx,want,hp:b.hp,phase:b.deepPhase,type:b.type,state:b.state};
+  });
+  check('M1.77 a huge hit stops at 75% HP and starts phase 1 (no skipped phase, no collapse)',
+    clamp.hp===clamp.want&&clamp.want===Math.round(clamp.mx*.75)&&clamp.phase===1&&clamp.type==='deep'&&clamp.state!=='sovfall',
+    JSON.stringify(clamp));
+
+  const fight=await G(page,()=>{
+    const G=__game;G.setHearts(9);
+    // fireball in flight + explosion + holes
+    const b=G.boss().ent,p=G.state().player;
+    const ang=Math.atan2(p.y-b.y,p.x-b.x);
+    // shoot past the player onto a floor tile in front of us if possible
+    const ahead={x:p.x+Math.cos(p.ang)*2.2,y:p.y+Math.sin(p.ang)*2.2};
+    const holes0=G.deepHoles();
+    // pick a floor tile not under the player or boss
+    let tx=Math.floor(ahead.x),ty=Math.floor(ahead.y);
+    if(G.cellType(tx,ty)!==0){
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[2,0],[-2,0],[0,2],[0,-2],[2,1],[-2,1]]){
+        if(G.cellType(Math.floor(p.x)+dx,Math.floor(p.y)+dy)===0){tx=Math.floor(p.x)+dx;ty=Math.floor(p.y)+dy;break;}
+      }
+    }
+    G.deepExplode(tx+.5,ty+.5);
+    const holes1=G.deepHoles();
+    const converted=G.cellType(tx,ty)===11||holes1>holes0;
+    // connectivity: carve a 1-tile choke between player and a fake target and refuse it
+    const px=Math.floor(p.x),py=Math.floor(p.y);
+    // try converting every floor neighbor of the player: at least one skip (would trap) or all safe
+    let skipped=0,applied=0,stillPath=true;
+    const mid=[];
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const c=G.cellAt(px+dx,py+dy);
+      if(c&&c.t===0)mid.push({x:c.x,y:c.y});
+    }
+    // If the player has only one floor neighbor, converting it must be skipped
+    if(mid.length===1){
+      const ok=G.deepConvert(G.cellAt(mid[0].x,mid[0].y));
+      if(!ok)skipped++;else applied++;
+    }
+    // force a chokepoint: paint a narrow path of floor through pits and try the middle
+    const bx=Math.floor(b.x),by=Math.floor(b.y);
+    // path still exists after the first blast
+    stillPath=G.deepReachable(p.x,p.y,b.x,b.y);
+    // cap: convert until cap, then one more must fail
+    let made=G.deepHoles(),failAfter=false,skippedCap=0;
+    for(let y=0;y<50&&made<G.deep.holeCap+2;y++)for(let x=0;x<50&&made<G.deep.holeCap+2;x++){
+      if(G.cellType(x,y)!==0)continue;
+      if((x===px&&y===py)||(x===bx&&y===by))continue;
+      const cell=G.cellAt(x,y);
+      const r=G.deepConvert(cell);
+      if(r)made++;
+      else skippedCap++;
+      if(G.deepHoles()>=G.deep.holeCap&&!r){failAfter=true;break;}
+    }
+    const atCap=G.deepHoles()===G.deep.holeCap||G.deepHoles()<=G.deep.holeCap;
+    const over=G.deepHoles()>G.deep.holeCap;
+    const pathEnd=G.deepReachable(p.x,p.y,b.x,b.y);
+    return {holes0,holes1,converted,tx,ty,tAfter:G.cellType(tx,ty),stillPath,pathEnd,made:G.deepHoles(),cap:G.deep.holeCap,over,failAfter,skipped,skippedCap,mid:mid.length};
+  });
+  check('M1.77 a fireball blast turns floor tiles into solid pits and never exceeds the hole cap',
+    fight.converted&&fight.tAfter===11&&fight.holes1>fight.holes0&&!fight.over&&fight.made<=fight.cap&&(fight.failAfter||fight.made===fight.cap||fight.skippedCap>0),
+    JSON.stringify(fight));
+  check('M1.77 the connectivity guard keeps a path between the player and the boss (and does not trap the player)',
+    fight.stillPath&&fight.pathEnd,
+    JSON.stringify({stillPath:fight.stillPath,pathEnd:fight.pathEnd,skipped:fight.skipped,mid:fight.mid}));
+
+  // more targeted disconnect skip: rebuild a small path and request a choke convert
+  const guard=await G(page,()=>{
+    const G=__game;
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){try{G.damageMob(i,99);}catch(err){}}});
+    G.faceBoss(3.2);G.skipBossIntro&&G.skipBossIntro();
+    const b=G.boss().ent;
+    // stand the player two tiles west of the boss on floor cells, convert the tile in between if it is the only path
+    // paint a controlled corridor: boss at bx,by; cells (bx-1,by) and (bx-2,by) floor; all other 4-neighbors of those become pits
+    const bx=Math.floor(b.x),by=Math.floor(b.y);
+    // Carve a 3-tile west corridor and pit-wall EVERY other floor tile so the mid cell is the only path
+    const cells=[[bx-1,by],[bx-2,by]];
+    const ww=(G.currentMap&&G.currentMap().w)||64,hh=(G.currentMap&&G.currentMap().h)||64;
+    for(let y=0;y<hh;y++)for(let x=0;x<ww;x++){
+      if(x===bx&&y===by)continue;
+      if(cells.some(c=>c[0]===x&&c[1]===y))continue;
+      const t=G.cellType(x,y);
+      if(t===0||t===4||t===9){if(G.setCell)G.setCell(x,y,{t:11});}
+    }
+    for(const [x,y] of cells)if(G.setCell)G.setCell(x,y,{t:0});
+    G.teleport(bx-2.5,by+.5,0);
+    const mid=G.cellAt(bx-1,by);
+    const before=G.deepReachable(G.state().player.x,G.state().player.y,b.x,b.y);
+    const converted=mid&&mid.t===0?G.deepConvert(mid):false;
+    const after=G.deepReachable(G.state().player.x,G.state().player.y,b.x,b.y);
+    const midT=G.cellType(bx-1,by);
+    return {before,converted,after,midT,px:G.state().player.x,py:G.state().player.y,bx:b.x,by:b.y};
+  });
+  check('M1.77 converting a chokepoint that would cut the player off from the boss is skipped',
+    guard.before&&guard.converted===false&&guard.after&&guard.midT===0,
+    JSON.stringify(guard));
+
+  const phases=await G(page,()=>{
+    const G=__game;
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){try{G.damageMob(i,99);}catch(err){}}});
+    G.faceBoss(3.2);G.skipBossIntro&&G.skipBossIntro();
+    // smash leftover knights / minions so they cannot overwrite the defeat banner
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){for(let k=0;k<8;k++){try{G.damageMob(i,99);}catch(err){}}}});
+    const mx=G.boss().ent.maxHp,thr=G.deep.thresh,seen=[];
+    for(let i=0;i<thr.length;i++){
+      G.hitBossOnce(mx);
+      const e=G.boss().ent;
+      seen.push({hp:e.hp,want:Math.round(mx*thr[i]),phase:e.deepPhase,alive:e.state!=='dead'&&!e.gone});
+    }
+    if(G.defeatBoss)G.defeatBoss();
+    else {G.hitBossOnce(mx);G.hitBoss(99);}
+    // bossDefeated (stairs + banner) runs after the 1.1 s death puff, same as the other bosses
+    let msg='';
+    for(let t=0;t<40;t++){
+      G.setHearts(9);
+      G.advance(0.05);
+      const m=G.state().msg||'';
+      if(/DEEP IS DEFEATED/.test(m))msg=m;
+    }
+    if(!msg)msg=G.state().msg||'';
+    const b=G.boss();
+    return {seen,mx,msg,msglen:msg.length,sealed:!!(b&&b.sealed),type:b&&b.ent&&b.ent.type,gone:!(b&&b.ent)||(b.ent.gone||b.ent.state==='dead')};
+  });
+  check('M1.77 Deep phases clamp at 75%, 50% and 25%, then defeat opens the stairs and the message fits the HUD',
+    phases.seen.length===3&&phases.seen.every((p,i)=>p.hp===p.want&&p.phase===i+1&&p.alive)&&!phases.sealed&&/DEEP IS DEFEATED/.test(phases.msg)&&phases.msglen<=42,
+    JSON.stringify(phases));
+
+  // creeps from pit cells
+  const creeps=await G(page,()=>{
+    const G=__game;
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){try{G.damageMob(i,99);}catch(err){}}});
+    G.faceBoss(3.2);G.skipBossIntro&&G.skipBossIntro();
+    G.setHearts(9);
+    let msg='',n=0,first=null;
+    for(let t=0;t<360;t++){
+      G.advance(.05);
+      const m=G.state().msg||'';
+      if(/CREEP/.test(m))msg=m;
+      const list=(G.state().enemies||[]).filter(e=>e.type==='creep'&&!e.gone&&e.state!=='dead');
+      if(list.length>n){n=list.length;first=list[0];if(msg)break;}
+    }
+    const list=(G.state().enemies||[]).filter(e=>e.type==='creep'&&!e.gone&&e.state!=='dead');
+    if(!first&&list[0])first=list[0];
+    n=list.length;
+    return {n,msg,msglen:(msg||'').length,type:first&&first.type,cap:G.deep.creepCap};
+  });
+  check('M1.77 Skittering Creeps climb out of the solid pit cells on the Deep floor',
+    creeps.n>=1&&creeps.type==='creep'&&/CREEP/.test(creeps.msg||'')&&creeps.msglen<=42,
+    JSON.stringify(creeps));
+
+  // ---- screenshots (reload a clean floor 10 for posing) ----
+  await G(page,()=>{
+    const G=__game;G.manual=true;if(G.bossIntro!==undefined)G.bossIntro=false;try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){try{G.damageMob(i,99);}catch(err){}}});
+    if(G.seeAll)G.seeAll();
+    G.faceBoss(5.2);G.skipBossIntro&&G.skipBossIntro();
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);
+    // look slightly up so the fog sky shows
+    const p=G.state().player;if(p)G.setPitch&&G.setPitch(0.18);
+    G.advance(0.08);G.render();
+  });
+  await shot(page,'floor_overview');
+
+  await G(page,()=>{
+    const G=__game;
+    const b=G.boss().ent;
+    // hold a walk pose: keep the boss moving, no telegraph
+    // bump atkCD so it walks toward you
+    G.faceBoss(3.4);G.advance(0.35);G.setMsg&&G.setMsg('',0.01);G.render();
+  });
+  await shot(page,'boss_walk');
+
+  const posed=await G(page,()=>{
+    const G=__game;G.setHearts(9);
+    const b=G.boss().ent,p=G.state().player;
+    const ang=Math.atan2(b.y-p.y,b.x-p.x);
+    G.teleport(p.x,p.y,ang);
+    // start a tele/cast by forcing a shot wind-up: use a tiny advance after setting? we poke via a fire then...
+    // Trigger AI telegraph: set atkCD to 0 by waiting, or spawn nothing and rely on a hook.
+    // We don't have a setter, so fire a real telegraph by advancing until tele>0, then freeze there.
+    let tele=0,frames=0;
+    for(let i=0;i<80&&tele<=0;i++){
+      G.setHearts(9);
+      G.advance(0.05);
+      const e=G.boss().ent;tele=e.tele||0;frames=i;
+    }
+    G.setMsg&&G.setMsg('',0.01);G.render();
+    return {tele,frames,type:G.boss().ent.type};
+  });
+  check('M1.77 the Deep stops to cast (telegraph posed for the screenshot)',posed.tele>0,JSON.stringify(posed));
+  await shot(page,'cast_pose');
+
+  const flight=await G(page,()=>{
+    const G=__game;G.setHearts(9);
+    const b=G.boss().ent,p=G.state().player;
+    const ang=Math.atan2(p.y-b.y,p.x-b.x);
+    // place a fireball mid-flight between them
+    const mx=(b.x+p.x)/2,my=(b.y+p.y)/2;
+    G.deepShot(mx,my,ang,0.01); // almost stationary for the photo
+    G.advance(0.02);G.setMsg&&G.setMsg('',0.01);G.render();
+    const sh=(G.eshots()||[]).filter(s=>s.kind==='deepfire');
+    return {n:sh.length,kind:sh[0]&&sh[0].kind};
+  });
+  check('M1.77 a Deep fireball in flight was posed',flight.n>=1&&flight.kind==='deepfire',JSON.stringify(flight));
+  await shot(page,'fireball_flight');
+
+  await G(page,()=>{
+    const G=__game;G.setHearts(9);
+    const p=G.state().player;
+    const tx=p.x+Math.cos(p.ang)*2.0,ty=p.y+Math.sin(p.ang)*2.0;
+    G.deepExplode(tx,ty);
+    G.advance(0.08);G.setMsg&&G.setMsg('',0.01);G.render();
+  });
+  await shot(page,'explosion_holes');
+
+  await G(page,()=>{
+    const G=__game;G.manual=true;if(G.bossIntro!==undefined)G.bossIntro=false;
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'&&e.type!=='creep'){try{G.damageMob(i,99);}catch(err){}}});
+    if(G.seeAll)G.seeAll();
+    G.faceBoss(3.8);G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+    const p=G.state().player;
+    const dx=Math.cos(p.ang),dy=Math.sin(p.ang);
+    const pitX=Math.floor(p.x+dx*2.2),pitY=Math.floor(p.y+dy*2.2);
+    const flX=Math.floor(p.x+dx*1.35),flY=Math.floor(p.y+dy*1.35);
+    if(G.setCell){G.setCell(pitX,pitY,{t:11});G.setCell(flX,flY,{t:0});}
+    if(G.booms)G.booms.length=0;
+    if(G.spawn)G.spawn('creep',flX+.5,flY+.5,true,[]);
+    G.advance(0.12);G.setMsg&&G.setMsg('A CREEP CRAWLS OUT OF THE PIT!',2);G.render();
+    return {tPit:G.cellType(pitX,pitY),creeps:(G.state().enemies||[]).filter(e=>e.type==='creep').length};
+  });
+  await shot(page,'creeps_from_pits');
+
+  const defMsg=await G(page,()=>{
+    const G=__game;G.manual=true;if(G.bossIntro!==undefined)G.bossIntro=false;try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){for(let k=0;k<8;k++){try{G.damageMob(i,99);}catch(err){}}}});
+    if(G.seeAll)G.seeAll();
+    G.faceBoss(3.4);G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+    if(G.defeatBoss)G.defeatBoss();
+    else {G.hitBossOnce(9999);G.hitBoss(20);}
+    let msg='';
+    for(let t=0;t<40;t++){G.setHearts(9);G.advance(0.05);const m=G.state().msg||'';if(/DEEP IS DEFEATED/.test(m))msg=m;}
+    if(!msg)msg=G.state().msg||'';
+    G.render();
+    return {msg,len:msg.length,sealed:!!(G.boss()&&G.boss().sealed)};
+  });
+  await shot(page,'defeat');
+  check('M1.77 defeat screenshot posed and the stairs-appear banner fits',
+    /DEEP IS DEFEATED/.test(defMsg.msg)&&defMsg.len<=42&&!defMsg.sealed,
+    JSON.stringify(defMsg));
+
+  await ctx.close();
+}
+
 if(V176&&want('m176')){ await m176Tests(); }
+if(V177&&want('m177')){ await m177Tests(); }
 
 async function m176Tests(){
   const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
@@ -3982,7 +4451,7 @@ async function m176Tests(){
       otherPlaced=G.maybePlaceObsidian()?1:0;
     }
     // 1000 isolated rolls at 12%
-    G.setSeed(11);G.startLevel((basalt?basalt.f:9)-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
+    G.setSeed(basalt?basalt.sd:11);G.startLevel((basalt?basalt.f:9)-1,{hearts:99,coins:0,perm:{items:{},pit:0}});
     let rolls=0,hits=0;
     const was=G.basaltFloor&&G.basaltFloor();
     if(was){

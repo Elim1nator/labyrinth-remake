@@ -545,6 +545,31 @@
       "file": "boss/shot_sovskull.png",
       "frames": 1,
       "k": 1
+    },
+    "deep": {
+      "file": "mobs/deep.png",
+      "frames": 4,
+      "k": 1.6
+    },
+    "deep_idle": {
+      "file": "mobs/deep_idle.png",
+      "frames": 1,
+      "k": 1.6
+    },
+    "deep_cast": {
+      "file": "mobs/deep_cast.png",
+      "frames": 1,
+      "k": 1.6
+    },
+    "deep_attack": {
+      "file": "mobs/deep_attack.png",
+      "frames": 1,
+      "k": 1.6
+    },
+    "shot_deepfire": {
+      "file": "boss/shot_deepfire.png",
+      "frames": 1,
+      "k": 1
     }
   }
 }

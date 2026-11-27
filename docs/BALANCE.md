@@ -403,3 +403,15 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 ## Skittering Creep (M1.76)
 - Basalt Depths pits only. Uses the pit-Skitter cadence and cap (`SPIDERS.skitEvery` 14–22 s, `skitCap` 1, +1 from floor 12) and `pitSpawnCell(9)`, but **always** runs, even when `spiderLvl` is 0 (no coins tossed into pits). Coin-toss Skitters and Brood Spiders are unchanged and still require the 10 / 50 coin milestones.
 - 2 HP (unscaled, like the Skitter's 1 HP), speed **5.2** cells/s (Skitter is 4.4), height 0.30, hit radius 0.28, contact bite **1 heart** (not a face-hug). Voice `chitter`. Pit-spawned creeps drop nothing (`noLoot`), the same as pit spiders. First spawn on a floor: "A CREEP CRAWLS OUT OF THE PIT!"
+
+## The Awakened Deep (M1.77)
+Replaces the rotating `BOSS_ORDER` boss **on Basalt boss floors only** (the usual floor 10, which is always Basalt, plus any later 5th floor that rolls Basalt). The Rattle Sovereign stays in `BOSS_ORDER` and still appears on non-Basalt floors 25, 40, …. Map letter `!`. The floor is named **BASALT HEIGHTS** (Obsidian Column and creeps still treat it as Basalt via `basaltFloor()`).
+
+- Base HP **50** (the Sovereign is 48). Floor and tier HP scale the same way (`ceil(base × hpMul) + 5 × (floor − 1)`). Walk speed **1.0** cells/s (Sovereign 1.05). Height 1.08, hit radius 0.55, body radius 0.44.
+- Phases at **75%, 50% and 25%** HP (`DEEP.thresh`). A hit that would pass a threshold **clamps** there (`deepNextHp`), so overkill cannot skip a phase. The Deep does not collapse; it just fights faster.
+- Fireball: **0.55 s** cast (`DEEP.tele`), then one shot (`deepfire`) at **4.0** cells/s, range **7.2** cells, cadence **2.3 / 2.0 / 1.7 / 1.45 s** in phases 0–3 (times `cdMul`). Explodes on impact (solid pit or wall) or at end of range. Area damage **1 heart** in a **1.15**-cell radius (`DEEP.blastR`).
+- Holes: each exploded floor tile (`t===0`) can become a solid pit (`t===11`) if it would not cut the path between the player and the boss, would not trap the player, and is not the player's or the boss's tile. Cap **14** fireball-holes per fight (`DEEP.holeCap`). Original wall-pits do not count against the cap.
+- Skittering Creeps on this floor: **8–12 s** (`DEEP.creepEvery`), cap **2** (`DEEP.creepCap`), +1 while the Deep is furious. Same creep as M1.76 (2 HP, 5.2 cells/s, 1-heart bite). Other Basalt floors keep the M1.76 cadence (14–22 s, cap 1, +1 from floor 12).
+- Floor: every `t===1` wall and any falling `t===6` pit becomes a solid pit (`t===11`). Doors and fences become open floor. No ceiling (`L.openSky`); the top of the view fades into the fog. Solid pits block like walls (`solidAt`) and do not trigger a fall (`pitUnder` stays on `t===6` only).
+- Defeat and loot match the other bosses (15 coins plus a run item and a use-item, sealed portal opens). Defeat banner: `THE DEEP IS DEFEATED! THE STAIRS APPEAR!` (40 characters). Constants live in `DEEP` (`src/index.html`) and are repeated here.
+

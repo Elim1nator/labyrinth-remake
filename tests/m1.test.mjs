@@ -55,6 +55,7 @@ const V175=atLeast('1.75'); // M1.75+: The Rattle Sovereign replaces the Luggern
 const V1751=atLeast('1.75.1'); // M1.75.1+: Sovereign small piles use bonePile; wall textures tile once per cell
 const V176=atLeast('1.76'); // M1.76+: Obsidian Column, Skittering Creep; moss wall art restored
 const V177=atLeast('1.77'); // M1.77+: the Awakened Deep is the Basalt Heights boss (pit-wall floor)
+const V178=atLeast('1.78'); // M1.78+: new Debt Collector and Skittering Creep walk sheets
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -4374,8 +4375,364 @@ async function m177Tests(){
   await ctx.close();
 }
 
+
+async function m178Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M178='/workspace/labyrinth-main/m178';
+  fs.mkdirSync(M178,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m178_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M178}/m178_${name}.png`);
+  };
+  const save=(name,url)=>{
+    const dest=`${S}/m178_${name}.png`;
+    fs.writeFileSync(dest,Buffer.from(url.split(',')[1],'base64'));
+    fs.copyFileSync(dest,`${M178}/m178_${name}.png`);
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m178',noFog:true});
+
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{
+    const G=__game,frames=[];
+    for(let i=0;i<8;i++){
+      try{const d=G.spriteData('collector',i);if(!d||!d.w)break;frames.push(d);}catch(e){break;}
+    }
+    const boxes=frames.map(d=>{
+      let x0=1e9,y0=1e9,x1=-1,y1=-1;
+      for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++){
+        if(!(d.px[y*d.w+x]>>>24))continue;
+        if(x<x0)x0=x;if(y<y0)y0=y;if(x>x1)x1=x;if(y>y1)y1=y;
+      }
+      return {w:d.w,h:d.h,x0,y0,x1,y1,cx:(x0+x1)/2,foot:y1,edgeL:x0,edgeR:d.w-1-x1,edgeT:y0,edgeB:d.h-1-y1};
+    });
+    const sigs=frames.map((_,i)=>G.frameSig('collector',i));
+    const dummy={type:'collector',state:'chase',paid:false,moving:true,ph:0};
+    const walk=[0,1,2,3].map(n=>G.animFrame(Object.assign({},dummy,{ph:n/6})));
+    const idle=G.animFrame(Object.assign({},dummy,{state:'idle',ph:0}));
+    const paid=G.animFrame(Object.assign({},dummy,{paid:true,state:'chase',ph:0.4}));
+    return {n:frames.length,boxes,sigs,uniq:new Set(sigs).size,m:G.mobs.collector,st:G.assetState().collector,walk,idle,paid};
+  });
+  const boxes=art.boxes,fw=boxes[0]&&boxes[0].w,fh=boxes[0]&&boxes[0].h;
+  const sameW=boxes.length===3&&boxes.every(b=>b.w===fw&&b.h===fh);
+  const sameFoot=boxes.every(b=>b.foot===boxes[0].foot);
+  const mid=fw/2;
+  const centresOk=boxes.every(b=>Math.abs(b.cx-mid)<=1+1e-9)&&boxes.every(b=>Math.abs(b.cx-boxes[0].cx)<=1+1e-9);
+  const edgesOk=boxes.every(b=>b.edgeL>=1&&b.edgeR>=1&&b.edgeT>=1&&b.edgeB>=1);
+  check('M1.78 the Debt Collector sheet is 3 equal-width frames with unique art',
+    art.st==='png'&&atlas.collector&&atlas.collector.frames===3&&art.n===3&&sameW&&fw>0&&art.uniq===3&&art.m&&art.m.name==='DEBT COLLECTOR',
+    JSON.stringify({n:art.n,fw,fh,sameW,uniq:art.uniq,st:art.st,atlas:atlas.collector,name:art.m&&art.m.name}));
+  check('M1.78 each packed frame shares a foot baseline and horizontal centre within 1 px',
+    sameFoot&&centresOk,JSON.stringify(boxes));
+  check('M1.78 no packed frame touches its cell edges (hood and robe stay inside)',
+    edgesOk,JSON.stringify(boxes));
+  check('M1.78 walk is a 0-1-2-1 ping-pong and idle/paid use the planted mid frame',
+    art.idle===1&&art.paid===1&&art.walk[0]===0&&art.walk[1]===1&&art.walk[2]===2&&art.walk[3]===1,
+    JSON.stringify({idle:art.idle,paid:art.paid,walk:art.walk}));
+
+  const sheetUrl=await G(page,()=>{
+    const G=__game,scale=3,pad=10,gap=12;
+    const fr=[0,1,2].map(i=>G.spriteData('collector',i));
+    const fw=fr[0].w,fh=fr[0].h;
+    const w=pad*2+fr.length*fw*scale+(fr.length-1)*gap,h=pad*2+fh*scale;
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const x=c.getContext('2d');const cs=8;
+    for(let y=0;y<h;y++)for(let q=0;q<w;q++){
+      x.fillStyle=(((q/cs)|0)+((y/cs)|0))%2===0?'#c8c8c8':'#505050';
+      x.fillRect(q,y,1,1);
+    }
+    fr.forEach((d,i)=>{
+      const id=x.createImageData(d.w*scale,d.h*scale);
+      const u=new Uint32Array(id.data.buffer);
+      for(let y=0;y<d.h*scale;y++)for(let q=0;q<d.w*scale;q++)u[y*d.w*scale+q]=d.px[((y/scale)|0)*d.w+((q/scale)|0)];
+      const t=document.createElement('canvas');t.width=d.w*scale;t.height=d.h*scale;
+      t.getContext('2d').putImageData(id,0,0);
+      x.drawImage(t,pad+i*(fw*scale+gap),pad);
+    });
+    return c.toDataURL('image/png');
+  });
+  save('frames_checker',sheetUrl);
+
+  const vault=await G(page,()=>{
+    const G=__game;
+    for(let sd=1;sd<=40;sd++)for(const f of [2,3,4,5,6,7,8]){
+      const nm=G.themeFor(sd,f).name;
+      if(/OLD VAULTS/.test(nm))return {sd,f,theme:nm};
+    }
+    return null;
+  });
+  const boot=await G(page,(k)=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:9,coins:14});
+    G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.5,y+.5)&&!G.solidAt(x+2.5,y+.5)&&!G.solidAt(x+3.5,y+.5))spot={x:x+1.2,y:y+.5};
+    }
+    G.teleport(spot.x,spot.y,0);
+    const i=G.spawn('collector',spot.x+1.7,spot.y,true,[]);
+    if(G.seeAll)G.seeAll();
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.advance(0.05);G.render();
+    const e=G.state().enemies[i],c=G.collectors()[0];
+    return {spot,i,type:e.type,hp:e.hp,speed:G.mobs.collector.speed,name:G.mobs.collector.name,theme:G.themeNow(),n:G.collectors().length,owed:c&&c.owed,paid:c&&c.paid};
+  },vault);
+  check('M1.78 the Debt Collector still spawns on Old Vaults with the same name, speed and steal behaviour hook',
+    vault&&boot.n===1&&boot.type==='collector'&&boot.name==='DEBT COLLECTOR'&&boot.speed===1.35&&boot.hp>0&&!boot.paid,
+    JSON.stringify({vault,boot}));
+
+  // in-game near / far
+  await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.placeEnemy(i,p.x+1.35,p.y);G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+  },boot.i);
+  await shot(page,'near');
+  await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.placeEnemy(i,p.x+4.2,p.y);G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+  },boot.i);
+  await shot(page,'far');
+
+  // in-game contact of each packed frame + an animation strip
+  const posed=await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    const grab=()=>document.getElementById('screen').toDataURL('image/png');
+    const byFrame={};
+    const strip=[];
+    G.placeEnemy(i,p.x+1.55,p.y);G.setHearts(9);G.setMsg&&G.setMsg('',0.01);
+    for(let t=0;t<300&&(Object.keys(byFrame).length<3||strip.length<8);t++){
+      G.placeEnemy(i,p.x+1.55,p.y);
+      G.setHearts(9);
+      G.advance(1/20);
+      G.render();
+      const fr=G.state().enemies[i].frame;
+      const url=grab();
+      if(strip.length<8)strip.push({fr,url});
+      if(byFrame[fr]==null)byFrame[fr]=url;
+    }
+    function stitch(urls,scale){
+      const imgs=urls.map(u=>{const im=new Image();im.src=u;return im;});
+      // Image() from data URL isn't decoded yet in this sync path — draw via temporary canvases instead
+      const canvases=urls.map(u=>{
+        const im=document.createElement('img'); // still async
+        return u;
+      });
+      return canvases;
+    }
+    return {frames:Object.keys(byFrame).map(Number).sort((a,b)=>a-b),n:Object.keys(byFrame).length,byFrame,strip:strip.map(s=>({fr:s.fr,url:s.url}))};
+  },boot.i);
+
+  // stitch in node from the captured data URLs so we don't fight Image() decode
+  const stitch=(urls, name)=>{
+    // decode PNG frames with a tiny parser via the already-open page
+    return urls;
+  };
+  const stitched=await G(page,(payload)=>{
+    const {byFrame,strip}=payload;
+    function pngToCanvas(url){
+      // decode atob into ImageData via createImageBitmap is async; use fetch+createImageBitmap
+      return url;
+    }
+    async function load(url){
+      const r=await fetch(url);const b=await r.blob();return await createImageBitmap(b);
+    }
+    return (async()=>{
+      const keys=[0,1,2].filter(k=>byFrame[k]);
+      const bits=await Promise.all(keys.map(k=>load(byFrame[k])));
+      const pad=8,fw=bits[0].width,fh=bits[0].height;
+      const c=document.createElement('canvas');c.width=pad+(fw+pad)*bits.length;c.height=fh+pad*2;
+      const x=c.getContext('2d');x.fillStyle='#1a1528';x.fillRect(0,0,c.width,c.height);
+      bits.forEach((im,i)=>x.drawImage(im,pad+i*(fw+pad),pad));
+      const ingame=c.toDataURL('image/png');
+      const sbits=await Promise.all(strip.map(s=>load(s.url)));
+      const c2=document.createElement('canvas');c2.width=pad+(fw+pad)*sbits.length;c2.height=fh+pad*2;
+      const x2=c2.getContext('2d');x2.fillStyle='#1a1528';x2.fillRect(0,0,c2.width,c2.height);
+      sbits.forEach((im,i)=>x2.drawImage(im,pad+i*(fw+pad),pad));
+      return {ingame,strip:c2.toDataURL('image/png'),got:keys,stripFr:strip.map(s=>s.fr)};
+    })();
+  }, {byFrame:posed.byFrame, strip:posed.strip});
+
+  check('M1.78 in-game captures of all 3 walk frames were posed',
+    stitched.got&&stitched.got.length===3&&[0,1,2].every(k=>stitched.got.includes(k)),
+    JSON.stringify({got:stitched.got,stripFr:stitched.stripFr}));
+  save('frames_ingame',stitched.ingame);
+  save('anim_strip',stitched.strip);
+
+  // ---- Skittering Creep art (same treatment)
+  const creepArt=await G(page,()=>{
+    const G=__game,frames=[];
+    for(let i=0;i<12;i++){
+      try{const d=G.spriteData('creep',i);if(!d||!d.w)break;frames.push(d);}catch(e){break;}
+    }
+    const boxes=frames.map(d=>{
+      let x0=1e9,y0=1e9,x1=-1,y1=-1;
+      for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++){
+        if(!(d.px[y*d.w+x]>>>24))continue;
+        if(x<x0)x0=x;if(y<y0)y0=y;if(x>x1)x1=x;if(y>y1)y1=y;
+      }
+      return {w:d.w,h:d.h,x0,y0,x1,y1,cx:(x0+x1)/2,foot:y1,edgeL:x0,edgeR:d.w-1-x1,edgeT:y0,edgeB:d.h-1-y1};
+    });
+    const sigs=frames.map((_,i)=>G.frameSig('creep',i));
+    const walk=[0,1,2,3,4].map(n=>G.animFrame({type:'creep',ph:n/14}));
+    return {n:frames.length,boxes,sigs,uniq:new Set(sigs).size,m:G.creep,st:G.assetState().creep,walk};
+  });
+  const cboxes=creepArt.boxes,cfw=cboxes[0]&&cboxes[0].w,cfh=cboxes[0]&&cboxes[0].h;
+  const cSameW=cboxes.length===5&&cboxes.every(b=>b.w===cfw&&b.h===cfh);
+  const cSameFoot=cboxes.every(b=>b.foot===cboxes[0].foot);
+  const cMid=cfw/2;
+  const cCentres=cboxes.every(b=>Math.abs(b.cx-cMid)<=1+1e-9)&&cboxes.every(b=>Math.abs(b.cx-cboxes[0].cx)<=1+1e-9);
+  const cEdges=cboxes.every(b=>b.edgeL>=1&&b.edgeR>=1&&b.edgeT>=1&&b.edgeB>=1);
+  check('M1.78 the Skittering Creep sheet is 5 equal-width frames with unique art',
+    creepArt.st==='png'&&atlas.creep&&atlas.creep.frames===5&&creepArt.n===5&&cSameW&&cfw>0&&creepArt.uniq===5&&creepArt.m&&creepArt.m.name==='SKITTERING CREEP',
+    JSON.stringify({n:creepArt.n,fw:cfw,fh:cfh,sameW:cSameW,uniq:creepArt.uniq,st:creepArt.st,atlas:atlas.creep,name:creepArt.m&&creepArt.m.name}));
+  check('M1.78 each packed creep frame shares a foot baseline and horizontal centre within 1 px',
+    cSameFoot&&cCentres,JSON.stringify(cboxes));
+  check('M1.78 no packed creep frame touches its cell edges (legs and antennae stay inside)',
+    cEdges,JSON.stringify(cboxes));
+  check('M1.78 the creep walk cycle is unchanged (0-1-2-3-4)',
+    creepArt.walk[0]===0&&creepArt.walk[1]===1&&creepArt.walk[2]===2&&creepArt.walk[3]===3&&creepArt.walk[4]===4,
+    JSON.stringify({walk:creepArt.walk,speed:creepArt.m&&creepArt.m.speed,h:creepArt.m&&creepArt.m.h}));
+
+  const creepSheet=await G(page,()=>{
+    const G=__game,scale=2,pad=10,gap=12;
+    const fr=[0,1,2,3,4].map(i=>G.spriteData('creep',i));
+    const fw=fr[0].w,fh=fr[0].h;
+    const w=pad*2+fr.length*fw*scale+(fr.length-1)*gap,h=pad*2+fh*scale;
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const x=c.getContext('2d');const cs=8;
+    for(let y=0;y<h;y++)for(let q=0;q<w;q++){
+      x.fillStyle=(((q/cs)|0)+((y/cs)|0))%2===0?'#c8c8c8':'#505050';
+      x.fillRect(q,y,1,1);
+    }
+    fr.forEach((d,i)=>{
+      const id=x.createImageData(d.w*scale,d.h*scale);
+      const u=new Uint32Array(id.data.buffer);
+      for(let y=0;y<d.h*scale;y++)for(let q=0;q<d.w*scale;q++)u[y*d.w*scale+q]=d.px[((y/scale)|0)*d.w+((q/scale)|0)];
+      const t=document.createElement('canvas');t.width=d.w*scale;t.height=d.h*scale;
+      t.getContext('2d').putImageData(id,0,0);
+      x.drawImage(t,pad+i*(fw*scale+gap),pad);
+    });
+    return c.toDataURL('image/png');
+  });
+  save('creep_frames_checker',creepSheet);
+
+  const basalt=await G(page,()=>{
+    const G=__game;
+    for(let sd=1;sd<=40;sd++)for(const f of [9,11,12]){
+      if(G.icyAt&&G.icyAt(sd,f))continue;
+      G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:0});
+      if(G.basaltFloor&&G.basaltFloor())return {sd,f,theme:G.themeNow()};
+    }
+    return null;
+  });
+  const cboot=await G(page,(k)=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:9,coins:0});
+    G.clearMobs();
+    const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){
+      if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.5,y+.5)&&!G.solidAt(x+2.5,y+.5)&&!G.solidAt(x+3.5,y+.5))spot={x:x+1.2,y:y+.5};
+    }
+    G.teleport(spot.x,spot.y,0);
+    const i=G.spawn('creep',spot.x+1.5,spot.y,true,[]);
+    if(G.seeAll)G.seeAll();
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.advance(0.05);G.render();
+    const e=G.state().enemies[i];
+    return {spot,i,type:e.type,hp:e.hp,speed:G.creep.speed,h:G.creep.h,name:G.creep.name,theme:G.themeNow(),n:(G.state().enemies||[]).filter(o=>o.type==='creep'&&!o.gone).length};
+  },basalt);
+  check('M1.78 the Skittering Creep still spawns on Basalt with the same name, speed and height',
+    basalt&&cboot.n>=1&&cboot.type==='creep'&&cboot.name==='SKITTERING CREEP'&&cboot.speed===5.2&&cboot.h===.30&&cboot.hp>=2,
+    JSON.stringify({basalt,cboot}));
+
+  await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.placeEnemy(i,p.x+1.15,p.y);G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+  },cboot.i);
+  await shot(page,'creep_near');
+  await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.placeEnemy(i,p.x+4.2,p.y);G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+  },cboot.i);
+  await shot(page,'creep_far');
+
+  const cposed=await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    const grab=()=>document.getElementById('screen').toDataURL('image/png');
+    const byFrame={};const strip=[];
+    G.placeEnemy(i,p.x+1.35,p.y);G.setHearts(9);G.setMsg&&G.setMsg('',0.01);
+    for(let t=0;t<400&&(Object.keys(byFrame).length<5||strip.length<8);t++){
+      G.placeEnemy(i,p.x+1.35,p.y);
+      G.setHearts(9);
+      G.advance(1/20);
+      G.render();
+      const fr=G.state().enemies[i].frame;
+      const url=grab();
+      if(strip.length<8)strip.push({fr,url});
+      if(byFrame[fr]==null)byFrame[fr]=url;
+    }
+    return {frames:Object.keys(byFrame).map(Number).sort((a,b)=>a-b),n:Object.keys(byFrame).length,byFrame,strip:strip.map(s=>({fr:s.fr,url:s.url}))};
+  },cboot.i);
+  const cstitched=await G(page,(payload)=>{
+    const {byFrame,strip}=payload;
+    async function load(url){const r=await fetch(url);const b=await r.blob();return await createImageBitmap(b);}
+    return (async()=>{
+      const keys=[0,1,2,3,4].filter(k=>byFrame[k]);
+      const bits=await Promise.all(keys.map(k=>load(byFrame[k])));
+      const pad=8,fw=bits[0].width,fh=bits[0].height;
+      const c=document.createElement('canvas');c.width=pad+(fw+pad)*bits.length;c.height=fh+pad*2;
+      const x=c.getContext('2d');x.fillStyle='#1a1528';x.fillRect(0,0,c.width,c.height);
+      bits.forEach((im,i)=>x.drawImage(im,pad+i*(fw+pad),pad));
+      const ingame=c.toDataURL('image/png');
+      const sbits=await Promise.all(strip.map(s=>load(s.url)));
+      const c2=document.createElement('canvas');c2.width=pad+(fw+pad)*sbits.length;c2.height=fh+pad*2;
+      const x2=c2.getContext('2d');x2.fillStyle='#1a1528';x2.fillRect(0,0,c2.width,c2.height);
+      sbits.forEach((im,i)=>x2.drawImage(im,pad+i*(fw+pad),pad));
+      return {ingame,strip:c2.toDataURL('image/png'),got:keys,stripFr:strip.map(s=>s.fr)};
+    })();
+  }, {byFrame:cposed.byFrame, strip:cposed.strip});
+  check('M1.78 in-game captures of all 5 creep walk frames were posed',
+    cstitched.got&&cstitched.got.length===5&&[0,1,2,3,4].every(k=>cstitched.got.includes(k)),
+    JSON.stringify({got:cstitched.got,stripFr:cstitched.stripFr}));
+  save('creep_frames_ingame',cstitched.ingame);
+  save('creep_anim_strip',cstitched.strip);
+
+  const pitShot=await G(page,(k)=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:9,coins:0});
+    G.clearMobs();
+    const p=G.state().player;const cx=p.x|0,cy=p.y|0;
+    let pit=null;
+    for(const [dx,dy,ang] of [[0,-3,-Math.PI/2],[0,3,Math.PI/2],[3,0,0],[-3,0,Math.PI]]){
+      const x=cx+dx,y=cy+dy;
+      if(G.setCell(x,y,{t:6})){
+        G.setCell(x+(dx===0?0:(dx>0?-1:1)), y+(dy===0?0:(dy>0?-1:1)), {t:0});
+        G.teleport(p.x,p.y,ang);
+        pit={x,y,ang};
+        break;
+      }
+    }
+    const fx=G.state().player.x+Math.cos(G.state().player.ang)*1.55;
+    const fy=G.state().player.y+Math.sin(G.state().player.ang)*1.55;
+    if(G.seeAll)G.seeAll();
+    const i=G.spawn('creep',fx,fy,true,[]);
+    G.setHearts(9);G.setMsg&&G.setMsg('A CREEP CRAWLS OUT OF THE PIT!',2);
+    G.advance(0.08);G.render();
+    const e=G.state().enemies[i];
+    return {pit,ok:!!e,type:e&&e.type,msg:G.state().msg,msglen:(G.state().msg||'').length};
+  },basalt);
+  check('M1.78 a Skittering Creep climbing out of a pit was posed and the banner fits',
+    pitShot.ok&&pitShot.type==='creep'&&/CREEP/.test(pitShot.msg||'')&&pitShot.msglen<=42,
+    JSON.stringify(pitShot));
+  await shot(page,'creep_from_pit');
+
+  await ctx.close();
+}
+
+
 if(V176&&want('m176')){ await m176Tests(); }
 if(V177&&want('m177')){ await m177Tests(); }
+if(V178&&want('m178')){ await m178Tests(); }
 
 async function m176Tests(){
   const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});

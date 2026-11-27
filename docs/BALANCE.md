@@ -346,8 +346,8 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 - Statue: 10% of rooms with 40+ cells (not the start, shop, arena or pit room), centred. Separate RNG, so other floor layouts are unchanged.
 - Stone Keep: each statue in a monster room is alive 50% of the time; each other regular monster (not featured, theme, boss or Treasure Knight) becomes a gargoyle 10% of the time. 6 base HP (scales), wake 3 cells with line of sight, sleep past 8 cells, bursts of 3 Screamer rings 0.3 s apart, 2.4-3.4 s recharge.
 
-## Debt Collector (M1.65)
-- Old Vaults only, 1 per floor (featured + guaranteed). 6 base HP (scales), speed 1.35, contact every 1.5 s: steal 3 coins (or 2 hearts at 0 coins). Paid off at 12 coins: passive, unhurtable, opens the floor's shop within 1.6 cells when faced. Killed while owed: drops what it took.
+## Debt Collector (M1.65, art M1.78)
+- Old Vaults only, 1 per floor (featured + guaranteed). 6 base HP (scales), speed 1.35, contact every 1.5 s: steal 3 coins (or 2 hearts at 0 coins). Paid off at 12 coins: passive, unhurtable, opens the floor's shop within 1.6 cells when faced. Killed while owed: drops what it took. M1.78 walk art: 3 frames (75×132, k 1.5), ping-pong 0-1-2-1; idle and paid use the planted mid frame.
 
 ## Icy Prison (M1.68)
 - Chance per generated non-boss floor >= 3: min(45%, 6% + 2% x (floor - 3)); none within 4 floors after an icy floor (deterministic per run seed). Cold: move x0.85, throw cooldown x1.25.
@@ -400,7 +400,8 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 - Rare Basalt Depths floor spawn only (`noPool`, max 1 per run, `theme:'BASALT DEPTHS'`): 12% per Basalt floor (`OBSIDIAN.drop`), skipped if you already hold one or one is already on the floor. Deterministic per seed and floor (`hashSeed(G.seed+':obsidian:'+(G.levelIdx+1))`). Placement tries `freeFloorCell(6)||freeFloorCell(3)||freeFloorCell(1)`, the same as the Master Key.
 - Held effect: a **60 s** cooldown (`OBSIDIAN.cd`). When the cooldown is ready, the next throw is an obsidian shard instead of a balloon. The shard does **+2** damage on top of base damage (1 + dumbbell, doubled by a piggy spend). Balloon colour effects, the Frozen Wand's +1 and bounce, the Snowball slow/puff, and the Balloon Pump giant splash do not apply to the shard. A Party Hat throw fires shards in every direction of that throw. The effect-row icon glows when a shard is ready (clear of the touch buttons). The first throw after picking it up is a shard; the cooldown is kept across floors in the same run.
 
-## Skittering Creep (M1.76)
+## Skittering Creep (M1.76, art M1.78)
+- M1.78 walk art: 5 frames (177×132, k 1.5), cycle 0-1-2-3-4; logic and size (`h` 0.30, 2 HP, 5.2 cells/s) unchanged.
 - Basalt Depths pits only. Uses the pit-Skitter cadence and cap (`SPIDERS.skitEvery` 14–22 s, `skitCap` 1, +1 from floor 12) and `pitSpawnCell(9)`, but **always** runs, even when `spiderLvl` is 0 (no coins tossed into pits). Coin-toss Skitters and Brood Spiders are unchanged and still require the 10 / 50 coin milestones.
 - 2 HP (unscaled, like the Skitter's 1 HP), speed **5.2** cells/s (Skitter is 4.4), height 0.30, hit radius 0.28, contact bite **1 heart** (not a face-hug). Voice `chitter`. Pit-spawned creeps drop nothing (`noLoot`), the same as pit spiders. First spawn on a floor: "A CREEP CRAWLS OUT OF THE PIT!"
 

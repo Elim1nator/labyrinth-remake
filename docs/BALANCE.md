@@ -350,6 +350,29 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 ## Snowman (M1.70)
 - Icy Prison only (featured + pool; guaranteed 1, 2 from floor 5). 4 base HP, speed 1.05. Natural ranged like the Screamer: snowball speed 6, 1 heart, 0.45 s wind-up, cooldown 1.9 x 1.4 s; normal contact bite.
 
+## Paid coin doors and the score board (M1.73.1)
+- Paying a coin door writes the post-payment coin total into the floor save with `coinPaid`, so CONTINUE no longer refunds the first payment. The door still stays open and is not charged again.
+- The high-score board GET is cached for the page load; All/This filters on the client. A 429 on GET or POST falls back to the local top 10 with no retry loop.
+
+## Snowball (M1.74)
+- Rare Snowman drop only (`noPool`, max 1 per run): 7% per kill (`SNOWBALL.drop`), skipped if you already hold one or one is already on the floor. Isolated 1000-roll checks and an Icy Prison seed sweep are in the M1.74 tests.
+- While held, player shots set `snow`: sprite is Jacob's snowball (not a coloured balloon or the Frozen Wand ice tint), colour flags and damage are unchanged, Frozen Wand still adds +1 and bounce (bounce skips the puff, as it skipped the splash).
+- On hit: `e.slowT = max(slowT, 1)` (`ITEM_FX.snow`). Regular monsters move at `SPIDERS.goldWebMul` = 55% speed; the Mortared Man, Ice Wizard and ice spikes already use 50% when `slowT>0`. White `snowPuff` particles and `SFX.puff` replace `splash`.
+
+## Ferryman's Coin (M1.74)
+- Not in the general item pool (`noPool`, max 1). A Debt Collector kill has a 30% chance to drop it (`FERRY.drop`), skipped if you already hold it, one is already on the floor, or the shop already stocks it this floor.
+- Every Old Vaults shop always stocks it at price 40. If a kill-drop is sitting on the floor, the shop hides it so only one copy is offered. Once you own it the shop still lists it but `shopRows` marks it owned ("SOLD OUT, WANDERER.").
+- Held effect: +3 coins (`FERRY.coins`) when you key-unlock a locked door, when the Master Key opens a locked door, or when you pay a coin door, and for each locked or coin door the Music Box opens (not fences, not Treasure Knight smashes, not `applyPaidCoinDoors` / `applyOpenedLocks` on CONTINUE).
+
+## Master Key (M1.74)
+- Not in the general item pool or the shop (`noPool`, max 1). On each Deep Labyrinth floor (`/Deep Labyrinth/i` on `themeNow()`, the early-floor `THEMES` name; later `DEEP_THEMES` are not this theme) there is a 15% chance it is placed as a floor item (`MASTERKEY.drop`), skipped if you already hold it or one is already on the floor. Deterministic per seed and floor (`hashSeed(G.seed+':masterkey:'+(G.levelIdx+1))`). Placement tries `freeFloorCell(6)||freeFloorCell(3)||freeFloorCell(1)` so a successful roll is not dropped for lack of a far cell.
+- Held effect: permanent, never used up. Locked doors open on USE without spending a key. Keys still pick up. Coin doors and fences are unchanged. Ferryman payout still applies to a Master Key unlock of a locked door.
+- Opened locked doors persist on CONTINUE (`G.lockOpened` / `sv.locks` / `applyOpenedLocks`, no payout), for any unlock (key or Master Key).
+
+## The Turned Face (M1.74)
+- Deep Labyrinth only. Exactly one per such floor, guaranteed, spawned after `addFloorExtras` in the room farthest from the start (so layouts and seeds stay unchanged). Not in `MOB_POOLS`; excluded from `rollMods`, kettle and Rattlebones swaps, `ensureThemeMob` counts, `enemiesTotal` / kill counts and floor-clear requirements (`MOBS.turnedface`: `extra`, `ethereal`, `noKill`). `scaleMob` skips `noKill` only (Ice Wizard HP scaling is unchanged).
+- Speed 0.9 cells/s (walk is 2.7). Alpha 0.55, bob 0.07 (in code; one-frame sheet). Ignores walls, doors and collision; `noDepth` so it draws through walls (fog still applies). Start freeze 2.5 s; also frozen in intro / pause / menus. Cannot be damaged. Contact bite 1 heart, cooldown 1.5 s, then fades back 3 tiles at 2.2× speed. Shield / Bubble Wrap block it like other contact damage.
+
 ## Frozen Screamer (M1.71)
 - Icy Prison only (featured, guaranteed 1, pool). 4 base HP, speed 1.45, flies; natural sonic rings like the Screamer (2 hearts), bite 2 hearts. On death: a regular Screamer (scaled to the floor) spawns where it was; the Frozen Screamer itself drops nothing.
 

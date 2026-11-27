@@ -63,12 +63,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hid
 (function(){
 'use strict';
 /* ===================================================================
-   Kersplat Labyrinth: The Descent - M1.73. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
+   Kersplat Labyrinth: The Descent - M1.73.1. A single-file browser maze shooter; the history of every milestone is in docs/CHANGELOG.md.
    Everything here (code, art, sounds, levels) is original. Wall, monster, item and other
    world art is packed from PNG sheets in assets/. Sounds, music, the pixel font and some
    HUD or decoration sprites are still generated in code. Inspired by early-90s maze shooters.
    =================================================================== */
-var VERSION='M1.73'; /* set by tools/release.mjs */
+var VERSION='M1.73.1'; /* set by tools/release.mjs */
 var W=480,H=300,HALF=150,PLANE=0.66,PROJ=(W/2)/PLANE,TS=128,TK=TS/64; /* M1.51: wall tiles are 128x128; the effects painted on them are laid out on a 64-grid and scaled by TK */
 var SAVE_KEY='labyrinthRemake.save.v1',UNLOCK_KEY='labyrinthRemake.unlocks.v1'; /* M1.30: floors you can start on, kept across runs */
 var MAX_HEARTS=5;
@@ -1575,7 +1575,7 @@ function openFenceList(){var o=[],L=G.L;if(!L||!L.fences)return o;L.fences.forEa
 function applyOpenFences(list){if(!list||!G.L||!G.L.fences)return;var want={};list.forEach(function(p){want[p[0]+','+p[1]]=1;});G.L.fences.forEach(function(d){if(!want[d.x+','+d.y])return;d.held=true;d.open=1;d.state='open';});}
 function persistOpenFences(){var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){var a=openFenceList();sv.fences=a.length?a:undefined;writeSave(sv);}}
 function markCoinTaken(){G.coinTaken=true;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinTaken=G.levelIdx;writeSave(sv);}} /* M1.66: claimed coin-room loot stays claimed on CONTINUE */
-function markCoinPaid(){G.coinPaid=true;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinPaid=G.levelIdx;writeSave(sv);}} /* M1.67: a paid coin door stays open and is not charged again on CONTINUE */
+function markCoinPaid(){G.coinPaid=true;var sv=loadSave();if(sv&&sv.level===G.levelIdx&&sv.seed===G.seed){sv.coinPaid=G.levelIdx;sv.coins=Math.max(0,G.p.coins|0);writeSave(sv);}} /* M1.67: a paid coin door stays open and is not charged again on CONTINUE */ /* M1.73.1: also store the post-payment coin total so CONTINUE does not refund the first payment */
 function applyPaidCoinDoors(){if(!G.L||!G.L.doors)return;G.L.doors.forEach(function(d){if(!(d.coin>0))return;d.coin=0;d.locked=false;d.tex=5;d.held=true;d.open=1;d.state='open';});}
 function updateDoors(dt){G.L.doors.forEach(function(d){
   if(d.state==='opening'){d.open+=dt*1.8;if(d.open>=1){d.open=1;d.state='open';d.timer=4;}}
@@ -1813,7 +1813,7 @@ function nameSubmit(){if(G.mode!=='name'||HS.busy)return;if(G.final&&G.final.che
   if(!hsValidName(n)){G.nameErr=n.length?'LETTERS, DIGITS, SPACE _ . - ONLY':'TYPE A NAME FIRST (1-16 CHARACTERS)';SFX.locked();return;}
   var entry={name:n,score:G.final.score,floor:G.final.floor,seed:G.final.seed,version:hsThisVer()},bad=hsValidate(entry);if(bad){G.nameErr=bad;return;}
   HS.busy=true;G.nameErr='SENDING...';SFX.menu();
-  hsSubmit(entry,function(res){HS.busy=false;if(G.mode!=='name')return;if(res.retry){G.nameErr=res.msg;stats.hs429++;return;}closeName();openScores(res.msg,res.highlight||null);});}
+  hsSubmit(entry,function(res){HS.busy=false;if(G.mode!=='name')return;if(res.retry){G.nameErr=res.msg;stats.hs429++;return;}if(res.highlight&&res.highlight.local===false)HS.fetched=false; /* M1.73.1: a successful POST may re-read the board once; a 429 already fell back locally */closeName();openScores(res.msg,res.highlight||null);});}
 function nameSkip(){if(G.mode!=='name'||HS.busy)return;closeName();openScores('SCORE NOT SAVED.',null);}
 function openScores(msg,hl){G.mode='scores';G.modeT=0;HS.msg=msg||'';HS.hl=hl;resetInputs();if(locked&&document.exitPointerLock){hadLock=false;document.exitPointerLock();}hsLoad();}
 function leaveScores(){toTitle();}
@@ -1821,7 +1821,7 @@ function leaveScores(){toTitle();}
 /* high score API client (research/highscore-api.md): same-origin RELATIVE paths only, no credentials in the game,
    the browser's existing same-origin auth is reused (credentials:'same-origin'). Offline / file:// -> local top 10. */
 var HS_API='/api/labyrinth',LOCAL_HS_KEY='labyrinthRemake.localScores.v1';
-var HS={online:null,loading:false,list:[],local:true,msg:'',hl:null,busy:false,loadSeq:0,filter:'all'}; /* M1.66: filter all vs this version */
+var HS={online:null,loading:false,list:[],local:true,msg:'',hl:null,busy:false,loadSeq:0,filter:'all',fetched:false}; /* M1.66: filter all vs this version */ /* M1.73.1: fetched caches the leaderboard GET for the page session */
 var HS_LIST_LIMIT=50;
 function hsValidVer(v){return typeof v==='string'&&v.length>=1&&v.length<=16&&/^[A-Za-z0-9._-]+$/.test(v);}
 function hsNormVer(v){return hsValidVer(v)?v:'';}
@@ -1855,11 +1855,11 @@ function hsTabRects(){var w1=textW('ALL VERSIONS',1)+14,w2=textW('THIS VERSION',
   return {all:[x0,y,w1,16],mine:[x0+w1+gap,y,w2,16]};}
 function hsTabHit(p){var t=hsTabRects();if(inRect(p,t.all))return 'all';if(inRect(p,t.mine))return 'mine';return null;}
 function hsToggle(to){if(to!=='all'&&to!=='mine')to=HS.filter==='all'?'mine':'all';if(HS.filter===to)return false;HS.filter=to;SFX.menu();return true;}
-function hsLoad(){var seq=++HS.loadSeq;HS.loading=true;
-  var useLocal=function(note){if(seq!==HS.loadSeq)return;HS.local=true;HS.list=localScores();HS.loading=false;if(note&&!HS.msg)HS.msg=note;};
+function hsLoad(force){if(HS.fetched&&!force){HS.loading=false;return;} /* M1.73.1: one leaderboard GET per page load; reopen and the All/This toggle use the cached rows */var seq=++HS.loadSeq;HS.loading=true;
+  var useLocal=function(note){if(seq!==HS.loadSeq)return;HS.local=true;HS.list=localScores();HS.loading=false;HS.fetched=true;if(note&&!HS.msg)HS.msg=note;};
   hsCheck(function(on){if(seq!==HS.loadSeq)return;if(!on){useLocal('');return;}
     hsFetch('/scores?limit='+HS_LIST_LIMIT,{},5000).then(function(r){if(!r.ok)throw new Error('status '+r.status);return r.json();}).then(function(j){if(seq!==HS.loadSeq)return;
-      HS.list=(j&&Array.isArray(j.scores)?j.scores:[]).map(hsRow).filter(Boolean);HS.local=false;HS.loading=false;})
+      HS.list=(j&&Array.isArray(j.scores)?j.scores:[]).map(hsRow).filter(Boolean);HS.local=false;HS.loading=false;HS.fetched=true;})
     .catch(function(){useLocal('COULD NOT LOAD THE ONLINE BOARD - SHOWING LOCAL');});});}
 function cleanMsg(s){return String(s||'ERROR').toUpperCase().replace(/[^A-Z0-9 .,:!?\-\/()]/g,' ').slice(0,28);}
 function hsSubmit(entry,cb){var ver=hsNormVer(entry.version)||hsThisVer();entry.version=ver;var body=JSON.stringify({name:entry.name.trim(),score:entry.score,floor:entry.floor,seed:entry.seed,version:ver}); /* M1.66: shared board includes the build version */
@@ -1868,9 +1868,8 @@ function hsSubmit(entry,cb){var ver=hsNormVer(entry.version)||hsThisVer();entry.
     hsFetch('/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:body},6000).then(function(res){return res.json().catch(function(){return {};}).then(function(j){return {status:res.status,j:j};});})
     .then(function(o){
       if(o.status===201&&o.j&&o.j.ok){stats.hsPosts++;cb({msg:'SCORE SENT! YOUR RANK: '+(o.j.rank|0),highlight:{local:false,rank:o.j.rank|0}});}
-      else if(o.status===429)cb({retry:true,msg:'TOO MANY SCORES SENT. WAIT A MINUTE, THEN TRY AGAIN.'});
       else if(o.status===400)cb({msg:'SCORE REJECTED: '+cleanMsg(o.j&&o.j.error)});
-      else{var r=localAdd(entry);cb({msg:'BOARD UNAVAILABLE ('+o.status+') - SAVED LOCALLY',highlight:r?{local:true,rank:r}:null});}})
+      else{var r=localAdd(entry);if(o.status===429){HS.fetched=true;HS.local=true;HS.list=localScores();}cb({msg:'BOARD UNAVAILABLE ('+o.status+') - SAVED LOCALLY',highlight:r?{local:true,rank:r}:null});}}) /* M1.73.1: a 429 on GET or POST uses the local top-10 fallback, with no retry loop */
     .catch(function(){HS.online=false;var r=localAdd(entry);cb({msg:'SERVER UNREACHABLE - SAVED LOCALLY',highlight:r?{local:true,rank:r}:null});});});}
 var THROW_ANIM=.25,THROW_CD=.8; /* M19: 0.80 s between balloons (was 0.42 s): about half the old fire rate */
 function throwBalloon(){var p=G.p;p.throwT=Math.max(ITEM_FX.minThrow,THROW_CD*Math.pow(ITEM_FX.coffee,itemN('coffee')))*(stOn('rust')?INF.rustMul:1)*(G.L&&G.L.icy?ICY.throwMul:1);p.throwAnim=THROW_ANIM; /* M1.68 cold: slower throws */
@@ -3006,8 +3005,8 @@ api.slotRect=function(){return SLOT_RECT.slice();};api.slotRectCss=function(){re
 api.faceSlot=function(){var s=G.L.slot;if(!s)return false;var c=function(x,y){var q=cellAt(x,y);return q&&q.t!==1&&q.t!==3&&q.t!==5&&q.t!==2;};var d=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
   for(var i=0;i<4;i++){var x=s.x+d[i][0],y=s.y+d[i][1];if(c(x,y)){G.p.x=x+.5;G.p.y=y+.5;G.p.ang=d[i][2];G.p.pitch=0;G.useTarget=findUse();render();return true;}}return false;};
 api.setCoins=function(n){G.p.coins=n;};
-api.hs=function(){return {online:HS.online,loading:HS.loading,local:HS.local,list:JSON.parse(JSON.stringify(HS.list)),shown:JSON.parse(JSON.stringify(hsShown())),filter:HS.filter,msg:HS.msg,hl:HS.hl,busy:HS.busy,nameBuf:G.nameBuf,nameErr:G.nameErr,inputValue:nameIn.value,inputOn:nameIn.className==='on',focused:document.activeElement===nameIn,version:VERSION,limit:HS_LIST_LIMIT};};
-api.hsSubmit=function(e,cb){hsSubmit(e,cb||function(){});};api.hsToggle=hsToggle;api.hsTabRects=function(){return hsTabRects();};api.hsThisVer=hsThisVer;api.hsValidVer=hsValidVer;api.version=function(){return VERSION;};
+api.hs=function(){return {online:HS.online,loading:HS.loading,local:HS.local,list:JSON.parse(JSON.stringify(HS.list)),shown:JSON.parse(JSON.stringify(hsShown())),filter:HS.filter,msg:HS.msg,hl:HS.hl,busy:HS.busy,nameBuf:G.nameBuf,nameErr:G.nameErr,inputValue:nameIn.value,inputOn:nameIn.className==='on',focused:document.activeElement===nameIn,version:VERSION,limit:HS_LIST_LIMIT,fetched:!!HS.fetched};};
+api.hsSubmit=function(e,cb){hsSubmit(e,cb||function(){});};api.hsResetLoad=function(){HS.fetched=false;};api.hsToggle=hsToggle;api.hsTabRects=function(){return hsTabRects();};api.hsThisVer=hsThisVer;api.hsValidVer=hsValidVer;api.version=function(){return VERSION;};
 api.hsValidName=hsValidName;api.hsValidate=hsValidate;api.localScores=localScores;api.cleanName=cleanName;api.hsApi=HS_API;
 api.nameRects=function(){return {field:rectCss(NAME_FIELD),ok:rectCss(NAME_OK),skip:rectCss(NAME_SKIP)};};api.openScores=function(){openScores('',null);};
 api.shoot=function(vz){G.p.throwT=0;throwBalloon();if(vz!==undefined)G.shots[G.shots.length-1].vz=vz;};
@@ -3089,7 +3088,7 @@ api.layoutTime=function(wd,ht,seed){var c=genCfg(10,0);c.width=wd;c.height=ht;c.
     for(var y=0;y<H;y++)for(var x=0;x<Wd;x++){if(!op(x,y))continue;V++;var n=(op(x+1,y)?1:0)+(op(x-1,y)?1:0)+(op(x,y+1)?1:0)+(op(x,y-1)?1:0);if(op(x+1,y))E++;if(op(x,y+1))E++;if(n===1)dead.push([x,y]);}
     var md=0;dead.forEach(function(t){var len=0,px=-1,py=-1,cx=t[0],cy=t[1];while(len<200){var nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(function(q){var nx=cx+q[0],ny=cy+q[1];return op(nx,ny)&&!(nx===px&&ny===py);});var deg=nb.length+(px>=0?1:0);if(deg!==2&&len>0)break;if(!nb.length)break;px=cx;py=cy;cx+=nb[0][0];cy+=nb[0][1];len++;}md=Math.max(md,len);});
     o.floors++;o.deadEnds+=dead.length;o.maxDead=Math.max(o.maxDead,md);o.loops+=E-V+1;o.cells+=V;});});o.deadPerFloor=o.deadEnds/o.floors;o.loopsPerFloor=o.loops/o.floors;return o;};api.unlocks=function(){return loadUnlocks();};api.setUnlocks=function(o){saveUnlocks(o||{floors:[],last:1});G.startPicked=false;buildMenu();};api.startFloors=function(){return startFloors();};api.startFloor=function(){return G.startFloor||1;};api.cycleStart=function(d){cycleStart(d);};api.entSet=function(i,o){var e=G.ents[i];if(e)Object.keys(o).forEach(function(k){e[k]=o[k];});};api.clearBody=function(a,b,c,d,r){return clearBody(a,b,c,d,r);};api.keyHeld=function(c){return !!keys[c];};api.watchdog=function(){inputWatchdog();};api.hitWith=function(i,src){hitEnemy(G.ents[i],src||{dmg:1,ball:'blue',hits:[]});};api.infWorld=function(){return {bolts:G.bolts.length,webs:G.webs.length,pots:G.pots.length,fires:G.fires.length};};api.mounted=function(i){var e=G.ents[i];return e&&e.mount?G.ents.indexOf(e.mount):-1;};api.entInfo=function(i){var e=G.ents[i];return e?{type:e.type,hp:e.hp,maxHp:e.maxHp,state:e.state,gone:!!e.gone,stolen:e.stolen||null,usedLife:!!e.usedLife,x:e.x,y:e.y,child:!!e.child,flying:!!e.flying}:null;};api.portalHidden=function(){return !!G.L.portalHidden;};api.exitAt=function(){return G.L.exit?{x:G.L.exit.x,y:G.L.exit.y}:null;};api.bossBar=function(){return BOSSBAR_RECT.slice();};
-var QA_BUILD=false; /* the QA build (build/m1.73-qa) flips this to true */
+var QA_BUILD=false; /* the QA build (build/m1.73.1-qa) flips this to true */
 if(QA_BUILD||/[?&]debug(=|&|$)/.test(location.search))window.__game=api; /* M17-A2: release builds expose no window.__game unless the URL has ?debug */
 })();
 </script>

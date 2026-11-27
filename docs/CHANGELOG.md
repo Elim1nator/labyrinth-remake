@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.79.2: Heights pits and fireball holes use the regular pit shaft
+- On Basalt Heights, the solid pit cells that replace walls (`t===11`) and the holes the Awakened Basalt's fireballs burn in the floor were drawn as flat dark ellipses. They now use the existing regular-pit shaft renderer (the same path as falling Basalt pits, `t===6`): a square cell-shaped opening with visible inner shaft walls, stone texture, shading and depth fade. Adjacent `t===11` and `t===6` cells merge without inner walls, the same way neighbouring falling pits already did.
+- When a fireball converts a floor tile it becomes a regular pit visually at once. The existing explosion flash is the transition; no new animation was added.
+- The no-ceiling fog sky, movement blocking (`solidAt`), no-fall rule (`pitUnder` stays on `t===6`), connectivity guard and 14-hole cap are unchanged. Creeps still climb out of the pits.
+- A full Heights floor of pit cells on a phone-sized canvas (844×390, the internal 480×300 buffer) went from **1.55 ms/frame** to **2.45 ms/frame** in headless Chromium (look-down 1.59 → 2.32). Still well under a 60 fps budget.
+- Official suite on the frozen QA build: 755/755 passed.
+
 ## M1.79.1: green-screen despill on the Skittering Creep
 - Jacob's `creep_v3.png` had leftover green-screen spill (919 pixels with alpha > 0, G > R+25 and G > B+25, e.g. (0,82,0,98) and (0,39,0,255)). They showed as a faint green fringe on the legs in `m179_near.png`. Those pixels are cleaned in `assets/mobs/creep.png`: 48 near-transparent (alpha < 24) green strays were dropped, and the other 871 had G replaced with a nearby dark-purple body colour (median of neighbouring non-green, non-eye pixels). Eyes, teeth and other body colours are unchanged. After the pass, 0 green-dominant pixels remain.
 - The four new Awakened Basalt sheets had no green-dominant spill. Near-transparent (alpha < 24) white-ish matte crumbs at the silhouette were dropped: 25 on `deep.png`, 18 on `deep_idle.png`, 7 on `deep_cast.png`, 9 on `deep_attack.png`. Mid-alpha light-gray edges that match the interior stone were left alone (they are antialiasing of the rock, not a keying halo).

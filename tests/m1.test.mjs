@@ -58,6 +58,7 @@ const V177=atLeast('1.77'); // M1.77+: the Awakened Deep is the Basalt Heights b
 const V178=atLeast('1.78'); // M1.78+: new Debt Collector and Skittering Creep walk sheets
 const V179=atLeast('1.79'); // M1.79+: Skittering Creep 4-frame sheet; Awakened Deep renamed/resprited as the Awakened Basalt
 const V1791=atLeast('1.79.1'); // M1.79.1+: green-screen despill on the Skittering Creep (and white matte crumbs on the Awakened Basalt)
+const V1792=atLeast('1.79.2'); // M1.79.2+: Heights solid pits and fireball holes use the regular pit shaft renderer
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -5256,7 +5257,348 @@ if(V176&&want('m176')){ await m176Tests(); }
 if(V177&&want('m177')){ await m177Tests(); }
 if(V178&&want('m178')){ await m178Tests(); }
 if(V179&&want('m179')){ await m179Tests(); }
+
+async function m1792Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M1792='/workspace/labyrinth-main/m179.2';
+  fs.mkdirSync(M1792,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m1792_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M1792}/m1792_${name}.png`);
+  };
+  const bootHeights=(G,seed)=>{
+    G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(seed);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'&&e.type!=='creep'){try{G.damageMob(i,99);}catch(err){}}});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+    G.setMsg&&G.setMsg('',0.01);
+  };
+  const findPitView=(G,wantT)=>{
+    const s=G.state();let best=null;
+    const h=s.mapH||40,w=s.mapW||40;
+    for(let y=3;y<h-3;y++)for(let x=3;x<w-3;x++){
+      if(G.cellType(x,y)!==0)continue;
+      if(G.solidAt(x+.5,y+.5))continue;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        if(G.cellType(x+dx,y+dy)!==wantT)continue;
+        let run=0;for(let k=1;k<=8;k++){if(G.cellType(x+dx*k,y+dy*k)!==wantT)break;run++;}
+        const cand={fx:x+.5,fy:y+.5,px:x+dx,py:y+dy,ang:Math.atan2(dy,dx),run,t:wantT};
+        if(!best||run>best.run)best=cand;
+      }
+    }
+    return best;
+  };
+
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m179.2',noFog:true});
+
+  const path=await G(page,()=>{
+    const G=__game;
+    G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+    G.faceBoss&&G.faceBoss(4.0);G.setPitch&&G.setPitch(-0.2);
+    G.setMsg&&G.setMsg('',0.01);G.advance(0.05);G.render();
+    const st=G.state().stats;
+    return {theme:G.themeNow(),openSky:!!(G.openSky&&G.openSky()),deepBoss:!!(G.deepBoss&&G.deepBoss()),
+      shaft:st.pitShaftPx|0,s11:st.pitShaft11|0,s6:st.pitShaft6|0,
+      cap:G.deep&&G.deep.holeCap,holes:G.deepHoles&&G.deepHoles()};
+  });
+  check('M1.79.2 Basalt Heights pit cells render through the regular pit shaft path (not a flat disc)',
+    path.deepBoss&&path.openSky&&/BASALT HEIGHTS/i.test(path.theme||'')&&path.s11>500&&path.shaft===path.s11+path.s6,
+    JSON.stringify(path));
+
+  const move=await G(page,()=>{
+    const G=__game;
+    const s=G.state();let floor=null,pit=null;
+    for(let y=3;y<(s.mapH||40)-3&&!floor;y++)for(let x=3;x<(s.mapW||40)-3&&!floor;x++){
+      if(G.cellType(x,y)!==0||G.solidAt(x+.5,y+.5))continue;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        if(G.cellType(x+dx,y+dy)===11){floor={x:x+.5,y:y+.5};pit={x:x+dx,y:y+dy,ang:Math.atan2(dy,dx)};break;}
+      }
+    }
+    G.teleport(floor.x,floor.y,pit.ang);
+    const p0={x:G.state().player.x,y:G.state().player.y};
+    const walked=G.movePlayer?G.movePlayer(Math.cos(pit.ang)*0.8,Math.sin(pit.ang)*0.8):null;
+    // nudge by advancing into the pit if no movePlayer
+    if(!G.movePlayer){
+      // hold forward-style: teleport attempt is blocked by solidAt; try clip
+      const tx=floor.x+Math.cos(pit.ang)*0.9,ty=floor.y+Math.sin(pit.ang)*0.9;
+      if(!G.solidAt(tx,ty))G.teleport(tx,ty,pit.ang);
+    }
+    const p1=G.state().player;
+    const inPit=G.solidAt(pit.x+.5,pit.y+.5);
+    const falls=G.pitUnder(pit.x+.5,pit.y+.5,0);
+    const stillFloor=!G.solidAt(p1.x,p1.y)&&(p1.x|0)!==pit.x||(p1.y|0)!==pit.y;
+    // actually ensure we did not end inside the pit cell
+    const entered=(p1.x|0)===pit.x&&(p1.y|0)===pit.y;
+    return {inPit,falls,entered,p0,p1:{x:p1.x,y:p1.y},pit,openSky:!!(G.openSky&&G.openSky())};
+  });
+  check('M1.79.2 Heights solid pits still block movement and do not drop you (pitUnder stays on falling pits only)',
+    move.inPit===true&&move.falls===false&&move.entered===false&&move.openSky===true,
+    JSON.stringify(move));
+
+  const hole=await G(page,()=>{
+    const G=__game;
+    // start a clean Heights floor for conversion
+    G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){try{G.damageMob(i,99);}catch(err){}}});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+    const p=G.state().player;
+    // two adjacent mid-floor tiles in front of the player
+    const dx=Math.cos(p.ang),dy=Math.sin(p.ang);
+    const ox=-dy,oy=dx;
+    const findFloor=(bx,by)=>{
+      const cx=Math.floor(p.x+dx*bx+ox*by),cy=Math.floor(p.y+dy*bx+oy*by);
+      return (G.cellType(cx,cy)===0&&!G.solidAt(cx+.5,cy+.5))?{x:cx,y:cy}:null;
+    };
+    let a=null,b=null;
+    for(let d=1.6;d<=4.5&&!(a&&b);d+=0.4){
+      for(let s=-1;s<=1;s++){
+        const c=findFloor(d,s);
+        if(!c)continue;
+        if(!a)a=c;
+        else if(!(c.x===a.x&&c.y===a.y)&&Math.abs(c.x-a.x)+Math.abs(c.y-a.y)===1){b=c;break;}
+      }
+    }
+    // fallback: search any adjacent floor pair
+    if(!a||!b){
+      const s=G.state();
+      outer:for(let y=3;y<(s.mapH||40)-3;y++)for(let x=3;x<(s.mapW||40)-3;x++){
+        if(G.cellType(x,y)!==0)continue;
+        for(const [ux,uy] of [[1,0],[0,1]]){
+          if(G.cellType(x+ux,y+uy)===0){a={x,y};b={x:x+ux,y:y+uy};break outer;}
+        }
+      }
+    }
+    const h0=G.deepHoles();
+    const oldOk=G.deepConvert(a);
+    const h1=G.deepHoles();
+    // look at the pair
+    const midx=(a.x+b.x)/2+.5,midy=(a.y+b.y)/2+.5;
+    const ang=Math.atan2(midy-p.y,midx-p.x);
+    G.teleport(p.x,p.y,ang);G.setPitch&&G.setPitch(-0.22);
+    G.advance(0.05);G.render();
+    const shaftOld=G.state().stats.pitShaft11|0;
+    const freshOk=G.deepConvert(b);
+    G.deepExplode(b.x+.5,b.y+.5); // existing boom as the conversion flash; may no-op if already 11
+    G.advance(0.05);G.setMsg&&G.setMsg('',0.01);G.render();
+    const shaftFresh=G.state().stats.pitShaft11|0;
+    const cap=G.deep.holeCap;
+    let extra=0,skipped=0;
+    for(let i=0;i<30;i++){
+      const s=G.state();
+      let c=null;
+      for(let y=2;y<(s.mapH||40)-2&&!c;y++)for(let x=2;x<(s.mapW||40)-2&&!c;x++){
+        if(G.cellType(x,y)===0&&!G.solidAt(x+.5,y+.5)&&!((x=== (p.x|0))&&(y===(p.y|0))))c={x,y};
+      }
+      if(!c)break;
+      const n0=G.deepHoles();
+      const ok=G.deepConvert(c);
+      if(ok)extra++;
+      else if(G.deepHoles()===n0)skipped++;
+      if(G.deepHoles()>=cap&&!ok)break;
+    }
+    const atCap=G.deepHoles()===cap;
+    const over=G.deepConvert((()=>{const s=G.state();for(let y=2;y<40;y++)for(let x=2;x<40;x++){if(G.cellType(x,y)===0)return {x,y};}return {x:2,y:2};})());
+    return {oldOk,freshOk,h0,h1,shaftOld,shaftFresh,tA:G.cellType(a.x,a.y),tB:G.cellType(b.x,b.y),
+      a,b,cap,holes:G.deepHoles(),atCap,over,openSky:!!(G.openSky&&G.openSky()),fallsA:G.pitUnder(a.x+.5,a.y+.5,0),solidA:G.solidAt(a.x+.5,a.y+.5)};
+  });
+  check('M1.79.2 a fireball hole uses the regular pit shaft path once the tile converts',
+    hole.oldOk&&hole.freshOk&&hole.tA===11&&hole.tB===11&&hole.shaftOld>0&&hole.shaftFresh>0&&hole.h1===hole.h0+1,
+    JSON.stringify(hole));
+  check('M1.79.2 fireball-hole cap, connectivity-style conversion and no-fall rules are unchanged',
+    hole.cap===14&&hole.atCap&&hole.over===false&&hole.holes===14&&hole.fallsA===false&&hole.solidA===true&&hole.openSky===true,
+    JSON.stringify({cap:hole.cap,holes:hole.holes,atCap:hole.atCap,over:hole.over,fallsA:hole.fallsA,solidA:hole.solidA}));
+
+  // ---- screenshots ----
+  await G(page,()=>{
+    window._wipe=G=>{
+      G.freeze=true; // stop the boss, pit-spawns and bites while we pose
+      if(G.clearMobs)G.clearMobs();
+      (G.state().enemies||[]).forEach((e,i)=>{if(e.type==='deep')return;try{G.damageMob(i,999);}catch(err){}if(e){e.gone=true;e.state='dead';}});
+      G.setHearts(9);
+    };
+    window._bestPitView=(G,back)=>{
+      const s=G.state();let best=null;
+      for(let y=4;y<(s.mapH||40)-4;y++)for(let x=4;x<(s.mapW||40)-4;x++){
+        if(G.cellType(x,y)!==0||G.solidAt(x+.5,y+.5))continue;
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          if(G.cellType(x+dx,y+dy)!==11)continue;
+          let run=0;for(let k=1;k<=8;k++){if(G.cellType(x+dx*k,y+dy*k)!==11)break;run++;}
+          // when we asked to stand back, skip lips with no floor behind them (otherwise the camera sits on the creep)
+          if(back>0){
+            let ok=true;
+            for(let s=1;s<=back;s++){
+              const bx=x-dx*s,by=y-dy*s;
+              if(G.cellType(bx,by)!==0||G.solidAt(bx+.5,by+.5)){ok=false;break;}
+            }
+            if(!ok)continue;
+          }
+          const bx=x-dx*back,by=y-dy*back;
+          const cand={fx:(back?bx:x)+.5-dx*.15,fy:(back?by:y)+.5-dy*.15,lipX:x+.5,lipY:y+.5,pitX:x+dx+.5,pitY:y+dy+.5,ang:Math.atan2(dy,dx),run,back};
+          if(!best||run>best.run)best=cand;
+        }
+      }
+      return best;
+    };
+  });
+
+  await G(page,()=>{
+    const G=__game;
+    G.manual=true;if('bossIntro' in G)G.bossIntro=false;try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{if(e.type!=='deep'){try{G.damageMob(i,999);}catch(err){}}});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();
+    G.faceBoss&&G.faceBoss(5.2);G.setPitch&&G.setPitch(0.12);
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.advance(0.08);G.render();
+  });
+  await shot(page,'floor_overview');
+
+  const close=await G(page,()=>{
+    const G=__game;
+    G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();
+    window._wipe(G);
+    const best=window._bestPitView(G,0);
+    G.teleport(best.fx,best.fy,best.ang);
+    G.setPitch&&G.setPitch(-0.38);
+    G.setMsg&&G.setMsg('',0.01);G.advance(0.05);G.render();
+    const st=G.state().stats;
+    return {best,shaft:st.pitShaftPx|0,s11:st.pitShaft11|0};
+  });
+  check('M1.79.2 a close look down into a Heights pit was posed on the regular shaft path',
+    close.best&&close.best.run>=1&&close.s11>200,JSON.stringify(close));
+  await shot(page,'pit_close');
+
+  const holesShot=await G(page,()=>{
+    const G=__game;
+    G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();
+    window._wipe(G);
+    const s=G.state();let a=null,b=null,stand=null;
+    // an interior floor pair with a floor cell 3 tiles back to stand on
+    outer:for(let y=5;y<(s.mapH||40)-5;y++)for(let x=5;x<(s.mapW||40)-5;x++){
+      if(G.cellType(x,y)!==0||G.solidAt(x+.5,y+.5))continue;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        if(G.cellType(x+dx,y+dy)!==0)continue;
+        const sx=x-dx*3,sy=y-dy*3;
+        if(G.cellType(sx,sy)!==0||G.solidAt(sx+.5,sy+.5))continue;
+        // the two tiles should be visible as pits, so prefer they're not tucked in a corner
+        a={x,y};b={x:x+dx,y:y+dy};stand={x:sx+.5,y:sy+.5,ang:Math.atan2(dy,dx)};break outer;
+      }
+    }
+    G.deepConvert(a);
+    G.advance(0.45); // older hole sits for a beat
+    G.deepConvert(b);
+    G.teleport(stand.x,stand.y,stand.ang);
+    // a small fresh blast on the new hole, far enough not to wash the frame in red
+    const dist=Math.hypot((b.x+.5)-stand.x,(b.y+.5)-stand.y);
+    if(dist>2.3)G.deepExplode(b.x+.5,b.y+.5);
+    G.setHearts(9);G.setPitch&&G.setPitch(-0.28);
+    G.setMsg&&G.setMsg('',0.01);G.advance(0.18);G.setHearts(9);G.render();
+    return {a,b,stand,tA:G.cellType(a.x,a.y),tB:G.cellType(b.x,b.y),shaft:G.state().stats.pitShaft11|0,dist};
+  });
+  check('M1.79.2 a fresh fireball hole was posed next to an older one',
+    holesShot.tA===11&&holesShot.tB===11&&holesShot.shaft>0,JSON.stringify(holesShot));
+  await shot(page,'fireball_holes');
+
+  const creepShot=await G(page,()=>{
+    const G=__game;
+    G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();
+    window._wipe(G);
+    const view=window._bestPitView(G,2);
+    G.teleport(view.fx,view.fy,view.ang);
+    // on the lip, a little toward the shaft and left of the balloon
+    const lx=view.lipX+Math.cos(view.ang)*.28+Math.cos(view.ang-1.15)*.22;
+    const ly=view.lipY+Math.sin(view.ang)*.28+Math.sin(view.ang-1.15)*.22;
+    const i=G.spawn('creep',lx,ly,false,[]);
+    const e=G.state().enemies[i];if(e){e.atkT=9;e.state='idle';e.moving=false;}
+    G.setHearts(9);G.setMsg&&G.setMsg('A CREEP CRAWLS OUT OF THE PIT!',2);
+    G.setPitch&&G.setPitch(-0.22);
+    G.render();
+    const st=G.state();
+    const creeps=(st.enemies||[]).filter(en=>en.type==='creep'&&!en.gone&&en.state!=='dead');
+    const p=st.player;
+    return {view,n:creeps.length,creep:creeps[0]&&{x:creeps[0].x,y:creeps[0].y},
+      dist:creeps[0]?Math.hypot(creeps[0].x-p.x,creeps[0].y-p.y):0,hearts:p.hearts,shots:(st.eshots||[]).length};
+  });
+  check('M1.79.2 a creep was posed at a Heights pit lip',
+    creepShot.n>=1&&creepShot.dist>0.8&&creepShot.dist<3.2&&creepShot.hearts>=9,JSON.stringify(creepShot));
+  await shot(page,'creeps_from_pit');
+
+  const depths=await G(page,()=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    let found=null;
+    for(let sd=1;sd<=40&&!found;sd++)for(const f of [9,11,12]){
+      if(G.icyAt&&G.icyAt(sd,f))continue;
+      G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:0});
+      if(G.deepBoss&&G.deepBoss())continue;
+      if(!(G.basaltFloor&&G.basaltFloor()))continue;
+      const s=G.state();
+      for(let y=3;y<(s.mapH||40)-3;y++)for(let x=3;x<(s.mapW||40)-3;x++){
+        if(G.cellType(x,y)!==0||G.solidAt(x+.5,y+.5))continue;
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          if(G.cellType(x+dx,y+dy)===6){found={sd,f,fx:x+.5-dx*.15,fy:y+.5-dy*.15,ang:Math.atan2(dy,dx)};}
+        }
+      }
+      if(found)break;
+    }
+    G.setSeed(found.sd);G.startLevel(found.f-1,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{try{G.damageMob(i,99);}catch(err){}});
+    if(G.seeAll)G.seeAll();G.setHearts(9);
+    G.teleport(found.fx,found.fy,found.ang);
+    G.setPitch&&G.setPitch(-0.38);
+    G.setMsg&&G.setMsg('',0.01);G.advance(0.05);G.render();
+    const st=G.state().stats;
+    return {found,theme:G.themeNow(),deepBoss:!!(G.deepBoss&&G.deepBoss()),shaft:st.pitShaftPx|0,s6:st.pitShaft6|0,s11:st.pitShaft11|0};
+  });
+  check('M1.79.2 a regular Basalt Depths falling pit still uses the same shaft renderer',
+    depths.found&&!depths.deepBoss&&/BASALT DEPTHS/i.test(depths.theme||'')&&depths.s6>200&&depths.s11===0,
+    JSON.stringify(depths));
+  await shot(page,'depths_pit');
+
+  await ctx.close();
+
+  // frame-time budget on a phone-sized canvas, full Heights floor
+  const {ctx:ctxP,page:pageP}=await newPage({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:2,label:'m179.2-phone'});
+  const perf=await G(pageP,()=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+    G.faceBoss&&G.faceBoss(4.0);G.setMsg&&G.setMsg('',0.01);G.advance(0.05);G.render();
+    for(let i=0;i<20;i++)G.render();
+    const N=200,t0=performance.now();
+    for(let i=0;i<N;i++)G.render();
+    const ms=(performance.now()-t0)/N;
+    G.setPitch&&G.setPitch(-0.25);G.render();
+    for(let i=0;i<20;i++)G.render();
+    const t1=performance.now();
+    for(let i=0;i<N;i++)G.render();
+    const msDown=(performance.now()-t1)/N;
+    const st=G.state().stats;
+    return {ms,msDown,N,shaft:st.pitShaftPx|0,s11:st.pitShaft11|0,theme:G.themeNow(),W:(G.dims&&G.dims.W)||480};
+  });
+  // M1.79.1 baseline (same method, m1.79.1-qa, seed 777 Heights): phone 844x390 dsf2 = 1.55 ms/frame (look-down 1.59).
+  // After the shaft path this is ~2.45 ms. Budget 8 ms keeps a large 60 fps margin (16.7 ms).
+  check('M1.79.2 a full Heights floor of pit cells stays well under the frame-time budget on a phone-sized canvas',
+    perf.ms<8&&perf.msDown<8&&perf.s11>500&&perf.W===480,
+    JSON.stringify(perf));
+  await ctxP.close();
+}
+
 if(V1791&&want('m179.1')){ await m1791Tests(); }
+if(V1792&&want('m179.2')){ await m1792Tests(); }
 
 async function m176Tests(){
   const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});

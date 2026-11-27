@@ -60,6 +60,7 @@ const V179=atLeast('1.79'); // M1.79+: Skittering Creep 4-frame sheet; Awakened 
 const V1791=atLeast('1.79.1'); // M1.79.1+: green-screen despill on the Skittering Creep (and white matte crumbs on the Awakened Basalt)
 const V1792=atLeast('1.79.2'); // M1.79.2+: Heights solid pits and fireball holes use the regular pit shaft renderer
 const V1793=atLeast('1.79.3'); // M1.79.3+: Wax Wings (and lev) float over interior Heights pits and fireball holes
+const V1794=atLeast('1.79.4'); // M1.79.4+: map-edge Heights pits and the view past the map edge no longer smear a stretched wall texture
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -5877,7 +5878,251 @@ async function m1793Tests(){
 
 if(V1791&&want('m179.1')){ await m1791Tests(); }
 if(V1792&&want('m179.2')){ await m1792Tests(); }
+async function m1794Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M1794='/workspace/labyrinth-main/m179.4';
+  fs.mkdirSync(M1794,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m1794_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M1794}/m1794_${name}.png`);
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m179.4',noFog:true});
+  await G(page,()=>{
+    window._boot1794=G=>{
+      G.manual=true;G.freeze=false;if('bossIntro' in G)G.bossIntro=false;
+      try{localStorage.clear();}catch(e){}
+      G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+      if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+      if(G.clearMobs)G.clearMobs();G.freeze=true;
+      G.setMsg&&G.setMsg('',0.01);
+    };
+    // Find a mid-side edge cell with a stand cell `cells` inward, looking toward the edge.
+    window._edgePose1794=(G,cells,opts)=>{
+      opts=opts||{};
+      const s=G.state(),w=s.mapW,h=s.mapH,cands=[];
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+        if(G.cellType(x,y)!==11)continue;
+        if(!(x===0||y===0||x===w-1||y===h-1))continue;
+        const isCorner=(x===0||x===w-1)&&(y===0||y===h-1);
+        if(!!opts.corner!==isCorner)continue;
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const sx=x+dx*cells,sy=y+dy*cells;
+          if(sx<1||sy<1||sx>w-2||sy>h-2)continue;
+          if(G.mapEdgeAt(sx+.5,sy+.5))continue;
+          const t=G.cellType(sx,sy);
+          if(t!==0&&t!==11)continue;
+          if(t===0&&G.solidAt(sx+.5,sy+.5))continue;
+          const mid=x===0||x===w-1?Math.abs(y-h/2):Math.abs(x-w/2);
+          const score=(t===0?20:0)-mid;
+          cands.push({ex:x,ey:y,sx,sy,ang:Math.atan2(-dy,-dx),t,score,dx,dy});
+        }
+      }
+      cands.sort((a,b)=>b.score-a.score);
+      return cands[0]||null;
+    };
+    // A corner cell's cardinal inward neighbour is still on the edge ring. Stand diagonally inward and look into the corner.
+    window._cornerPose1794=(G,cells)=>{
+      const s=G.state(),w=s.mapW,h=s.mapH;
+      const corners=[[0,0,1,1],[w-1,0,-1,1],[0,h-1,1,-1],[w-1,h-1,-1,-1]];
+      for(const [ex,ey,dx,dy] of corners){
+        if(G.cellType(ex,ey)!==11)continue;
+        const sx=ex+dx*cells,sy=ey+dy*cells;
+        if(sx<1||sy<1||sx>w-2||sy>h-2)continue;
+        if(G.mapEdgeAt(sx+.5,sy+.5))continue;
+        const t=G.cellType(sx,sy);
+        if(t!==0&&t!==11)continue;
+        if(t===0&&G.solidAt(sx+.5,sy+.5))continue;
+        return {ex,ey,sx,sy,ang:Math.atan2(-dy,-dx),t,dx,dy,corner:true};
+      }
+      return null;
+    };
+    // Rows that are almost one colour across, but jump sharply from the row above: the u=0.5 smear signature.
+    // A real open-sky fade is also horizontally even, but changes smoothly down the screen.
+    window._smearScore1794=(G,x0,x1,y0,y1)=>{
+      const means=[],uniform=[];
+      for(let y=y0;y<=y1;y++){
+        let min=255,max=0,sum=0,n=0;
+        for(let x=x0;x<=x1;x++){
+          const c=G.pixelAt(x,y),l=(c[0]*3+c[1]*6+c[2])|0;
+          if(l<min)min=l;if(l>max)max=l;sum+=l;n++;
+        }
+        means.push(sum/n);
+        uniform.push((max-min)<=18);
+      }
+      let jagged=0,maxStep=0;
+      for(let i=1;i<means.length;i++){
+        const d=Math.abs(means[i]-means[i-1]);
+        if(d>maxStep)maxStep=d;
+        if(uniform[i]&&uniform[i-1]&&d>=9)jagged++;
+      }
+      return {jagged,maxStep:+maxStep.toFixed(2),uniform:uniform.filter(Boolean).length,rows:means.length,band:[x0,x1,y0,y1]};
+    };
+  });
+
+  // Same pose as the M1.79.3 "THE EDGE STILL HOLDS" shot (2 cells in, slight back-nudge, pitch -0.34).
+  const edge=await G(page,()=>{
+    const G=__game;window._boot1794(G);
+    G.give('wings');
+    const pose=window._edgePose1794(G,2);
+    G.teleport(pose.sx+.5-Math.cos(pose.ang)*0.15,pose.sy+.5-Math.sin(pose.ang)*0.15,pose.ang);
+    G.setPitch&&G.setPitch(-0.34);
+    G.setHearts(9);G.setMsg&&G.setMsg('THE EDGE STILL HOLDS',2);
+    G.advance(0.02);G.setMsg&&G.setMsg('THE EDGE STILL HOLDS',2);G.render();
+    const st=G.state().stats;
+    // World band above the horizon, clear of the HUD and minimap: this is where the smeared OOB wall sat.
+    const sm=window._smearScore1794(G,120,360,100,148);
+    return {pose,wallPx:st.wallPx|0,wallTop:st.wallTop,pitShaft11:st.pitShaft11|0,pitShaftPx:st.pitShaftPx|0,openSky:!!G.openSky(),smear:sm};
+  });
+  check('M1.79.4 facing the Heights edge ring does not draw a world-edge wall (open sky / fog instead)',
+    edge.openSky===true&&edge.wallPx===0&&edge.wallTop==null&&edge.pitShaft11>0,
+    JSON.stringify(edge));
+  check('M1.79.4 the band above the horizon at the edge is a smooth fade, not a horizontally smeared wall texture',
+    edge.smear.jagged<=3&&edge.smear.maxStep<24,
+    JSON.stringify(edge.smear));
+  await shot(page,'edge_after');
+
+  // Other angles and distances: 1 and 3 cells away, a diagonal look along the edge, and a corner.
+  const angles=await G(page,()=>{
+    const G=__game;
+    const run=(label,setup)=>{
+      window._boot1794(G);G.give('wings');
+      const pose=setup(G);
+      if(!pose)return {label,ok:false};
+      G.setHearts(9);G.setMsg&&G.setMsg(label,2);
+      G.advance(0.02);G.setMsg&&G.setMsg(label,2);G.render();
+      const st=G.state().stats;
+      const sm=window._smearScore1794(G,120,360,90,148);
+      return {label,ok:true,wallPx:st.wallPx|0,wallTop:st.wallTop,pitShaft11:st.pitShaft11|0,smear:sm,pose,p:G.state().player};
+    };
+    const near=run('EDGE 1 CELL',G=>{
+      const pose=window._edgePose1794(G,1);
+      G.teleport(pose.sx+.5-Math.cos(pose.ang)*0.12,pose.sy+.5-Math.sin(pose.ang)*0.12,pose.ang);
+      return pose;
+    });
+    const far=run('EDGE 3 CELLS',G=>{
+      const pose=window._edgePose1794(G,3);
+      G.teleport(pose.sx+.5,pose.sy+.5,pose.ang);
+      return pose;
+    });
+    const diag=run('EDGE DIAGONAL',G=>{
+      const pose=window._edgePose1794(G,2);
+      // yaw 35 degrees along the edge so the far pit wall is grazed, not face-on
+      G.teleport(pose.sx+.5-Math.cos(pose.ang)*0.15,pose.sy+.5-Math.sin(pose.ang)*0.15,pose.ang+0.61);
+      return pose;
+    });
+    const corner=run('EDGE CORNER',G=>{
+      const pose=window._cornerPose1794(G,2);
+      if(!pose)return null;
+      G.teleport(pose.sx+.5-Math.cos(pose.ang)*0.1,pose.sy+.5-Math.sin(pose.ang)*0.1,pose.ang);
+      return pose;
+    });
+    return {near,far,diag,corner};
+  });
+  const angleOk=o=>o.wallPx===0&&o.smear.jagged<=4&&o.smear.maxStep<24&&o.ok;
+  check('M1.79.4 the edge view stays clean from 1 and 3 cells away, on a diagonal, and in a corner',
+    angleOk(angles.near)&&angleOk(angles.far)&&angleOk(angles.diag)&&angleOk(angles.corner)&&
+    !!angles.corner.pose&&angles.corner.pose.corner===true,
+    JSON.stringify(angles));
+  await G(page,()=>{
+    const G=__game;window._boot1794(G);G.give('wings');
+    const pose=window._edgePose1794(G,1);
+    G.teleport(pose.sx+.5-Math.cos(pose.ang)*0.12,pose.sy+.5-Math.sin(pose.ang)*0.12,pose.ang);
+    G.setPitch&&G.setPitch(-0.34);G.setHearts(9);G.setMsg&&G.setMsg('EDGE 1 CELL',2);
+    G.advance(0.02);G.setMsg&&G.setMsg('EDGE 1 CELL',2);G.render();
+  });
+  await shot(page,'edge_1cell');
+  await G(page,()=>{
+    const G=__game;window._boot1794(G);G.give('wings');
+    const pose=window._edgePose1794(G,3);
+    G.teleport(pose.sx+.5,pose.sy+.5,pose.ang);
+    G.setPitch&&G.setPitch(-0.34);G.setHearts(9);G.setMsg&&G.setMsg('EDGE 3 CELLS',2);
+    G.advance(0.02);G.setMsg&&G.setMsg('EDGE 3 CELLS',2);G.render();
+  });
+  await shot(page,'edge_3cell');
+  await G(page,()=>{
+    const G=__game;window._boot1794(G);G.give('wings');
+    const pose=window._edgePose1794(G,2);
+    G.teleport(pose.sx+.5-Math.cos(pose.ang)*0.15,pose.sy+.5-Math.sin(pose.ang)*0.15,pose.ang+0.61);
+    G.setPitch&&G.setPitch(-0.34);G.setHearts(9);G.setMsg&&G.setMsg('EDGE DIAGONAL',2);
+    G.advance(0.02);G.setMsg&&G.setMsg('EDGE DIAGONAL',2);G.render();
+  });
+  await shot(page,'edge_diag');
+  await G(page,()=>{
+    const G=__game;window._boot1794(G);G.give('wings');
+    const pose=window._cornerPose1794(G,2);
+    G.teleport(pose.sx+.5-Math.cos(pose.ang)*0.1,pose.sy+.5-Math.sin(pose.ang)*0.1,pose.ang);
+    G.setPitch&&G.setPitch(-0.34);G.setHearts(9);G.setMsg&&G.setMsg('EDGE CORNER',2);
+    G.advance(0.02);G.setMsg&&G.setMsg('EDGE CORNER',2);G.render();
+  });
+  await shot(page,'edge_corner');
+
+  // Mid-floor interior pit: the regular shaft must still draw (stone inner walls, not a void).
+  const mid=await G(page,()=>{
+    const G=__game;window._boot1794(G);G.give('wings');
+    const s=G.state();let best=null;
+    for(let y=3;y<(s.mapH||40)-3;y++)for(let x=3;x<(s.mapW||40)-3;x++){
+      if(G.cellType(x,y)!==0||G.solidAt(x+.5,y+.5))continue;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        if(G.cellType(x+dx,y+dy)!==11)continue;
+        if(G.mapEdgeAt&&G.mapEdgeAt(x+dx+.5,y+dy+.5))continue;
+        let run=0;for(let k=1;k<=8;k++){if(G.cellType(x+dx*k,y+dy*k)!==11)break;if(G.mapEdgeAt&&G.mapEdgeAt(x+dx*k+.5,y+dy*k+.5))break;run++;}
+        const cand={fx:x+.5,fy:y+.5,px:x+dx,py:y+dy,ang:Math.atan2(dy,dx),run};
+        if(!best||run>best.run)best=cand;
+      }
+    }
+    G.teleport(best.px+.5-Math.cos(best.ang)*0.2,best.py+.5-Math.sin(best.ang)*0.2,best.ang);
+    G.setPitch&&G.setPitch(-0.4);
+    G.setHearts(9);G.setMsg&&G.setMsg('WAX WINGS',2);
+    G.advance(0.02);G.setMsg&&G.setMsg('WAX WINGS',2);G.render();
+    const st=G.state().stats;
+    // The lower half should have horizontal variation from the stone shaft walls (not one smeared column).
+    let horizVar=0,n=0;
+    for(let y=180;y<280;y+=4){
+      let min=255,max=0;
+      for(let x=40;x<440;x+=2){
+        const c=G.pixelAt(x,y),l=c[0]+c[1]+c[2];
+        if(l<min)min=l;if(l>max)max=l;
+      }
+      horizVar+=max-min;n++;
+    }
+    return {best,wallPx:st.wallPx|0,pitShaft11:st.pitShaft11|0,pitShaftPx:st.pitShaftPx|0,avgHorizVar:n?+(horizVar/n).toFixed(1):0};
+  });
+  check('M1.79.4 a mid-floor Heights pit still uses the regular shaft renderer with textured inner walls',
+    mid.pitShaft11>50&&mid.avgHorizVar>25,
+    JSON.stringify(mid));
+  await shot(page,'mid_pit_after');
+
+  await ctx.close();
+
+  // Frame time: same phone-canvas method as M1.79.2 (budget 8 ms; M1.79.2 was 2.45 ms).
+  const {ctx:ctxP,page:pageP}=await newPage({viewport:{width:844,height:390},hasTouch:true,isMobile:true,deviceScaleFactor:2,label:'m179.4-phone'});
+  const perf=await G(pageP,()=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+    if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+    G.faceBoss&&G.faceBoss(4.0);G.setMsg&&G.setMsg('',0.01);G.advance(0.05);G.render();
+    for(let i=0;i<20;i++)G.render();
+    const N=200,t0=performance.now();
+    for(let i=0;i<N;i++)G.render();
+    const ms=(performance.now()-t0)/N;
+    G.setPitch&&G.setPitch(-0.25);G.render();
+    for(let i=0;i<20;i++)G.render();
+    const t1=performance.now();
+    for(let i=0;i<N;i++)G.render();
+    const msDown=(performance.now()-t1)/N;
+    const st=G.state().stats;
+    return {ms:+ms.toFixed(3),msDown:+msDown.toFixed(3),N,shaft:st.pitShaftPx|0,s11:st.pitShaft11|0,theme:G.themeNow(),W:(G.dims&&G.dims.W)||480};
+  });
+  check('M1.79.4 a full Heights floor of pit cells stays well under the frame-time budget on a phone-sized canvas',
+    perf.ms<8&&perf.msDown<8&&perf.s11>500&&perf.W===480,
+    JSON.stringify(perf));
+  await ctxP.close();
+}
+
 if(V1793&&want('m179.3')){ await m1793Tests(); }
+if(V1794&&want('m179.4')){ await m1794Tests(); }
 
 async function m176Tests(){
   const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});

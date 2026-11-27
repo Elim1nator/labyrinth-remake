@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.79.4: no smeared wall at the Heights map edge
+- Looking at the Basalt Heights map-edge pit ring (or anything past the map edge) no longer draws a stretched, streaky stone wall across the middle of the screen. The raycaster used to treat out-of-bounds as a solid wall sampled at a fixed texture column (`u = 0.5`), which smeared one texel column across every screen column. On Heights there is no roof and the border is pits, not walls, so that fake wall filled the open sky.
+- On an open-sky floor the world edge is now open: rays that leave the map do not draw a wall, a pit shaft whose far side is out of bounds opens into dark fog rather than a stone face, and floor samples past the map fade into the same fog/sky as the open ceiling. Interior Heights pits and regular falling pits are unchanged (they still show textured inner shaft walls).
+- On other floors, if a ray ever leaves the map, the fallback wall now uses a real texture `u` so it does not smear.
+- Official suite on the frozen QA build: 767/767 passed.
+- Frame time on a phone-sized canvas (844×390, same method as M1.79.2): **2.24 ms/frame** (look-down 2.19), vs 2.45 / 2.32 in M1.79.2. No regression.
+
 ## M1.79.3: Wax Wings float over Heights pits
 - Wax Wings (`effectIs('wings')`, and the same `stOn('lev')` levitation that already floats over regular pits) now let the player cross interior Basalt Heights pits (`t===11`) and fireball holes. Those cells stay solid in `solidAt` for everyone else, so without wings they still block like a wall and you cannot walk in and fall. The outer map-edge ring of `t===11` cells (x==0, y==0, x==w-1, y==h-1) stays solid for everyone, including a winged player; out-of-bounds stays solid. You cannot leave the map.
 - If wings or levitation expire or are lost while you are over an interior Heights pit, you start a fall (`startFall`), the same as when they run out over a regular falling pit (`t===6`).

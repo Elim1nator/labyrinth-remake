@@ -1,3 +1,5 @@
+Follow-up: **M1.75.1** (same branch) changes the Sovereign's small piles to the regular Rattlebone `bonePile` art and adds a wall-tiling regression test. This M1.75 freeze is left intact.
+
 # M1.75 handoff
 
 The Rattle Sovereign replaces the Luggernaut, cut from main at M1.74.1 (`447992a2`). Branch `Grok-Code-16`. No PR, no merge, no force-push. Grok-Code-14 and Grok-Code-15 were left alone.

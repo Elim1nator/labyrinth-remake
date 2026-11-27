@@ -250,7 +250,7 @@ A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
 
 - Thresholds: 75%, 50%, 25% of `maxHp`, rounded (`Math.round`). `hitBossOnce` / a single balloon cannot jump past the next one.
 - Big pile: states `sovfall` (0.6 s), `sovdown` (until every small pile is smashed or has rebuilt), `sovup` (1.0 s, collapse frames in reverse). No damage and no contact bite in those states.
-- Small piles: 2 or 3 (`SOV.pilesMin` / `pilesMax`), using a smaller copy of the big-pile frame. They are Rattlebone (`skeleton`) ents in `state='pile'`, so they use the existing 4.5 s rebuild / smash rules.
+- Small piles: 2 or 3 (`SOV.pilesMin` / `pilesMax`), drawn with the regular Rattlebone `bonePile` sprite and scale (`h:.2`, including the tell/glow frame). They are Rattlebone (`skeleton`) ents in `state='pile'`, so they use the existing 4.5 s rebuild / smash rules. `sovpile.png` is left in the repo but is no longer packed.
 - Skulls: kind `sovskull` (new art, not the Infernal wither `skull`). 4.2 cells/s, 1 heart, 3.6 s life.
 - Loot, arena lock, wake, the sealed portal and `BOSS_LOOT` (15 coins + a run item + a use-item) are unchanged. The Luggernaut is retired (`assets/mobs/lugg.png` is left on disk, no longer packed).
 

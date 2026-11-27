@@ -61,6 +61,7 @@ const V1791=atLeast('1.79.1'); // M1.79.1+: green-screen despill on the Skitteri
 const V1792=atLeast('1.79.2'); // M1.79.2+: Heights solid pits and fireball holes use the regular pit shaft renderer
 const V1793=atLeast('1.79.3'); // M1.79.3+: Wax Wings (and lev) float over interior Heights pits and fireball holes
 const V1794=atLeast('1.79.4'); // M1.79.4+: map-edge Heights pits and the view past the map edge no longer smear a stretched wall texture
+const V1795=atLeast('1.79.5'); // M1.79.5+: Icy Prison minimap walls are solid icy blue; the Ice Wizard is a real boss
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -242,7 +243,7 @@ async function findSovFloor(page){
   else check('retry restarts the level with full hearts',st.mode==='play'&&st.level===1&&st.player.hearts===5);
 
   // win screen
-  st=await G(page,(v13)=>{if(v13){__game.startLevel(__game.numLevels-1);const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);}else __game.teleport(3.5,10.5,0);__game.advance(0.6);__game.confirm();return __game.advance(0.05);},V13);
+  st=await G(page,(v13,v1795)=>{if(v13){__game.startLevel(__game.numLevels-1);if(v1795){__game.bossIntro=false;if(__game.unseal)__game.unseal();}const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);}else __game.teleport(3.5,10.5,0);__game.advance(0.6);__game.confirm();let r=__game.advance(0.05);if(v1795&&r.mode==='intro'&&__game.skipBossIntro){__game.skipBossIntro();r=__game.advance(0.05);}return r;},V13,V1795);
   if(V18){const nx=await G(page,()=>__game.state());check('M1.8 finishing level 8 no longer wins: the next floor (9) starts and is saved',nx.mode==='play'&&nx.level===8&&nx.save&&nx.save.level===8,`mode=${nx.mode} level=${nx.level}`);}
   else check(V13?'finishing the last level (8) shows the win screen and clears the save':'finishing level 2 shows the win screen and clears the save',st.mode==='win'&&!st.save);
   await page.screenshot({path:`${SHOTS}/desktop_1280x720_win.png`});
@@ -399,7 +400,8 @@ async function m110Tests(){
     const diff=Object.keys(cur).filter(k=>cur[k]!==prev[k]);
     check('M1.10 floors without a boss are generated exactly as in M1.9.1, boss floors keep their M1.8 layout (3 seeds x floors 2-26)',diff.length===0,diff.slice(0,6).join(', '));
     const api=await G(page,()=>({mobs:Object.keys(__game.mobs),bosses:Object.keys(__game.bosses).map(k=>({k,name:__game.bosses[k].name,hp:__game.bosses[k].hp,ch:__game.bosses[k].ch,dot:__game.bosses[k].dot})),f:[5,10,15,20,25,30,80,95,200].map(f=>{const b=__game.bossFor(f);return f+':'+b.type+':'+b.tier+':'+b.hpMul.toFixed(2);}),none:[1,4,6,7,11].map(f=>__game.bossFor(f))}));
-    check('M1.10 three bosses with their own names and map letters, kept out of the regular mob table; tougher each round (+40% HP per round of three, at most x3)',api.bosses.length===3&&new Set(api.bosses.map(b=>b.name)).size===3&&!api.mobs.some(m=>api.bosses.some(b=>b.k===m))&&api.none.every(x=>x===null)&&api.f.join()===(V175?'5:king:0:1.00,10:sovereign:0:1.00,15:owl:0:1.00,20:king:1:1.40,25:sovereign:1:1.40,30:owl:1:1.40,80:king:5:3.00,95:king:6:3.00,200:king:13:3.00':'5:king:0:1.00,10:lugg:0:1.00,15:owl:0:1.00,20:king:1:1.40,25:lugg:1:1.40,30:owl:1:1.40,80:king:5:3.00,95:king:6:3.00,200:king:13:3.00'),JSON.stringify(api));
+    const rot=api.bosses.filter(b=>b.k==='king'||b.k==='owl'||b.k==='sovereign'||b.k==='lugg');
+    check('M1.10 three bosses with their own names and map letters, kept out of the regular mob table; tougher each round (+40% HP per round of three, at most x3)',rot.length===3&&new Set(rot.map(b=>b.name)).size===3&&!api.mobs.some(m=>rot.some(b=>b.k===m))&&(!V1795||(api.bosses.some(b=>b.k==='icewiz'&&b.ch==='y')&&!api.mobs.includes('icewiz')))&&api.none.every(x=>x===null)&&api.f.join()===(V175?'5:king:0:1.00,10:sovereign:0:1.00,15:owl:0:1.00,20:king:1:1.40,25:sovereign:1:1.40,30:owl:1:1.40,80:king:5:3.00,95:king:6:3.00,200:king:13:3.00':'5:king:0:1.00,10:lugg:0:1.00,15:owl:0:1.00,20:king:1:1.40,25:lugg:1:1.40,30:owl:1:1.40,80:king:5:3.00,95:king:6:3.00,200:king:13:3.00'),JSON.stringify(api));
     savePng('m110_boss_sprites_3x.png',await G(page,()=>__game.spriteSheet(3,'boss')));
     const fr=await G(page,V=>({king:new Set([0,1,2,3].map(i=>__game.frameSig('king',i))).size,owl:new Set([0,1,2,3].map(i=>__game.frameSig('owl',i))).size,mid:V?new Set([0,1,2,3,4].map(i=>__game.frameSig('sovereign',i))).size:new Set([0,1,2,3,4,5].map(i=>__game.frameSig('lugg',i))).size,fall:V?new Set([0,1,2,3].map(i=>__game.frameSig('sovereignFall',i))).size:4,portalS:__game.frameSig('portalS',0)!==__game.frameSig('portal',0)}),V175);
     check(V175?'M1.10/M1.75 boss art: King Gloop and Coghoot have 4 distinct frames, the Rattle Sovereign has 5 walk frames and 4 collapse frames; the sealed portal looks different':'M1.10 boss art: King Gloop and Coghoot have 4 distinct frames, Luggernaut 6 (2 per stack height); the sealed portal looks different',fr.king===4&&fr.owl===4&&(V175?fr.mid===5&&fr.fall===4:fr.mid===6)&&fr.portalS,JSON.stringify(fr));
@@ -1871,7 +1873,7 @@ async function m169Tests(){
     o.kinds=Object.keys(kinds);o.booms=(G.state().stats.wizBooms|0)-booms0;o.storm=storm*.05;o.minView=minView;o.frames=[...frames];
     const w0=G.wizard();G.wizSet({hp:Math.floor(w0.maxHp*.74)});G.advance(.1);o.sh=G.wizard();o.spikes=G.spikes().length;const hpS=G.wizard().hp;G.damageMob(i,1);o.hpShield=G.wizard().hp-hpS;
     G.state().enemies.forEach((e,j)=>{if(e.type==='icespike')G.damageMob(j,5);});G.advance(.5);o.after=G.wizard();const hpA=G.wizard().hp;G.damageMob(i,1);o.hpAfter=G.wizard().hp-hpA;
-    G.wizSet({hp:1});G.damageMob(i,1);G.advance(.6);o.items=G.state().items.filter(it=>it.kind==='item').map(it=>it.ptype);o.stormAfter=G.stormT();return o;},gen.first);
+    G.wizSet(k.v1795?{hp:1,shield:false,shieldIdx:3}:{hp:1});G.damageMob(i,1);G.advance(.6);o.items=G.state().items.filter(it=>it.kind==='item').map(it=>it.ptype);o.stormAfter=G.stormT();return o;},{...gen.first,v1795:!!V1795});
   check('M1.69 the Ice Wizard wakes when he sees you and casts small ice orbs and big ones that burst into blue explosions',fight.woke&&fight.woke.woke&&fight.kinds.includes('iceorb')&&fight.kinds.includes('icebig')&&fight.booms>=1&&fight.frames.includes(0),JSON.stringify(fight));
   check('M1.69 his blizzard cuts the view to 3 tiles for 5-10 s',fight.storm>=5&&fight.minView<=3,JSON.stringify({storm:fight.storm,minView:fight.minView}));
   check('M1.69 at 75% health he raises a shield bubble and summons 2-5 ice spikes; he cannot be hurt until they are all gone',fight.sh.shield&&fight.spikes>=2&&fight.spikes<=5&&fight.hpShield===0&&!fight.after.shield&&fight.hpAfter<0,JSON.stringify({sh:fight.sh,spikes:fight.spikes,hpShield:fight.hpShield,after:fight.after,hpAfter:fight.hpAfter}));
@@ -6122,7 +6124,167 @@ async function m1794Tests(){
 }
 
 if(V1793&&want('m179.3')){ await m1793Tests(); }
+
+async function m1795Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M1795='/workspace/labyrinth-main/m179.5';
+  fs.mkdirSync(M1795,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m1795_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M1795}/m1795_${name}.png`);
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m179.5',noFog:true});
+
+  const cols=await G(page,()=>__game.mapColInfo());
+  const missingTex=(cols.tex||[]).filter(t=>t.wall&&!t.ok).map(t=>t.name+':'+t.i);
+  const missingTheme=[];
+  (cols.themes||[]).forEach(th=>{th.walls.forEach(w=>{if(!w.ok)missingTheme.push(th.name+' '+w.ch+' tex='+w.tex);});});
+  check('M1.79.5 every wall texture (not doors or fences) and every theme wall letter has an opaque minimap colour',missingTex.length===0&&missingTheme.length===0,JSON.stringify({missingTex,missingTheme,ice:cols.tex.filter(t=>t.i>=20)}));
+  const iceCols=(cols.tex||[]).filter(t=>t.i>=20&&t.i<=22);
+  check('M1.79.5 the three Icy Prison wall textures use a pale icy blue (blue-heavy, fully opaque)',iceCols.length===3&&iceCols.every(c=>c.ok&&c.a===255&&c.b>c.r+20&&c.b>=180&&c.g>=160),JSON.stringify(iceCols));
+
+  const icy=await G(page,()=>{
+    const G=__game;let first=null,bad=[],other=0,ok=0,nIcy=0,pools=G.mobPools||{};
+    const inPool=Object.values(pools.pools||{}).some(a=>a.includes('icewiz'))||Object.values(pools.featured||{}).some(a=>a.includes('icewiz'));
+    for(let sd=1;sd<=80;sd++)for(let f=3;f<=24;f++){
+      const ic=G.icyAt(sd,f);const d=G.genMap(sd,f);const n=[...d.map.join('')].filter(c=>c==='y').length;
+      if(ic){nIcy++;if(d.boss&&d.boss.type==='icewiz'&&n===1&&d.boss.room&&d.boss.room.w>=13&&d.boss.room.h>=11)ok++;else bad.push({sd,f,boss:d.boss,n});if(!first)first={sd,f,room:d.boss&&d.boss.room,x:d.boss&&d.boss.x,y:d.boss&&d.boss.y};}
+      else{other+=n;if(d.boss&&d.boss.type==='icewiz')bad.push({sd,f,why:'icewiz on non-icy'});}
+    }
+    return {first,bad,other,ok,nIcy,inPool,king:G.genMap(777,5).boss&&G.genMap(777,5).boss.type};
+  });
+  check('M1.79.5 every Icy Prison floor is an Ice Wizard boss floor (sealed arena 13x11 or larger, exactly one wizard) and he is nowhere else',icy.nIcy>0&&icy.ok===icy.nIcy&&icy.other===0&&icy.bad.length===0&&!icy.inPool,JSON.stringify(icy));
+  check('M1.79.5 the every-5th-floor rotating bosses are unchanged (floor 5 is still a regular boss, not the Ice Wizard)',!!icy.king&&icy.king!=='icewiz',JSON.stringify({king:icy.king}));
+
+  const play=await G(page,(k)=>{
+    const G=__game;G.manual=true;G.freeze=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:9,coins:0});
+    if(G.seeAll)G.seeAll();G.setMinimap&&G.setMinimap(true);G.setHearts&&G.setHearts(9);
+    G.skipBossIntro&&G.skipBossIntro();
+    const s=G.state(),b=G.boss&&G.boss(),w=(G.state().enemies||[]).filter(e=>e.type==='icewiz'&&!e.gone);
+    // Sample minimap pixels that sit on seen wall cells
+    const R=[399,3,78,78],cs=6,ox=R[0]+3,oy=R[1]+3,cx0=Math.floor(s.player.x)-6,cy0=Math.floor(s.player.y)-6;
+    const fx=s.player.x-Math.floor(s.player.x),fy=s.player.y-Math.floor(s.player.y);
+    const offx=Math.round((.5-fx)*cs),offy=Math.round((.5-fy)*cs);
+    G.render();
+    const walls=[],leaks=0;let leakN=0,solid=0,blue=0;
+    for(let j=0;j<=12;j++)for(let i=0;i<=12;i++){
+      const mx=cx0+i,my=cy0+j;if(mx<0||my<0||mx>=s.mapW||my>=s.mapH)continue;
+      if(G.cellType(mx,my)!==1)continue;
+      const X=ox+i*cs+3+offx,Y=oy+j*cs+3+offy;
+      if(X<R[0]+2||Y<R[1]+2||X>=R[0]+R[2]-2||Y>=R[1]+R[3]-2)continue;
+      const p=G.pixelAt(X,Y);const r=p[0],g=p[1],b=p[2];
+      walls.push({r,g,b});solid++;
+      if(b>r+15&&b>=150&&g>=130)blue++;
+    }
+    return {
+      name:s.levelName||G.themeNow(),msg:s.msg,sealed:!!(G.sealed&&G.sealed()),
+      arena:b&&b.def&&b.def.room,
+      wiz:w.length,wizHp:w[0]&&{hp:w[0].hp,maxHp:w[0].maxHp,type:w[0].type},
+      bossType:G.bossTypeNow&&G.bossTypeNow(),
+      solid,blue,sample:walls.slice(0,6),
+      pal:iceColsDummy(walls)
+    };
+    function iceColsDummy(a){if(!a.length)return null;const r=a.reduce((x,q)=>x+q.r,0)/a.length,g=a.reduce((x,q)=>x+q.g,0)/a.length,b=a.reduce((x,q)=>x+q.b,0)/a.length;return {r:r|0,g:g|0,b:b|0,n:a.length};}
+  },icy.first);
+  check('M1.79.5 loading an Icy Prison floor seals the stairs, names the Ice Wizard as the boss, and places him in the arena',play.sealed&&play.wiz===1&&play.bossType==='icewiz'&&/ICE WIZARD/.test(play.msg||'')&&/COLD/.test(play.msg||''),JSON.stringify({sealed:play.sealed,wiz:play.wiz,bossType:play.bossType,msg:play.msg,name:play.name,hp:play.wizHp}));
+  check('M1.79.5 Icy Prison minimap walls paint a solid pale icy blue (no see-through 3D pixels)',play.solid>=8&&play.blue>=play.solid*.8&&play.pal&&play.pal.b>play.pal.r+15,JSON.stringify({solid:play.solid,blue:play.blue,pal:play.pal,sample:play.sample}));
+
+  await shot(page,'ice_minimap_after');
+  const lay=await G(page,()=>{const L=__game.layout();return L&&L.minimap;});
+  if(lay)await page.screenshot({path:`${M1795}/m1795_ice_minimap_after_zoom.png`,clip:{x:Math.max(0,lay.x-8),y:Math.max(0,lay.y-8),width:lay.w+16,height:lay.h+16}});
+  // also copy zoom into test-output
+  if(fs.existsSync(`${M1795}/m1795_ice_minimap_after_zoom.png`))fs.copyFileSync(`${M1795}/m1795_ice_minimap_after_zoom.png`,`${S}/m1795_ice_minimap_after_zoom.png`);
+
+  const fight=await G(page,(k)=>{
+    const G=__game;G.manual=true;G.freeze=true;G.bossIntro=true;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});
+    G.setHearts&&G.setHearts(99);if(G.seeAll)G.seeAll();G.setMinimap&&G.setMinimap(true);
+    const b=G.boss(),ent=b&&b.ent,A=b&&b.def&&b.def.room;
+    // Walk into the arena to fire the intro
+    if(A){G.teleport(A.x+A.w/2,A.y+A.h/2,Math.PI);}
+    G.freeze=false;G.advance(.2);
+    const intro={mode:G.state().mode,msg:G.state().msg};
+    // Let the VS banner come up (INTRO.vs is 1.7 s; state() has no modeT)
+    for(let t=0;t<44&&G.state().mode==='intro';t++)G.advance(.05);
+    const vs={mode:G.state().mode,steps:44};
+    G.freeze=true;G.render();
+    return {intro,vs,arena:A,wiz:ent&&{x:ent.x,y:ent.y,hp:ent.hp,maxHp:ent.maxHp,woke:ent.woke},name:MOBSName()};
+    function MOBSName(){return (G.bossTypeNow&&G.bossTypeNow())||(ent&&ent.type);}
+  },icy.first);
+  check('M1.79.5 stepping into the Ice Wizard arena starts the boss intro cut scene',fight.intro.mode==='intro'&&fight.vs.mode==='intro'&&fight.arena&&fight.arena.w>=13&&fight.arena.h>=11,JSON.stringify(fight));
+  await shot(page,'ice_wizard_intro');
+
+  const mid=await G(page,(k)=>{
+    const G=__game;G.manual=true;G.freeze=true;G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});
+    G.setHearts&&G.setHearts(99);if(G.seeAll)G.seeAll();G.setMinimap&&G.setMinimap(true);
+    G.skipBossIntro&&G.skipBossIntro();G.godMode&&G.godMode(true);
+    const b=G.boss(),e=b&&b.ent,A=b&&b.def&&b.def.room;
+    if(e)G.teleport(e.x-2.2,e.y,0);
+    G.freeze=false;G.advance(.25);
+    const w0=G.wizard();
+    // Real damage crossing the 75% threshold should raise the bubble (not only wizSet)
+    const max=w0.maxHp,before=w0.hp;
+    // Leave him just above 75%, then one hit must clamp and bubble
+    G.wizSet({hp:Math.floor(max*.75)+2,maxHp:max,woke:true,shield:false,shieldIdx:0,init:true});
+    const i=(G.state().enemies||[]).findIndex(q=>q.type==='icewiz'&&!q.gone);
+    const hpPre=G.wizard().hp;G.damageMob(i,8);G.advance(.1);
+    const sh=G.wizard();const spikes=(G.spikes&&G.spikes())||(G.state().enemies||[]).filter(q=>q.type==='icespike'&&!q.gone&&q.state!=='dead');
+    const hpShield=sh.hp;G.damageMob(i,4);const blocked=G.wizard().hp===hpShield;
+    G.freeze=true;G.render();
+    const bar=(G.state().stats||{}).bossBar;
+    return {w0,before,hpPre,sh,spikes:spikes.length,blocked,bar,hp:sh.hp,max,i};
+  },icy.first);
+  check('M1.79.5 a hit that would cross 75% health raises the shield bubble, summons 2-5 ice spikes, and further hits deal no damage',mid.sh&&mid.sh.shield&&mid.spikes>=2&&mid.spikes<=5&&mid.blocked&&mid.sh.hp===Math.round(mid.max*0.75),JSON.stringify(mid));
+  check('M1.79.5 once he is awake the message band shows his name and a boss HP bar',mid.bar&&mid.bar.max>0&&mid.sh.woke&&mid.sh.hp>0&&mid.sh.maxHp>=40,JSON.stringify({bar:mid.bar,hp:mid.sh.hp,max:mid.sh.maxHp,woke:mid.sh.woke}));
+  await shot(page,'ice_wizard_shield');
+
+  // Arena + HP bar pose (no shield): wake him at full HP and look at him
+  await G(page,(k)=>{
+    const G=__game;G.manual=true;G.freeze=true;G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});
+    G.setHearts&&G.setHearts(99);if(G.seeAll)G.seeAll();G.setMinimap&&G.setMinimap(true);
+    G.skipBossIntro&&G.skipBossIntro();
+    const e=(G.state().enemies||[]).find(q=>q.type==='icewiz'&&!q.gone);
+    if(e){G.teleport(e.x-2.4,e.y,0);G.wizSet({woke:true,state:'chase'});}
+    G.freeze=false;G.advance(.15);G.freeze=true;G.render();
+  },icy.first);
+  await shot(page,'ice_wizard_arena');
+
+  const dead=await G(page,(k)=>{
+    const G=__game;G.manual=true;G.freeze=true;G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(k.sd);G.startLevel(k.f-1,{hearts:99,coins:0});
+    G.setHearts&&G.setHearts(99);if(G.seeAll)G.seeAll();G.setMinimap&&G.setMinimap(true);
+    G.skipBossIntro&&G.skipBossIntro();G.godMode&&G.godMode(true);
+    const e=(G.state().enemies||[]).find(q=>q.type==='icewiz'&&!q.gone);
+    const i=(G.state().enemies||[]).findIndex(q=>q.type==='icewiz'&&!q.gone);
+    const A=G.boss()&&G.boss().def&&G.boss().def.room;const exit=G.state().exit;
+    // Break any leftover shield phases by setting shieldIdx past the end, then finish him
+    G.wizSet({hp:1,shield:false,shieldIdx:3,woke:true,init:true});
+    G.damageMob(i,2);
+    G.freeze=false;for(let t=0;t<30;t++)G.advance(.05); // 1.5 s covers bossDying 1.1 s
+    G.freeze=true;
+    if(exit)G.teleport(exit.x+.5,exit.y+2.2,Math.PI*1.5);
+    else if(A)G.teleport(A.x+A.w/2,A.y+A.h/2,0);
+    G.render();
+    const st=G.state();
+    return {sealed:!!(G.sealed&&G.sealed()),msg:st.msg,mode:st.mode,items:(st.items||[]).filter(it=>it.kind==='item').map(it=>it.ptype),portalHidden:!!(G.boss&&G.boss().portalHidden),wizGone:(G.state().enemies||[]).every(q=>q.type!=='icewiz'||q.gone||q.state==='dead')};
+  },icy.first);
+  check('M1.79.5 when the Ice Wizard falls the stairs unseal, the defeat banner names him, and the Frozen Wand drops',dead.wizGone&&dead.sealed===false&&/ICE WIZARD DEFEATED/.test(dead.msg||'')&&/STAIRS APPEAR/.test(dead.msg||'')&&dead.items.includes('wand'),JSON.stringify(dead));
+  await shot(page,'ice_wizard_defeat');
+
+  await ctx.close();
+}
+
 if(V1794&&want('m179.4')){ await m1794Tests(); }
+if(V1795&&want('m179.5')){ await m1795Tests(); }
 
 async function m176Tests(){
   const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
@@ -7026,7 +7188,7 @@ async function regressionTests(){
     const touch=await cdpTouch(ctx,page);
     await sleep(500);
     // A5: low tap on the win screen goes to the title, not a new game
-    await G(page,(v13)=>{__game.manual=true;if(v13){__game.startLevel(__game.numLevels-1);const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);}else{__game.startLevel(1);__game.teleport(3.5,10.5,0);}__game.advance(0.6);__game.confirm();__game.advance(0.05);__game.manual=false;},V13);
+    await G(page,(v13,v1795)=>{__game.manual=true;if(v13){__game.startLevel(__game.numLevels-1);if(v1795){__game.bossIntro=false;if(__game.unseal)__game.unseal();}const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);}else{__game.startLevel(1);__game.teleport(3.5,10.5,0);}__game.advance(0.6);__game.confirm();__game.advance(0.05);if(v1795&&__game.state().mode==='intro'&&__game.skipBossIntro)__game.skipBossIntro();__game.manual=false;},V13,V1795);
     await sleep(700);
     let st=await G(page,()=>__game.state());const wasWin=st.mode==='win',was9=st.mode==='play'&&st.level===8;
     await page.touchscreen.tap(422,300);await sleep(450);

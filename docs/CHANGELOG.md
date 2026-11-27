@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.79.5: Icy Prison minimap walls, and the Ice Wizard is a real boss
+- Icy Prison minimap (and full-map) walls were not a colour of their own. The three ice wall textures (`icetile`, `frostwall`, `icebrick`, tex 20-22) were added in M1.68, but `MAPCOL` stopped at ironbound (tex 19). Drawing `MAPCOL[c.tex]` wrote an empty pixel, so the 3D view showed through the wall cells. They now use a solid pale icy blue, and every other theme's wall letters were checked for the same gap (none had one). A missing colour also falls back to icy blue so a hole cannot open again.
+- The Ice Wizard is no longer a regular mob in a far room on Icy Prison floors. Every Icy Prison floor is now his boss floor: a large 13x11 arena, a VS intro, a boss HP bar, and stairs that stay sealed until he falls (`ICE WIZARD DEFEATED! THE STAIRS APPEAR!`). He keeps his name, art, orbs, blizzard and Frozen Wand drop. He is not in the normal mob pools and does not replace the every-5th-floor bosses (King, Sovereign, Coghoot) or the Yellow, Masque, Brood or Awakened Basalt fights. Icy Prison still never overlays those floors.
+- His bubble shield (at 75%, 50% and 25% health) is raised in the hit that would cross a threshold, the same way the Rattle Sovereign and the Awakened Basalt cannot skip a phase. Damage is blocked until you shatter the 2-5 ice spikes. The bubble is brighter and pulses so it is obvious he is shielded.
+- Official suite on the frozen QA build: 777/777 passed.
+
 ## M1.79.4: no smeared wall at the Heights map edge
 - Looking at the Basalt Heights map-edge pit ring (or anything past the map edge) no longer draws a stretched, streaky stone wall across the middle of the screen. The raycaster used to treat out-of-bounds as a solid wall sampled at a fixed texture column (`u = 0.5`), which smeared one texel column across every screen column. On Heights there is no roof and the border is pits, not walls, so that fake wall filled the open sky.
 - On an open-sky floor the world edge is now open: rays that leave the map do not draw a wall, a pit shaft whose far side is out of bounds opens into dark fog rather than a stone face, and floor samples past the map fade into the same fog/sky as the open ceiling. Interior Heights pits and regular falling pits are unchanged (they still show textured inner shaft walls).

@@ -119,7 +119,8 @@
         "wand",
         "snowball",
         "ferryman",
-        "masterkey"
+        "masterkey",
+        "obsidian"
       ]
     },
     "mods": {
@@ -288,6 +289,11 @@
     "skitter": {
       "file": "mobs/skitter.png",
       "frames": 4,
+      "k": 1.5
+    },
+    "creep": {
+      "file": "mobs/creep.png",
+      "frames": 5,
       "k": 1.5
     },
     "bigspider": {
@@ -507,6 +513,11 @@
     },
     "snowball": {
       "file": "snowball.png",
+      "frames": 1,
+      "k": 1.5
+    },
+    "obsidian_shard": {
+      "file": "obsidian_shard.png",
       "frames": 1,
       "k": 1.5
     },

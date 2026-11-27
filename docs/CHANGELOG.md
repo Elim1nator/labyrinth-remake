@@ -3,6 +3,11 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.76: Obsidian Column, Skittering Creep; moss wall art restored
+- Jacob asked to keep the old moss wall art. `assets/walls.png` is restored to the pre-M1.75.2 tile (the vine-covered stone on Basalt Depths). The wall renderer is unchanged.
+- New run item, the **Obsidian Column** (max 1, never sold or found in the usual pool). Rare **12%** floor spawn on **Basalt Depths** only, at most one per run. Once per minute, the next throw after the **60 s** cooldown becomes an **obsidian shard** instead of a balloon: **+2 damage** on top of your base damage (dumbbell and piggy still count; balloon colours, the Frozen Wand, the Snowball and the pump do not apply to the shard). The column icon in the effect row glows when a shard is ready.
+- New mob, the **Skittering Creep**. On Basalt Depths it climbs out of pits on the same timer and cap as pit Skitters (**14–22 s**, cap 1, 2 from floor 12), **even if you have tossed no coins**. Coin-toss pit spiders still work when the pit milestones are met. **2 HP**, **5.2** cells/s (faster than a Skitter's 4.4), **1-heart** bite (not a face-hug), a chittering voice, no pit loot.
+
 ## M1.75.2: Moss wall tile wraps seamlessly
 - The Basalt Depths moss wall tile (`assets/walls.png`, the vine-covered stone) now tiles left to right without a cut-off block, a doubled joint or a sheared vine at the wrap. Block joints sit at even spacing, with one mortar line at the tile edge. The look, palette and 128×128 size are unchanged. Other wall tiles were checked for the same kind of horizontal seam; none were clearly broken.
 

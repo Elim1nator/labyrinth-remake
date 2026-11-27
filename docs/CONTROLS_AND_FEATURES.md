@@ -98,6 +98,7 @@ A corner minimap (colour-coded keys, doors, exit and pits; monsters are a red X,
 | Snowball | thrown balloons become snowballs: 1 s slow and a puff (rare Snowman drop, M1.74) | 1 |
 | Ferryman's Coin | +3 coins when you open a locked or coin door (Debt Collector drop / Old Vaults shop, M1.74) | 1 |
 | Master Key | unlocks every locked door, never used up (rare Deep Labyrinth floor item, M1.74) | 1 |
+| Tin Heart | immune to Rust, throws 15% faster (Rust Works only, M1.75) | 1 |
 
 - **Balloon colours** are run items too, and they stack: every colour you own is on every balloon
   (the HUD balloon box shows a dot per colour).
@@ -152,6 +153,7 @@ are printed on the machine (see [BALANCE.md](BALANCE.md)).
 - **The Snowball** (M1.74) is a rare Snowman drop (7% per kill, at most one per run, never sold or found in the usual pool). While you hold it, thrown balloons become snowballs: they use the snowball sprite and hand, still carry every balloon colour you own, slow a target for 1 second on hit, and puff instead of splashing. CONTINUE keeps it.
 - **The Ferryman's Coin** (M1.74) is a run item (max 1). A Debt Collector has a 30% chance to drop it; every Old Vaults shop always stocks it for 40 coins, and marks it sold once you own it. While you hold it, opening a locked or coin door (including those the Music Box or the Master Key opens) gives +3 coins. Fences and a CONTINUE-restored paid coin door or previously opened locked door do not pay out. CONTINUE keeps it.
 - **The Master Key** (M1.74) is a rare Deep Labyrinth floor item (15% chance per such floor, at most one per run, never sold or found in the usual pool). It lasts forever. While you hold it, every locked door opens like a normal door and does not spend a key. Keys still pick up as usual. Coin doors and fences are unchanged. CONTINUE keeps it, and a locked door it (or a key) opened stays open.
+- **The Clockwork Mourner** (M1.75) is the common monster of the Rust Works floors: a ticking wind-up figure in a rusted mask with 7 HP. Every bite Rusts you (slower, shorter throws for 8 s). It shatters into gears when it dies. **The Tin Heart** (M1.75) is a run item found only on Rust Works floors (and now and then from a Mourner): while you hold it, Rust can't touch you and your throws are 15% faster.
 - **The Turned Face** (M1.74) is a special Deep Labyrinth mob: exactly one per such floor, guaranteed. A gaunt pale face that slowly floats straight at you through walls and cannot be hit. Touching it costs a heart, then it fades back. A shield that blocks contact damage also blocks it.
 
 

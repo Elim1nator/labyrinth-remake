@@ -16,6 +16,7 @@
 | Lichen Face | 3 | 1.65 | flies (slow hover bob); leaves a slowing spore patch (radius 0.36, 5 s) on the floor below; flyers and Rubber Boots ignore it. At least 1 per Mossy Cellar floor, 2 from L5 | Mossy Cellar (floors 2-8) |
 | The Bather | 4 | 1.0 | pale marble statue; leaves pool-blue slick damaging puddles (radius 0.34, 4.5 s) that also sap traction; flyers and Rubber Boots ignore them. At least 1 per Baths floor, 2 from L5 | Tiled Baths (floors 2-8) |
 | The Slick Man | 10 | 0.8 | dark slimy stone; reflects player projectiles 30%; forces view distance to 5 blocks while within 10 cells (overrides glasses and flares). At least 1 per Slate floor, 2 from L5 | Slate Halls (from floor 17) |
+| The Clockwork Mourner | 7 | 1.05 | rusted wind-up mourner; tanky; every bite Rusts you for 8 s; shatters into gears. The common mob of the Rust Works: pool x2, featured x2, at least 3 per floor | Rust Works (from floor 13) |
 | The Rafter Doll | 5 | 2.3 | cracked porcelain doll, drawn at half size (sz 0.5) with a matching hitbox; fast hit-and-run; bite applies Rust for 15 s (slower, short-range throws). At least 1 per Timber Attic floor, 2 from L5 | Timber Attic (floors 2-8) |
 
 Pools: L2 Screamer + Kettlegrump; L3 adds Springle and Hazewisp; L4 adds Clunkbot; L5+ adds
@@ -377,6 +378,11 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 ## The Turned Face (M1.74)
 - Deep Labyrinth only. Exactly one per such floor, guaranteed, spawned after `addFloorExtras` in the room farthest from the start (so layouts and seeds stay unchanged). Not in `MOB_POOLS`; excluded from `rollMods`, kettle and Rattlebones swaps, `ensureThemeMob` counts, `enemiesTotal` / kill counts and floor-clear requirements (`MOBS.turnedface`: `extra`, `ethereal`, `noKill`). `scaleMob` skips `noKill` only (Ice Wizard HP scaling is unchanged).
 - Speed 0.9 cells/s (walk is 2.7). Alpha 0.55, bob 0.07 (in code; one-frame sheet). Ignores walls, doors and collision; `noDepth` so it draws through walls (fog still applies). Start freeze 2.5 s; also frozen in intro / pause / menus. Cannot be damaged. Contact bite 1 heart, cooldown 1.5 s, then fades back 3 tiles at 2.2× speed. Shield / Bubble Wrap block it like other contact damage.
+
+## Rust Works: the Clockwork Mourner and the Tin Heart (M1.75)
+The Clockwork Mourner has 7 base HP (scaled like other regular mobs), speed 1.05, `h` 0.68, `hitR` 0.32. It is added twice to the Rust Works pool (both the M1.8 pass and the M1.9 room-fill pool), featured twice, and `ensureThemeMob('mourner',3)` keeps at least 3 per Rust Works floor. Seeds 1-30, floors 13-30: 112 Rust Works floors, 3 to 11 Mourners each (average 6.2 of about 23 mobs). A bite that lands applies Rust for 8 s (`MOURNER.rustT`; Rust is cooldown x1.5, balloon speed x0.6, lifetime x0.55). It can roll Infernal powers like other regular mobs. Death: 16 gear particles (`MOURNER.gears`), then the usual loot roll, plus a 5% Tin Heart drop (`TINHEART.drop`, skipped if held or one is on the floor).
+
+The Tin Heart is a run item (max 1, 40 coins, `theme:'RUST WORKS'`, so it is only in the item pool on Rust Works floors). While held: `addStatus('rust')` does nothing, the Mourner, Rafter Doll and Infernal Rust bites skip their Rust message, and the throw cooldown is x0.85 (`TINHEART.throwMul`, applied before the `ITEM_FX.minThrow` floor, like Coffee).
 
 ## Frozen Screamer (M1.71)
 - Icy Prison only (featured, guaranteed 1, pool). 4 base HP, speed 1.45, flies; natural sonic rings like the Screamer (2 hearts), bite 2 hearts. On death: a regular Screamer (scaled to the floor) spawns where it was; the Frozen Screamer itself drops nothing.

@@ -119,7 +119,8 @@
         "wand",
         "snowball",
         "ferryman",
-        "masterkey"
+        "masterkey",
+        "tinheart"
       ]
     },
     "mods": {
@@ -518,6 +519,11 @@
     "turnedface": {
       "file": "mobs/turnedface.png",
       "frames": 1,
+      "k": 1.5
+    },
+    "mourner": {
+      "file": "mobs/mourner.png",
+      "frames": 3,
       "k": 1.5
     }
   }

@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.75: the Clockwork Mourner and the Tin Heart (Rust Works)
+- New mob, **the Clockwork Mourner** (7 HP, speed 1.05, map letter `i`): a wind-up figure in a rusted mask, found only on **Rust Works** floors (a deep wall style from floor 13). It is the common mob there: it is added to the Rust Works pool twice and featured twice, and every Rust Works floor keeps at least 3 (`ensureThemeMob`). On seeds 1-30, floors 13-30, Rust Works floors average about 6 Mourners out of about 23 mobs. Every bite that lands also **Rusts** you for 8 s (`MOURNER.rustT`; a shield block skips it like the damage). It walks on 3 frames (right foot, standing, left foot, standing, 6 frames/s) and stands on the standing frame. It ticks and tocks as it walks (within 7 cells), winds itself up as its voice, and when it dies it **shatters into a burst of gears** (16 cog particles, rusty and iron) with a ratchet-and-spring crash. It is a featured theme mob, so the L3 kettle and Rattlebones swaps skip it.
+- New run item, **the Tin Heart** (max 1, price 40, `theme:'RUST WORKS'`): only found on Rust Works floors, from the usual item sources there (item pool, shop), plus a 5% drop per Mourner kill (`TINHEART.drop`). While you hold it you are **immune to Rust** (Mourner and Rafter Doll bites and the Infernal Rust power; Rust you already have is scrubbed off when you get it), and your **throws are 15% faster** (cooldown x0.85, inside the usual minimum). CONTINUE keeps it.
+- Art: `assets/mobs/mourner.png` (3 frames of 100 x 137, bottom-aligned, centred on the head) and a new tile in `assets/items.png` (Tin Heart, slot 45 at 96,96). The gear particles are drawn in code (`sprGear`).
+- New test group `m175` (7 checks).
+- QA build `m1.75-qa` (debug hook on).
+
 ## M1.74.1: CONTINUE coin fixes, score board retry, ice spikes
 Playtest fixes for M1.73.1 (built on M1.74, which includes M1.73.1).
 - **Double coins on CONTINUE (blocker).** M1.73.1 wrote your current coin total into the floor save when you paid a coin door. CONTINUE replays the floor with every coin back on the ground, so the coins you had already picked up came back on top of that total (Playtest: 67 instead of 36). The save now keeps the floor-start coins and, separately, the coin changes that CONTINUE keeps (`coinAdj`): a paid coin door, a Ferryman's Coin payout, a permanent shop buy, a run item from the shop, a Mystery Box, claimed coin-room loot and a revive. CONTINUE gives you floor-start coins plus that change. The Ferryman, Music Box and Master Key saves from M1.74 wrote the current total too, and use the same change now.

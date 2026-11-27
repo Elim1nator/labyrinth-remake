@@ -50,6 +50,7 @@ const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk
 const V173=atLeast('1.73'); // M1.73+: 100 pit coins make the next boss floor the Broodmother
 const V1731=atLeast('1.73.1'); // M1.73.1+: paid coin-door coins stay deducted on CONTINUE; score board GET is cached for the session; a 429 falls back to the local board
 const V174=atLeast('1.74'); // M1.74+: Snowball, Ferryman's Coin, Master Key, Turned Face
+const V175=atLeast('1.75'); // M1.75+: the Clockwork Mourner and the Tin Heart (Rust Works)
 const V1741=atLeast('1.74.1'); // M1.74.1+: the save keeps floor-start coins plus kept coin changes (no double coins on CONTINUE); score board retries; ice spikes keep off you
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -3673,9 +3674,55 @@ if(V171&&want('m171')){ await m171Tests(); }
 if(V172&&want('m172')){ await m172Tests(); }
 if(V173&&want('m173')){ await m173Tests(); }
 if(V174&&want('m174')){ await m174Tests(); }
+if(V175&&want('m175')){ await m175Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 if(V1731&&want('m1731')){ await m1731Tests(); }
+
+async function m175Tests(){
+  const shot=async(page,name)=>page.screenshot({path:`${SHOTS}/m175_${name}.png`});
+  const {ctx,page}=await newPage({viewport:{width:960,height:600},label:'m175'});
+  const art=await G(page,()=>{const G=__game,st=G.assetState(),m=G.mobs.mourner;
+    return {st:st.mourner,items:st.items,sheets:G.mobSheets||null,sig:new Set([0,1,2].map(i=>G.frameSig('mourner',i))).size,
+      m:m&&{hp:m.hp,name:m.name,ch:m.ch,voice:m.voice},item:G.items.tinheart,ico:G.itemIcoPx?G.itemIcoPx('tinheart'):1,
+      walk:[0,.1,.2,.3,.4,.5,.6,.7].map(ph=>G.animFrame({type:'mourner',state:'chase',moving:true,ph})),idle:G.animFrame({type:'mourner',state:'idle',ph:.3})};});
+  check('M1.75 the Clockwork Mourner art is packed (3 frames: right foot, standing, left foot), 7 HP, its own clockwork voice',
+    art.st==='png'&&art.sig===3&&art.m&&art.m.hp===7&&art.m.name==='THE CLOCKWORK MOURNER'&&art.m.voice==='mourner',JSON.stringify(art));
+  check('M1.75 the Mourner walks right foot, stand, left foot, stand and stands still on the standing frame',
+    JSON.stringify([...new Set(art.walk)].sort())==='[0,1,2]'&&art.walk.indexOf(0)<art.walk.indexOf(2)&&art.idle===1,JSON.stringify({walk:art.walk,idle:art.idle}));
+  check('M1.75 the Tin Heart is a Rust Works run item with its own icon',
+    art.items==='png'&&art.item&&art.item.name==='TIN HEART'&&art.item.theme==='RUST WORKS'&&art.item.max===1&&art.ico>0,JSON.stringify({item:art.item,ico:art.ico}));
+  const spawn=await G(page,()=>{const G=__game;G.manual=true;G.freeze=true;const o={rust:0,min:99,sum:0,off:0,offPool:0,onPool:0};
+    for(let sd=1;sd<=30;sd++){G.setSeed(sd);for(const f of [13,14,15,16,17,18,19,21,22,25,26,30]){G.startLevel(f-1,{hearts:9,coins:20,perm:{items:{}}});
+      const rust=/RUST WORKS/.test(G.themeNow()),c=G.state().enemies.filter(e=>!e.gone&&e.type==='mourner').length,pool=G.itemPool().includes('tinheart');
+      if(rust){o.rust++;o.min=Math.min(o.min,c);o.sum+=c;if(pool)o.onPool++;}else{o.off+=c;if(pool)o.offPool++;}}}
+    o.avg=o.sum/Math.max(1,o.rust);return o;});
+  check('M1.75 Clockwork Mourners are common on every Rust Works floor (3+) and never elsewhere; the Tin Heart is only in the Rust Works item pool',
+    spawn.rust>0&&spawn.min>=3&&spawn.off===0&&spawn.onPool===spawn.rust&&spawn.offPool===0,JSON.stringify(spawn));
+  const bite=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;
+    const tries=[[1,13],[1,15],[2,13],[3,13],[4,13]];
+    for(const [sd,f] of tries){G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:0,perm:{items:{}}});if(/RUST WORKS/.test(G.themeNow()))break;}
+    G.clearMobs();const s=G.state();let spot=null;
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-2&&!spot;x++)if(!G.solidAt(x+.5,y+.5)&&!G.solidAt(x+1.5,y+.5)&&!G.solidAt(x+2.5,y+.5)&&!(G.pitUnder&&(G.pitUnder(x+.5,y+.5,0)||G.pitUnder(x+1.5,y+.5,0)||G.pitUnder(x+2.5,y+.5,0))))spot={x:x+.5,y:y+.5};
+    G.teleport(spot.x,spot.y,0);G.setHearts(9);const cd0=G.throwCdNow();G.advance(1.5);const i=G.spawn('mourner',spot.x+1.6,spot.y,true,[]);
+    const frames=new Set();let bit=false;for(let k=0;k<400&&!bit;k++){G.advance(1/60);const en=G.state().enemies[i];frames.add(en.frame);if(G.status().rust>0)bit=true;}
+    const r={bit,rust:G.status().rust,hp:G.state().player.hearts,frames:[...frames]};
+    G.addRunItem('tinheart');r.cd0=cd0;r.cd1=G.throwCdNow();
+    G.addStatus('rust',5);r.after=G.status().rust||0;
+    G.advance(2);G.setHearts(9);for(let k=0;k<400;k++)G.advance(1/60);r.after2=G.status().rust||0;r.hp2=G.state().player.hearts;
+    r.spot=spot;return r;});
+  check('M1.75 a Mourner bite hurts and Rusts you for 8 s; its walk uses all 3 frames',
+    bite.bit&&bite.rust>=7.5&&bite.rust<=8&&bite.hp<9&&bite.frames.length===3,JSON.stringify(bite));
+  check('M1.75 the Tin Heart makes you immune to Rust (Mourner bites included) and throws 15% faster',
+    bite.after===0&&bite.after2===0&&bite.hp2<9&&Math.abs(bite.cd1/bite.cd0-0.85)<0.01,JSON.stringify(bite));
+  const death=await G(page,()=>{const G=__game;G.manual=true;G.freeze=false;const p=G.state().player;G.clearMobs();const i=G.spawn('mourner',p.x+1.3,p.y,false,[]);
+    G.killEnt(i);G.advance(.2);const parts=G.partsDetail();
+    return {gears:parts.filter(q=>q.kind==='gear').length,tin:(G.state().items||[]).filter(t=>t.ptype==='tinheart').length};});
+  check('M1.75 a Mourner shatters into a burst of gears when it dies',death.gears>=12,JSON.stringify(death));
+  await G(page,()=>{const G=__game,p=G.state().player;G.clearMobs();G.freeze=true;G.spawn('mourner',p.x+1.3,p.y,false,[]);G.manual=false;});
+  await page.waitForTimeout(500);await shot(page,'mourner');
+  await ctx.close();
+}
 
 async function m167Tests(){
   const M167='/workspace/labyrinth-main/m167';

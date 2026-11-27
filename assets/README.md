@@ -134,4 +134,5 @@ Notes:
 - `walls.png` (M1.68): a third row with the Icy Prison walls (icetile, frostwall, icebrick) in its first three slots; the sheet is 1280 x 384.
 - `mobs/icewiz.png` (M1.69): the Ice Wizard, 5 frames of 84 x 104 (cast, then 4 walk); `mobs/icespike.png`: his ice spike, 48 x 48; `boss/shot_iceorb.png` / `shot_icebig.png`: his orbs; `items.png` gained a fifth row for the Frozen Wand.
 - `mobs/snowman.png` (M1.70): the Snowman, 3 frames of 108 x 100 at the supplied size (walk, wind-up, throw); `boss/shot_snowball.png`: his snowball.
+- `mobs/mourner.png` (M1.75): the Clockwork Mourner, 3 frames of 100 x 137 (right foot, standing, left foot), bottom-aligned and centred on the head; 47-colour palette PNG. `items.png` gained the Tin Heart at (96,96).
 - `mobs/fscreamer.png` (M1.71): the Frozen Screamer, 4 flap frames of 124 x 58. From M1.71 new sheets are saved as palette PNGs (64-128 colours) to keep the file small.

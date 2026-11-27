@@ -156,7 +156,7 @@ monster is the same red mark.
 ## Coins: pits, doors, shrines, trapdoors (M1.12)
 
 Next to a pit, E tosses a coin in (10 / 50 / 100 coins unlock pit spiders, big spiders and the
-Broodmother on floor 15). Coin doors, shrines and trapdoors ask for coins with E. From M1.67 a coin door you have paid stays open on CONTINUE and is not charged again. Old Murkle's
+Broodmother on floor 15). Coin doors, shrines and trapdoors ask for coins with E. From M1.67 a coin door you have paid stays open on CONTINUE and is not charged again. From M1.73.1 the payment itself is saved too, so CONTINUE does not give those coins back. Old Murkle's
 second page (RARE WARES >) sells the Piggy Bank and a Mystery Box.
 
 ## The King in Yellow (floor 20)
@@ -195,6 +195,11 @@ start scores 1000 per floor past the floor you started on, plus kills, elites an
   version. A toggle on the board (tap the tabs, left/right / A/D / Q/E / Tab, or the
   shoulder buttons / d-pad) switches All versions and This version; old rows with no
   version count as unknown. The tabs stay in the panel, not behind the touch buttons.
+  From M1.73.1 the online list is fetched at most once per page load (and may be
+  fetched again after a successful score POST). Re-opening the board and the
+  All/This version toggle use the cached rows and filter them on this device. A
+  429, like a 404 or other error, shows the local top 10 and does not retry in a
+  loop; a 429 on POST still keeps the local save.
 
 ## Revive (M1.18)
 

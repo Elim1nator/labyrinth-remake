@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.73.1: paid coin doors keep their cost; the score board is cached
+- Paying a coin door now writes the new coin count into the floor save along with `coinPaid`. CONTINUE still restores the door as open and does not charge again, and it no longer refunds the first payment (once per floor). Old saves without the field still load, with the door priced as before.
+- The high-score board fetches the online list at most once per page load (and may re-read it after a successful score POST). Re-opening the board, including the All/This version toggle, uses the cached rows and filters them on the client. A 429 from a GET or a POST falls back to the local top-10 board, the same way a 404 or other error already did, and does not retry in a loop. A 429 on POST still keeps the local save.
+- All test groups pass.
+- QA build `m1.73.1-qa` (debug hook on).
+
 ## M1.73: the Broodmother comes for you
 - **Pit rule change**: once **100 coins** have gone into the pits, the **next boss floor you reach** is the Broodmother's, however deep you are (before, only floor 15 could be hers). It happens once per run: the floor is remembered with the run (so CONTINUE meets her again), and later boss floors are back to normal. The King in Yellow keeps floor 20 (she takes the next one after). Floor 15 is still the Grand Masque if the pits have had fewer than 100 coins by then.
 - Icy Prison floors keep their pit spiders and the Treasure Knight (unchanged, confirmed).

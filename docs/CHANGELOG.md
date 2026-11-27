@@ -3,6 +3,13 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.79.3: Wax Wings float over Heights pits
+- Wax Wings (`effectIs('wings')`, and the same `stOn('lev')` levitation that already floats over regular pits) now let the player cross interior Basalt Heights pits (`t===11`) and fireball holes. Those cells stay solid in `solidAt` for everyone else, so without wings they still block like a wall and you cannot walk in and fall. The outer map-edge ring of `t===11` cells (x==0, y==0, x==w-1, y==h-1) stays solid for everyone, including a winged player; out-of-bounds stays solid. You cannot leave the map.
+- If wings or levitation expire or are lost while you are over an interior Heights pit, you start a fall (`startFall`), the same as when they run out over a regular falling pit (`t===6`).
+- Flying mobs that already crossed regular pits (`M.fly`, using `solidAt`) now cross interior Heights pits too. Walking mobs, creeps and the Awakened Basalt still treat them as solid (`solidGround`).
+- Balloons and other shots fly over interior Heights pits the same way they already fly over regular pits (`shotSolid`). The use-ray (`findUse`) no longer stops on `t===11`. The connectivity guard, hole cap, minimap and pit rendering are unchanged. Converting the tile under a hovering player is still refused.
+- Official suite on the frozen QA build: 762/762 passed.
+
 ## M1.79.2: Heights pits and fireball holes use the regular pit shaft
 - On Basalt Heights, the solid pit cells that replace walls (`t===11`) and the holes the Awakened Basalt's fireballs burn in the floor were drawn as flat dark ellipses. They now use the existing regular-pit shaft renderer (the same path as falling Basalt pits, `t===6`): a square cell-shaped opening with visible inner shaft walls, stone texture, shading and depth fade. Adjacent `t===11` and `t===6` cells merge without inner walls, the same way neighbouring falling pits already did.
 - When a fireball converts a floor tile it becomes a regular pit visually at once. The existing explosion flash is the transition; no new animation was added.

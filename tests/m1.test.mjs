@@ -59,6 +59,7 @@ const V178=atLeast('1.78'); // M1.78+: new Debt Collector and Skittering Creep w
 const V179=atLeast('1.79'); // M1.79+: Skittering Creep 4-frame sheet; Awakened Deep renamed/resprited as the Awakened Basalt
 const V1791=atLeast('1.79.1'); // M1.79.1+: green-screen despill on the Skittering Creep (and white matte crumbs on the Awakened Basalt)
 const V1792=atLeast('1.79.2'); // M1.79.2+: Heights solid pits and fireball holes use the regular pit shaft renderer
+const V1793=atLeast('1.79.3'); // M1.79.3+: Wax Wings (and lev) float over interior Heights pits and fireball holes
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -5597,8 +5598,286 @@ async function m1792Tests(){
   await ctxP.close();
 }
 
+
+async function m1793Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M1793='/workspace/labyrinth-main/m179.3';
+  fs.mkdirSync(M1793,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m1793_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M1793}/m1793_${name}.png`);
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m179.3',noFog:true});
+  await G(page,()=>{
+    window._boot1793=G=>{
+      G.manual=true;G.freeze=false;if('bossIntro' in G)G.bossIntro=false;
+      try{localStorage.clear();}catch(e){}
+      G.setSeed(777);G.startLevel(9,{hearts:9,coins:0});
+      if(G.seeAll)G.seeAll();G.skipBossIntro&&G.skipBossIntro();G.setHearts(9);
+      G.setMsg&&G.setMsg('',0.01);
+    };
+    window._interiorPit1793=G=>{
+      const s=G.state();let best=null;
+      for(let y=3;y<(s.mapH||40)-3;y++)for(let x=3;x<(s.mapW||40)-3;x++){
+        if(G.cellType(x,y)!==0||G.solidAt(x+.5,y+.5))continue;
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          if(G.cellType(x+dx,y+dy)!==11)continue;
+          if(G.mapEdgeAt&&G.mapEdgeAt(x+dx+.5,y+dy+.5))continue;
+          let run=0;for(let k=1;k<=8;k++){if(G.cellType(x+dx*k,y+dy*k)!==11)break;if(G.mapEdgeAt&&G.mapEdgeAt(x+dx*k+.5,y+dy*k+.5))break;run++;}
+          const backOk=G.cellType(x-dx,y-dy)===0&&!G.solidAt(x-dx+.5,y-dy+.5);
+          const cand={fx:x+.5,fy:y+.5,px:x+dx,py:y+dy,ang:Math.atan2(dy,dx),run,dx,dy,backOk};
+          if(!best||run>best.run||(run===best.run&&backOk&&!best.backOk))best=cand;
+        }
+      }
+      return best;
+    };
+  });
+
+  const cross=await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    const v=window._interiorPit1793(G);
+    G.teleport(v.fx,v.fy,v.ang);
+    const blockedAt=G.solidAt(v.px+.5,v.py+.5);
+    const wingsOpen=G.solidWings? !G.solidWings(v.px+.5,v.py+.5):null;
+    const pitU=G.pitUnder(v.px+.5,v.py+.5,0);
+    const hUnder=G.heightPitUnder?G.heightPitUnder(v.px+.5,v.py+.5,0):null;
+    const edgeShot=G.shotSolid?G.shotSolid(v.px+.5,v.py+.5):null;
+    G.holdKey&&G.holdKey('KeyW',true);
+    for(let k=0;k<45;k++)G.advance(1/60);
+    G.holdKey&&G.holdKey('KeyW',false);
+    const no={x:G.state().player.x,y:G.state().player.y,mode:G.state().mode};
+    const enteredNo=(no.x|0)===v.px&&(no.y|0)===v.py;
+    G.teleport(v.fx,v.fy,v.ang);
+    G.give('wings');
+    let enteredYes=false;
+    G.holdKey&&G.holdKey('KeyW',true);
+    for(let k=0;k<45;k++){
+      G.advance(1/60);
+      const p=G.state().player;
+      if((p.x|0)===v.px&&(p.y|0)===v.py)enteredYes=true;
+    }
+    G.holdKey&&G.holdKey('KeyW',false);
+    const yes=G.state();
+    // also count finishing past the pit (we walked through it)
+    const past=Math.hypot(yes.player.x-(v.px+.5),yes.player.y-(v.py+.5))<2.4 &&
+      ((yes.player.x-v.fx)*v.dx+(yes.player.y-v.fy)*v.dy)>1;
+    if(past)enteredYes=true;
+    return {v,blockedAt,wingsOpen,pitU,hUnder,edgeShot,enteredNo,no,enteredYes,
+      yesMode:yes.mode,yesPos:{x:yes.player.x,y:yes.player.y},wings:G.itemN?G.itemN('wings'):1};
+  });
+  check('M1.79.3 Wax Wings let the player cross an interior Heights pit (t===11); without wings it still blocks',
+    cross.blockedAt===true&&cross.wingsOpen===true&&cross.pitU===false&&cross.hUnder===true&&
+    cross.edgeShot===false&&cross.enteredNo===false&&cross.no.mode==='play'&&
+    cross.enteredYes===true&&cross.yesMode==='play'&&cross.wings>=1,
+    JSON.stringify(cross));
+
+  const hole=await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    const s=G.state();let a=null,stand=null;
+    outer:for(let y=5;y<(s.mapH||40)-5;y++)for(let x=5;x<(s.mapW||40)-5;x++){
+      if(G.cellType(x,y)!==0||G.solidAt(x+.5,y+.5))continue;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const sx=x-dx,sy=y-dy;
+        if(G.cellType(sx,sy)!==0||G.solidAt(sx+.5,sy+.5))continue;
+        if(G.cellType(x+dx,y+dy)===11&&G.mapEdgeAt&&G.mapEdgeAt(x+dx+.5,y+dy+.5))continue;
+        a={x,y,dx,dy};stand={x:sx+.5,y:sy+.5,ang:Math.atan2(dy,dx)};break outer;
+      }
+    }
+    const ok=G.deepConvert(a);
+    G.give('wings');
+    G.teleport(stand.x,stand.y,stand.ang);
+    const solid=G.solidAt(a.x+.5,a.y+.5),wings=!G.solidWings(a.x+.5,a.y+.5),shot=!G.shotSolid(a.x+.5,a.y+.5);
+    let entered=false;
+    G.holdKey('KeyW',true);
+    for(let k=0;k<60;k++){
+      G.advance(1/60);
+      const q=G.state().player;
+      if((q.x|0)===a.x&&(q.y|0)===a.y)entered=true;
+    }
+    G.holdKey('KeyW',false);
+    const p=G.state().player;
+    const past=(p.x-stand.x)*a.dx+(p.y-stand.y)*a.dy>1;
+    if(past)entered=true;
+    const under=G.deepConvert({x:p.x|0,y:p.y|0});
+    return {ok,t:G.cellType(a.x,a.y),solid,wings,shot,entered,mode:G.state().mode,under,cap:G.deep&&G.deep.holeCap,holes:G.deepHoles()};
+  });
+  check('M1.79.3 Wax Wings let the player cross a fireball hole; conversion under a hovering player is still refused',
+    hole.ok&&hole.t===11&&hole.solid===true&&hole.wings===true&&hole.shot===true&&
+    hole.entered===true&&hole.mode==='play'&&hole.under===false,
+    JSON.stringify(hole));
+
+  const border=await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    const s=G.state();const w=s.mapW,h=s.mapH;
+    const tries=[];
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      if(G.cellType(x,y)!==11)continue;
+      if(!(x===0||y===0||x===w-1||y===h-1))continue;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const ix=x+dx,iy=y+dy;
+        if(ix<=0||iy<=0||ix>=w-1||iy>=h-1)continue;
+        const t=G.cellType(ix,iy);
+        if(t!==0&&t!==11)continue;
+        if(t===0&&G.solidAt(ix+.5,iy+.5))continue;
+        if(G.mapEdgeAt(ix+.5,iy+.5))continue;
+        tries.push({ex:x,ey:y,ix,iy,ang:Math.atan2(-dy,-dx),tStand:t});
+      }
+    }
+    if(!tries.length)return {found:false};
+    const edge=tries.find(o=>o.tStand===0)||tries[0];
+    G.give('wings');
+    G.teleport(edge.ix+.5,edge.iy+.5,edge.ang);
+    const solid=G.solidAt(edge.ex+.5,edge.ey+.5);
+    const wingsSolid=G.solidWings(edge.ex+.5,edge.ey+.5);
+    const shot=G.shotSolid(edge.ex+.5,edge.ey+.5);
+    G.holdKey('KeyW',true);for(let k=0;k<50;k++)G.advance(1/60);G.holdKey('KeyW',false);
+    const p=G.state().player;
+    const entered=(p.x|0)===edge.ex&&(p.y|0)===edge.ey;
+    const oob=p.x<0||p.y<0||p.x>=w||p.y>=h;
+    return {found:true,edge,solid,wingsSolid,shot,entered,oob,mode:G.state().mode,pos:{x:p.x,y:p.y},w,h};
+  });
+  check('M1.79.3 the map-edge Heights pit ring stays solid even with Wax Wings, and the player never leaves the map',
+    border.found&&border.solid===true&&border.wingsSolid===true&&border.shot===true&&
+    border.entered===false&&border.oob===false&&border.mode==='play',
+    JSON.stringify(border));
+
+  const expire=await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    const v=window._interiorPit1793(G);
+    G.give('wings');
+    G.teleport(v.px+.5,v.py+.5,v.ang);
+    const mid=G.advance(0.15);
+    const hovered=mid.mode==='play'&&(mid.player.x|0)===v.px&&(mid.player.y|0)===v.py;
+    G.setPerm({items:{}});
+    const after=G.advance(0.12);
+    return {hovered,midMode:mid.mode,afterMode:after.mode,fellPit:!!after.fellPit,
+      pos:{x:after.player.x,y:after.player.y},v,itemN:G.itemN('wings')};
+  });
+  check('M1.79.3 losing Wax Wings over a Heights pit starts a fall, the same as a regular pit',
+    expire.hovered&&expire.midMode==='play'&&expire.afterMode==='fall'&&expire.itemN===0,
+    JSON.stringify(expire));
+
+  const lev=await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    const v=window._interiorPit1793(G);
+    G.teleport(v.fx,v.fy,v.ang);
+    G.addStatus&&G.addStatus('lev',2.5);
+    G.holdKey('KeyW',true);for(let k=0;k<45;k++)G.advance(1/60);G.holdKey('KeyW',false);
+    const mid=G.state();
+    const entered=(mid.player.x|0)===v.px&&(mid.player.y|0)===v.py&&mid.mode==='play';
+    G.teleport(v.px+.5,v.py+.5,v.ang);
+    let mode='play';
+    for(let k=0;k<200&&mode==='play';k++){mode=G.advance(1/30).mode;}
+    return {entered,midMode:mid.mode,afterMode:mode};
+  });
+  check('M1.79.3 levitation floats over interior Heights pits and starts a fall when it expires',
+    lev.entered&&lev.midMode==='play'&&lev.afterMode==='fall',
+    JSON.stringify(lev));
+
+  const mobs=await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    const v=window._interiorPit1793(G);
+    if(G.clearMobs)G.clearMobs();
+    G.give('wings');
+    G.teleport(v.px+.5,v.py+.5,v.ang);
+    G.spawn('creep',v.fx,v.fy,true,[]);
+    const boss=G.boss&&G.boss();
+    if(!(boss&&boss.ent&&!boss.ent.gone)){
+      G.spawn('deep',v.fx,v.fy,true,[]);
+    }
+    const ground=G.solidGround(v.px+.5,v.py+.5);
+    G.freeze=false;
+    for(let k=0;k<90;k++){G.setHearts(9);G.advance(1/30);}
+    const s1=G.state();
+    const creep1=s1.enemies.find(e=>e.type==='creep'&&!e.gone);
+    const deep1=s1.enemies.find(e=>e.type==='deep'&&!e.gone);
+    const creepIn=creep1&&G.cellType(creep1.x|0,creep1.y|0)===11;
+    const bossIn=deep1&&G.cellType(deep1.x|0,deep1.y|0)===11;
+    return {creepIn,bossIn,ground,hasCreep:!!creep1,hasBoss:!!deep1,
+      creep:{x:creep1&&creep1.x,y:creep1&&creep1.y},boss:{x:deep1&&deep1.x,y:deep1&&deep1.y},v};
+  });
+  check('M1.79.3 creeps and the Awakened Basalt still treat Heights pits as solid',
+    mobs.hasCreep&&mobs.hasBoss&&mobs.creepIn===false&&mobs.bossIn===false&&mobs.ground===true,
+    JSON.stringify(mobs));
+
+  const balloon=await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    const v=window._interiorPit1793(G);
+    G.teleport(v.fx,v.fy,v.ang);
+    if(G.throwOnce)G.throwOnce();else if(G.throwBalloon)G.throwBalloon();
+    let crossed=false,popped=false,last=null,n=0;
+    for(let k=0;k<40;k++){
+      G.advance(1/30);
+      const list=(G.shotsDetail&&G.shotsDetail())||[];
+      n=list.length;
+      const sh=list[0];
+      if(!sh){if(k>2)popped=true;break;}
+      last={x:sh.x,y:sh.y,z:sh.z,life:sh.life};
+      if((sh.x|0)===v.px&&(sh.y|0)===v.py)crossed=true;
+      // or it has gone past the pit centre along the throw
+      if((sh.x-v.fx)*Math.cos(v.ang)+(sh.y-v.fy)*Math.sin(v.ang)>1)crossed=true;
+    }
+    return {crossed,popped,last,n,shotSolid:!G.shotSolid(v.px+.5,v.py+.5),v};
+  });
+  check('M1.79.3 balloons fly over interior Heights pits, the same as regular pits',
+    balloon.crossed===true&&balloon.shotSolid===true,
+    JSON.stringify(balloon));
+
+  await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    if(G.clearMobs)G.clearMobs();
+    G.freeze=true;
+    const v=window._interiorPit1793(G);
+    G.give('wings');
+    G.teleport(v.px+.5-Math.cos(v.ang)*0.2,v.py+.5-Math.sin(v.ang)*0.2,v.ang);
+    G.setPitch&&G.setPitch(-0.4);
+    G.setHearts(9);G.setMsg&&G.setMsg('WAX WINGS',2);
+    G.advance(0.02);G.setMsg&&G.setMsg('WAX WINGS',2);G.render();
+  });
+  await shot(page,'wings_hover');
+
+  await G(page,()=>{
+    const G=__game;window._boot1793(G);
+    if(G.clearMobs)G.clearMobs();
+    G.freeze=true;
+    const s=G.state();const w=s.mapW,h=s.mapH;
+    const cands=[];
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      if(G.cellType(x,y)!==11)continue;
+      if(!(x===0||y===0||x===w-1||y===h-1))continue;
+      if((x===0||x===w-1)&&(y===0||y===h-1))continue; // corners
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        // walk inward, want a floor or interior-pit stand cell 2 in, so the edge shaft is visible in front
+        const s1x=x+dx,s1y=y+dy,s2x=x+dx*2,s2y=y+dy*2;
+        if(s2x<1||s2y<1||s2x>w-2||s2y>h-2)continue;
+        if(G.mapEdgeAt(s1x+.5,s1y+.5)||G.mapEdgeAt(s2x+.5,s2y+.5))continue;
+        const t1=G.cellType(s1x,s1y),t2=G.cellType(s2x,s2y);
+        if(t2!==0&&t2!==11)continue;
+        if(t2===0&&G.solidAt(s2x+.5,s2y+.5))continue;
+        const mid=x===0||x===w-1?Math.abs(y-h/2):Math.abs(x-w/2);
+        // prefer: stand on floor (see a hole at the rim), else hover on an interior pit looking at the rim
+        const score=(t2===0?20:0)+(t1===11?4:0)-mid;
+        cands.push({ex:x,ey:y,sx:s2x,sy:s2y,ang:Math.atan2(-dy,-dx),t2,score});
+      }
+    }
+    cands.sort((a,b)=>b.score-a.score);
+    const edge=cands[0];
+    G.give('wings');
+    G.teleport(edge.sx+.5-Math.cos(edge.ang)*0.15,edge.sy+.5-Math.sin(edge.ang)*0.15,edge.ang);
+    G.setPitch&&G.setPitch(-0.34);
+    G.setHearts(9);G.setMsg&&G.setMsg('THE EDGE STILL HOLDS',2);
+    G.advance(0.02);G.setMsg&&G.setMsg('THE EDGE STILL HOLDS',2);G.render();
+    return edge;
+  });
+  await shot(page,'wings_edge');
+
+  await ctx.close();
+}
+
 if(V1791&&want('m179.1')){ await m1791Tests(); }
 if(V1792&&want('m179.2')){ await m1792Tests(); }
+if(V1793&&want('m179.3')){ await m1793Tests(); }
 
 async function m176Tests(){
   const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});

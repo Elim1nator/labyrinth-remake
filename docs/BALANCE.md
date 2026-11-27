@@ -400,12 +400,12 @@ Each POST includes a `version` field (the build string, at most 16 characters fr
 - Rare Basalt Depths floor spawn only (`noPool`, max 1 per run, `theme:'BASALT DEPTHS'`): 12% per Basalt floor (`OBSIDIAN.drop`), skipped if you already hold one or one is already on the floor. Deterministic per seed and floor (`hashSeed(G.seed+':obsidian:'+(G.levelIdx+1))`). Placement tries `freeFloorCell(6)||freeFloorCell(3)||freeFloorCell(1)`, the same as the Master Key.
 - Held effect: a **60 s** cooldown (`OBSIDIAN.cd`). When the cooldown is ready, the next throw is an obsidian shard instead of a balloon. The shard does **+2** damage on top of base damage (1 + dumbbell, doubled by a piggy spend). Balloon colour effects, the Frozen Wand's +1 and bounce, the Snowball slow/puff, and the Balloon Pump giant splash do not apply to the shard. A Party Hat throw fires shards in every direction of that throw. The effect-row icon glows when a shard is ready (clear of the touch buttons). The first throw after picking it up is a shard; the cooldown is kept across floors in the same run.
 
-## Skittering Creep (M1.76, art M1.78)
-- M1.78 walk art: 5 frames (177×132, k 1.5), cycle 0-1-2-3-4; logic and size (`h` 0.30, 2 HP, 5.2 cells/s) unchanged.
+## Skittering Creep (M1.76, art M1.79)
+- M1.79 walk art: 4 frames (147×132, k 1.5), cycle 0-1-2-3; logic and size (`h` 0.30, 2 HP, 5.2 cells/s) unchanged. Replaces the M1.78 5-frame 177×132 sheet.
 - Basalt Depths pits only. Uses the pit-Skitter cadence and cap (`SPIDERS.skitEvery` 14–22 s, `skitCap` 1, +1 from floor 12) and `pitSpawnCell(9)`, but **always** runs, even when `spiderLvl` is 0 (no coins tossed into pits). Coin-toss Skitters and Brood Spiders are unchanged and still require the 10 / 50 coin milestones.
 - 2 HP (unscaled, like the Skitter's 1 HP), speed **5.2** cells/s (Skitter is 4.4), height 0.30, hit radius 0.28, contact bite **1 heart** (not a face-hug). Voice `chitter`. Pit-spawned creeps drop nothing (`noLoot`), the same as pit spiders. First spawn on a floor: "A CREEP CRAWLS OUT OF THE PIT!"
 
-## The Awakened Deep (M1.77)
+## The Awakened Basalt (M1.77, name and art M1.79)
 Replaces the rotating `BOSS_ORDER` boss **on Basalt boss floors only** (the usual floor 10, which is always Basalt, plus any later 5th floor that rolls Basalt). The Rattle Sovereign stays in `BOSS_ORDER` and still appears on non-Basalt floors 25, 40, …. Map letter `!`. The floor is named **BASALT HEIGHTS** (Obsidian Column and creeps still treat it as Basalt via `basaltFloor()`).
 
 - Base HP **50** (the Sovereign is 48). Floor and tier HP scale the same way (`ceil(base × hpMul) + 5 × (floor − 1)`). Walk speed **1.0** cells/s (Sovereign 1.05). Height 1.08, hit radius 0.55, body radius 0.44.
@@ -414,5 +414,5 @@ Replaces the rotating `BOSS_ORDER` boss **on Basalt boss floors only** (the usua
 - Holes: each exploded floor tile (`t===0`) can become a solid pit (`t===11`) if it would not cut the path between the player and the boss, would not trap the player, and is not the player's or the boss's tile. Cap **14** fireball-holes per fight (`DEEP.holeCap`). Original wall-pits do not count against the cap.
 - Skittering Creeps on this floor: **8–12 s** (`DEEP.creepEvery`), cap **2** (`DEEP.creepCap`), +1 while the Deep is furious. Same creep as M1.76 (2 HP, 5.2 cells/s, 1-heart bite). Other Basalt floors keep the M1.76 cadence (14–22 s, cap 1, +1 from floor 12).
 - Floor: every `t===1` wall and any falling `t===6` pit becomes a solid pit (`t===11`). Doors and fences become open floor. No ceiling (`L.openSky`); the top of the view fades into the fog. Solid pits block like walls (`solidAt`) and do not trigger a fall (`pitUnder` stays on `t===6` only).
-- Defeat and loot match the other bosses (15 coins plus a run item and a use-item, sealed portal opens). Defeat banner: `THE DEEP IS DEFEATED! THE STAIRS APPEAR!` (40 characters). Constants live in `DEEP` (`src/index.html`) and are repeated here.
+- Defeat and loot match the other bosses (15 coins plus a run item and a use-item, sealed portal opens). Player-facing name (M1.79): **THE AWAKENED BASALT**. Defeat banner: `THE BASALT IS DEFEATED! THE STAIRS APPEAR!` (42 characters). Internal type remains `deep`; constants live in `DEEP` (`src/index.html`) and are repeated here. M1.79 walk art: 4 frames (107×208, k 1.6) plus idle / cast / attack on the same 208-px baseline; world height still 1.08.
 

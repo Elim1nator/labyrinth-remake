@@ -51,6 +51,7 @@ const V173=atLeast('1.73'); // M1.73+: 100 pit coins make the next boss floor th
 const V1731=atLeast('1.73.1'); // M1.73.1+: paid coin-door coins stay deducted on CONTINUE; score board GET is cached for the session; a 429 falls back to the local board
 const V174=atLeast('1.74'); // M1.74+: Snowball, Ferryman's Coin, Master Key, Turned Face
 const V1741=atLeast('1.74.1'); // M1.74.1+: the save keeps floor-start coins plus kept coin changes (no double coins on CONTINUE); score board retries; ice spikes keep off you
+const V175=atLeast('1.75'); // M1.75+: The Rattle Sovereign replaces the Luggernaut
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
@@ -330,7 +331,7 @@ async function m191Tests(){
   await ctx.close();
 }
 
-// ---------- M1.10: bosses every 5th floor (King Gloop, Luggernaut, Coghoot); the portal opens when the boss falls ----------
+// ---------- M1.10: bosses every 5th floor (King Gloop, Luggernaut / M1.75 The Rattle Sovereign, Coghoot); the portal opens when the boss falls ----------
 async function m110Tests(){
   const S10=`${OUT}/screens`;const shot=async(page,name)=>page.screenshot({path:`${S10}/m110_${name}.png`});
   const savePng=(name,url)=>fs.writeFileSync(`${S10}/${name}`,Buffer.from(url.split(',')[1],'base64'));
@@ -358,7 +359,7 @@ async function m110Tests(){
         if(!seen.has(b.x+','+b.y)||!seen.has(exit.join()))out.bad.push(`${sd}:${f} boss or portal not reachable without a key`);
         out.tiers[want.tier]=(out.tiers[want.tier]||0)+1;}
       return out;},[V136,V140]);
-    check(`M1.10 a boss on every 5th floor and nowhere else (${g.bossFloors} boss floors in ${g.floors} floors, 30 seeds x floors 2-60), in the order King Gloop, Luggernaut, Coghoot`,g.bossFloors===30*12&&g.noBossOk&&g.wrongType.length===0&&g.bad.filter(b=>/bosses|non-boss/.test(b)).length===0,JSON.stringify({wrong:g.wrongType.slice(0,4),bad:g.bad.slice(0,4)}));
+    check(`M1.10 a boss on every 5th floor and nowhere else (${g.bossFloors} boss floors in ${g.floors} floors, 30 seeds x floors 2-60), in the order King Gloop, ${V175?'the Rattle Sovereign':'Luggernaut'}, Coghoot`,g.bossFloors===30*12&&g.noBossOk&&g.wrongType.length===0&&g.bad.filter(b=>/bosses|non-boss/.test(b)).length===0,JSON.stringify({wrong:g.wrongType.slice(0,4),bad:g.bad.slice(0,4)}));
     check(V136?'M1.10 the arena is the exit room when it has 35+ cells, else a big room near the exit (M1.36); never the start or shop room; no pits or other mobs inside':'M1.10 the arena is the exit room when it has 35+ cells, else the biggest room; never the start or shop room; no pits or other mobs inside',g.bad.filter(b=>/arena|pit|mob /.test(b)).length===0,JSON.stringify({bad:g.bad.filter(b=>/arena|pit|mob /.test(b)).slice(0,4),exitArena:g.exitArena,sizes:g.arenaSizes}));
     check('M1.10 boss floors: the exit door is unlocked (keys match locks, at most the vault lock), and the boss and portal are reachable without a key',g.bad.filter(b=>/keys|locks|reachable/.test(b)).length===0,JSON.stringify(g.bad.filter(b=>/keys|locks|reachable/.test(b)).slice(0,4)));
     // non-boss floors are exactly as in M1.9.1; boss floors keep the M1.8 layout (map18)
@@ -368,10 +369,10 @@ async function m110Tests(){
     const diff=Object.keys(cur).filter(k=>cur[k]!==prev[k]);
     check('M1.10 floors without a boss are generated exactly as in M1.9.1, boss floors keep their M1.8 layout (3 seeds x floors 2-26)',diff.length===0,diff.slice(0,6).join(', '));
     const api=await G(page,()=>({mobs:Object.keys(__game.mobs),bosses:Object.keys(__game.bosses).map(k=>({k,name:__game.bosses[k].name,hp:__game.bosses[k].hp,ch:__game.bosses[k].ch,dot:__game.bosses[k].dot})),f:[5,10,15,20,25,30,80,95,200].map(f=>{const b=__game.bossFor(f);return f+':'+b.type+':'+b.tier+':'+b.hpMul.toFixed(2);}),none:[1,4,6,7,11].map(f=>__game.bossFor(f))}));
-    check('M1.10 three bosses with their own names and map letters, kept out of the regular mob table; tougher each round (+40% HP per round of three, at most x3)',api.bosses.length===3&&new Set(api.bosses.map(b=>b.name)).size===3&&!api.mobs.some(m=>api.bosses.some(b=>b.k===m))&&api.none.every(x=>x===null)&&api.f.join()==='5:king:0:1.00,10:lugg:0:1.00,15:owl:0:1.00,20:king:1:1.40,25:lugg:1:1.40,30:owl:1:1.40,80:king:5:3.00,95:king:6:3.00,200:king:13:3.00',JSON.stringify(api));
+    check('M1.10 three bosses with their own names and map letters, kept out of the regular mob table; tougher each round (+40% HP per round of three, at most x3)',api.bosses.length===3&&new Set(api.bosses.map(b=>b.name)).size===3&&!api.mobs.some(m=>api.bosses.some(b=>b.k===m))&&api.none.every(x=>x===null)&&api.f.join()===(V175?'5:king:0:1.00,10:sovereign:0:1.00,15:owl:0:1.00,20:king:1:1.40,25:sovereign:1:1.40,30:owl:1:1.40,80:king:5:3.00,95:king:6:3.00,200:king:13:3.00':'5:king:0:1.00,10:lugg:0:1.00,15:owl:0:1.00,20:king:1:1.40,25:lugg:1:1.40,30:owl:1:1.40,80:king:5:3.00,95:king:6:3.00,200:king:13:3.00'),JSON.stringify(api));
     savePng('m110_boss_sprites_3x.png',await G(page,()=>__game.spriteSheet(3,'boss')));
-    const fr=await G(page,()=>({king:new Set([0,1,2,3].map(i=>__game.frameSig('king',i))).size,owl:new Set([0,1,2,3].map(i=>__game.frameSig('owl',i))).size,lugg:new Set([0,1,2,3,4,5].map(i=>__game.frameSig('lugg',i))).size,portalS:__game.frameSig('portalS',0)!==__game.frameSig('portal',0)}));
-    check('M1.10 boss art: King Gloop and Coghoot have 4 distinct frames, Luggernaut 6 (2 per stack height); the sealed portal looks different',fr.king===4&&fr.owl===4&&fr.lugg===6&&fr.portalS,JSON.stringify(fr));
+    const fr=await G(page,V=>({king:new Set([0,1,2,3].map(i=>__game.frameSig('king',i))).size,owl:new Set([0,1,2,3].map(i=>__game.frameSig('owl',i))).size,mid:V?new Set([0,1,2,3,4].map(i=>__game.frameSig('sovereign',i))).size:new Set([0,1,2,3,4,5].map(i=>__game.frameSig('lugg',i))).size,fall:V?new Set([0,1,2,3].map(i=>__game.frameSig('sovereignFall',i))).size:4,portalS:__game.frameSig('portalS',0)!==__game.frameSig('portal',0)}),V175);
+    check(V175?'M1.10/M1.75 boss art: King Gloop and Coghoot have 4 distinct frames, the Rattle Sovereign has 5 walk frames and 4 collapse frames; the sealed portal looks different':'M1.10 boss art: King Gloop and Coghoot have 4 distinct frames, Luggernaut 6 (2 per stack height); the sealed portal looks different',fr.king===4&&fr.owl===4&&(V175?fr.mid===5&&fr.fall===4:fr.mid===6)&&fr.portalS,JSON.stringify(fr));
     await ctx.close();
   }
   // ---- 2. the fight: seal, wake, arena leash, attacks, phases, death, loot, portal
@@ -387,7 +388,7 @@ async function m110Tests(){
         out[f]={idle0,woke,msg:s1.msg,bar:!!bar,outside,shots:maxShots,hurt,type:b0.ent.type,fly:!!__game.bosses[b0.ent.type].fly};}return out;});
     check('M1.10 each boss sleeps until you come near, then wakes with a message and the health bar shows',[5,10,15].every(f=>!per[f].idle0&&per[f].woke&&/AWAKENS|LOCKS YOU IN/.test(per[f].msg)&&per[f].bar),JSON.stringify(per));
     check('M1.10 each boss stays inside its arena, shoots at you and can hurt you (12 s each, standing 2.5 cells away)',[5,10,15].every(f=>per[f].outside===0&&per[f].shots>0&&per[f].hurt>0),JSON.stringify(per));
-    if(V126)check('M1.26 Coghoot and the Screamer King fly (cross pits); the Luggernaut walks',per[15].fly&&per[5].fly&&!per[10].fly);
+    if(V126)check(V175?'M1.26 Coghoot and the Screamer King fly (cross pits); the Rattle Sovereign walks':'M1.26 Coghoot and the Screamer King fly (cross pits); the Luggernaut walks',per[15].fly&&per[5].fly&&!per[10].fly);
     else check('M1.10 Coghoot flies (crosses pits); the other two walk',per[15].fly&&!per[5].fly&&!per[10].fly);
     // leash: from outside the arena the boss presses against the edge but never leaves
     const leash=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const b=__game.boss(),A=b.def.room;__game.faceBoss(2);__game.advance(0.1);
@@ -400,20 +401,23 @@ async function m110Tests(){
       step(Math.ceil(mx/3));step(Math.ceil(mx/6));step(Math.ceil(mx/6));return {mx,r};});
     if(V126)check('M1.26 the Screamer King calls a wave of 3 Screamers at 2/3 health and more at 1/3 (never more than 4 alive), and gets furious at half',king.r[0].split===1&&king.r[0].minions===3&&!king.r[0].enr&&king.r[1].enr&&king.r[2].split===2&&king.r[2].minions===4&&king.r.every(x=>x.alive<=4),JSON.stringify(king));
     else check('M1.10 King Gloop splits off 2 minions at 2/3 and again at 1/3 health (never more than 4 alive) and gets furious at half',king.r[0].split===1&&king.r[0].minions===2&&!king.r[0].enr&&king.r[1].enr&&king.r[2].split===2&&king.r[2].minions===4&&king.r.every(x=>x.alive<=4),JSON.stringify(king));
-    // Luggernaut: suitcases burst at 2/3 and 1/3; the hit box shrinks with the stack
+    // Luggernaut: suitcases burst at 2/3 and 1/3; the hit box shrinks with the stack (retired in M1.75 for the Rattle Sovereign)
+    if(!V175){
     const lugg=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);__game.faceBoss(2.5);__game.advance(0.1);const B=()=>__game.boss().ent,mx=B().maxHp,r=[{stack:B().stack,hh:B().hh,frame:B().frame}];
       for(const n of [Math.ceil(mx/3),Math.ceil(mx/3)]){__game.hitBoss(n);__game.setHearts(5);const s=__game.advance(0.1);r.push({stack:B().stack,hh:B().hh,frame:B().frame,bursts:s.stats.caseBursts,msg:s.msg});}return r;});
     check('M1.10 Luggernaut loses a suitcase at 2/3 and 1/3 health (3 -> 2 -> 1, a burst of socks and coins each time) and gets shorter, so balloons must aim lower',lugg[0].stack===3&&lugg[1].stack===2&&lugg[2].stack===1&&lugg[2].bursts===2&&lugg[0].hh>lugg[1].hh&&lugg[1].hh>lugg[2].hh&&lugg[2].frame>=4,JSON.stringify(lugg));
-    const owl=await G(page,()=>{__game.setSeed(777);__game.startLevel(__game.bossType?29:14);__game.faceBoss(3);__game.advance(0.1);let home=0,gear=0;for(let i=0;i<200&&!gear;i++){ /* attacks are random (swoop or gears): watch up to 20 s */__game.setHearts(5);const s=__game.advance(0.1);s.eshots.forEach(q=>{if(q.kind==='gear')gear++;});}return {gear,z:__game.boss().ent.z};});
+    }
+    const owl=await G(page,()=>{__game.setSeed(777);if('bossIntro' in __game)__game.bossIntro=false;__game.startLevel(__game.bossType?29:14);__game.faceBoss(3);__game.advance(0.1);let home=0,gear=0;for(let i=0;i<300&&!gear;i++){ /* attacks are random (swoop or gears): watch up to 30 s */__game.setHearts(5);const s=__game.advance(0.1);s.eshots.forEach(q=>{if(q.kind==='gear')gear++;});}return {gear,z:__game.boss().ent.z};});
     check('M1.10 Coghoot hovers above the floor and fires gears',owl.gear>0&&owl.z>0.1,JSON.stringify(owl));
     // arena doors lock behind you and open when the boss falls
     const lock=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const b=__game.boss(),A=b.def.room,d0=__game.arenaDoors();
       const door=d0[0];const out=[door.x-(door.x<A.x?1:door.x>=A.x+A.w?-1:0),door.y-(door.y<A.y?1:door.y>=A.y+A.h?-1:0)];__game.teleport(out[0]+.5,out[1]+.5,0);__game.advance(0.2);const before=__game.arenaDoors().some(d=>d.bossLock);
       __game.faceBoss(2.5);let s=__game.advance(1.2);const locked=__game.arenaDoors(),msg=s.msg;
       const fx=door.x<A.x?A.x:door.x>=A.x+A.w?A.x+A.w-1:door.x,fy=door.y<A.y?A.y:door.y>=A.y+A.h?A.y+A.h-1:door.y;__game.teleport(fx+.5,fy+.5,Math.atan2(door.y-fy,door.x-fx));__game.setHearts(5);const keys0=s.player.keys;__game.use();s=__game.advance(0.6);const tried=__game.arenaDoors().find(d=>d.x===door.x&&d.y===door.y),useMsg=s.msg;
-      __game.hitBoss(999);__game.advance(1.6);const after=__game.arenaDoors();__game.use();__game.advance(0.8);const opened=__game.arenaDoors().find(d=>d.x===door.x&&d.y===door.y);
+      if(__game.defeatBoss)__game.defeatBoss();else __game.hitBoss(999);__game.advance(1.6);const after=__game.arenaDoors();
+      __game.teleport(fx+.5,fy+.5,Math.atan2(door.y-fy,door.x-fx));__game.setHearts(5);__game.use();s=__game.advance(0.8);const opened=__game.arenaDoors().find(d=>d.x===door.x&&d.y===door.y);
       return {n:d0.length,before,allLocked:locked.every(d=>d.bossLock&&d.locked),closed:locked.every(d=>d.open<0.8),msg,triedOpen:tried.open,useMsg,keys0,afterLocked:after.some(d=>d.bossLock||d.locked),opened:opened.open};});
-    check('M1.10 stepping into the arena slams and locks every door in its walls; no key opens them; they unlock when the boss falls',lock.n>0&&!lock.before&&lock.allLocked&&lock.closed&&/LUGGERNAUT LOCKS YOU IN/.test(lock.msg)&&lock.triedOpen<0.1&&/LOCKED UNTIL LUGGERNAUT/.test(lock.useMsg)&&!lock.afterLocked&&lock.opened>0.9,JSON.stringify(lock));
+    check('M1.10 stepping into the arena slams and locks every door in its walls; no key opens them; they unlock when the boss falls',lock.n>0&&!lock.before&&lock.allLocked&&lock.closed&&/(LUGGERNAUT|THE RATTLE SOVEREIGN) LOCKS YOU IN/.test(lock.msg)&&lock.triedOpen<0.1&&/LOCKED UNTIL (LUGGERNAUT|THE RATTLE SOVEREIGN)/.test(lock.useMsg)&&!lock.afterLocked&&lock.opened>0.9,JSON.stringify(lock));
     // death: loot, score, portal opens, clear screen names the boss, next floor
     const win=await G(page,()=>{__game.setSeed(777);__game.startLevel(4,{hearts:5,coins:0});__game.setRun({kills:0,elites:0,coins:0,deepest:5});__game.faceBoss(2.5);__game.advance(0.1);const sc0=__game.state().score,bx=__game.boss().ent.x,by=__game.boss().ent.y,near=i=>Math.hypot(i.x-bx,i.y-by)<1.2;
       __game.hitBoss(999);let s=__game.advance(0.5);const dying=__game.boss().ent.state,sealedMid=__game.boss().sealed;s=__game.advance(1.0);const b=__game.boss();
@@ -426,7 +430,7 @@ async function m110Tests(){
     await G(page,()=>{__game.setSeed(777);__game.startLevel(4);__game.hitBoss(999);__game.advance(1.6);__game.nextFloorViaExit();__game.advance(0.8);});await shot(page,'clear_screen_boss');
     // the clear screen line, bar and maps
     const ui=await G(page,()=>{__game.setSeed(777);__game.startLevel(9);const r0=__game.state().stats.bossBar;__game.seeAll();__game.openMap();__game.advance(0.05);__game.render();const ex=__game.state().exit,fm=__game.state().stats.fullMap;
-      const cs=fm.cs,px=__game.pixelAt(Math.round(fm.ox+ex.x*cs+cs/2),Math.round(fm.oy+ex.y*cs+cs/2));__game.closeMap();__game.hitBoss(999);__game.advance(1.6);__game.seeAll();__game.openMap();__game.advance(0.05);__game.render();
+      const cs=fm.cs,px=__game.pixelAt(Math.round(fm.ox+ex.x*cs+cs/2),Math.round(fm.oy+ex.y*cs+cs/2));__game.closeMap();if(__game.defeatBoss)__game.defeatBoss();else __game.hitBoss(999);__game.advance(1.6);__game.seeAll();__game.openMap();__game.advance(0.05);__game.render();
       const px2=__game.pixelAt(Math.round(fm.ox+ex.x*cs+cs/2),Math.round(fm.oy+ex.y*cs+cs/2));__game.closeMap();return {px,px2};});
     check('M1.10 the full map shows the sealed portal dim, and bright once it opens',ui.px.join()!==ui.px2.join()&&ui.px[2]<120,JSON.stringify(ui));
     const bar=await G(page,()=>{__game.setSeed(777);__game.startLevel(__game.bossType?29:14);const r=[];let s=__game.advance(0.05);const idle=s.stats.bossBar?1:0;__game.faceBoss(3);s=__game.advance(0.1);const w0=s.stats.bossBar.w;__game.hitBoss(Math.ceil(__game.boss().ent.maxHp/2));s=__game.advance(0.1);const w1=s.stats.bossBar.w;const R=__game.bossBar(),H=__game.hudRects();
@@ -2686,7 +2690,7 @@ async function m166Tests(){
     JSON.stringify(farm));
 
   // ---- boss cut-scenes: clear LOS, boss on screen, fog restored (incl. slick clamp)
-  const bosses=await G(page,()=>{
+  const bosses=await G(page,V=>{
     const G=__game;G.manual=true;G.freeze=false;
     function faceDoor(){
       const A=G.boss().def.room,d=G.arenaDoors()[0];
@@ -2702,7 +2706,7 @@ async function m166Tests(){
     }
     const cases=[
       {type:'king',floor:5,seeds:[1,777,4242,9,42]},
-      {type:'lugg',floor:10,seeds:[1,777,4242,9,42]},
+      {type:V?'sovereign':'lugg',floor:10,seeds:[1,777,4242,9,42]},
       {type:'masque',floor:15,seeds:[1,777,4242],perm:{}},
       {type:'brood',floor:15,seeds:[1,777,4242],perm:{pit:100}},
       {type:'yellow',floor:20,seeds:[1,777,4242],lectern:true},
@@ -2747,7 +2751,7 @@ async function m166Tests(){
       }
     }
     return out;
-  });
+  },V175);
   const midOk=bosses.every(r=>r.mid&&r.mid.mode==='intro'&&r.mid.los&&r.mid.onScreen&&r.mid.viewCur>=(r.mid.fogLift||0)-0.01&&r.mid.type===r.type);
   const fogOk=bosses.every(r=>r.after&&r.after.mode==='play'&&Math.abs(r.after.viewCur-r.after.fogWas)<1e-9);
   check('M1.66 every boss cut-scene has a clear raycast to the boss and the boss is on screen (several seeds)',
@@ -2756,11 +2760,11 @@ async function m166Tests(){
     fogOk&&bosses.some(r=>r.after.slick||r.wantBefore<=5.01),JSON.stringify(bosses.map(r=>({type:r.type,sd:r.sd,before:r.fogBefore,want:r.wantBefore,lift:r.mid&&r.mid.fogLift,was:r.mid&&r.mid.fogWas,after:r.after.viewCur,dist:r.after.viewDist,slick:r.after.slick}))));
 
   // one screenshot per boss type, mid cut-scene
-  const types=['king','lugg','masque','brood','yellow','owl'];
+  const types=['king',V175?'sovereign':'lugg','masque','brood','yellow','owl'];
   for(const type of types){
     const shot=await G(page,(type)=>{
       const G=__game;G.manual=true;G.freeze=false;G.bossIntro=true;
-      const plan={king:{f:5,sd:777},lugg:{f:10,sd:777},masque:{f:15,sd:777,perm:{}},brood:{f:15,sd:777,perm:{pit:100}},yellow:{f:20,sd:777,lectern:true},owl:{f:30,sd:777}}[type];
+      const plan={king:{f:5,sd:777},lugg:{f:10,sd:777},sovereign:{f:10,sd:777},masque:{f:15,sd:777,perm:{}},brood:{f:15,sd:777,perm:{pit:100}},yellow:{f:20,sd:777,lectern:true},owl:{f:30,sd:777}}[type];
       G.setSeed(plan.sd);G.startLevel(plan.f-1,{hearts:9,coins:0,perm:plan.perm||{}});
       G.state().enemies.forEach((e,i)=>{if(!G.bosses[e.type])G.damageMob(i,99);});
       if(plan.lectern){
@@ -3676,6 +3680,121 @@ if(V174&&want('m174')){ await m174Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
 if(V1731&&want('m1731')){ await m1731Tests(); }
+
+async function m175Tests(){
+  const S=`${OUT}/screens`;const shot=async(page,name)=>page.screenshot({path:`${S}/m175_${name}.png`});
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m175',noFog:true});
+  await G(page,()=>{window._sovBoot=function(){__game.manual=true;if(__game.bossIntro!==undefined)__game.bossIntro=false;try{localStorage.clear();}catch(e){}__game.setSeed(777);__game.startLevel(9,{hearts:5,coins:0});
+    __game.state().enemies.forEach((e,i)=>{if(!__game.bosses[e.type])__game.damageMob(i,99);});
+    if(__game.seeAll)__game.seeAll();__game.faceBoss(3.2);__game.advance(0.15);if(__game.setMsg)__game.setMsg('',0.01);if(__game.state().player){/* keep the HUD clean for shots */} };});
+
+  // 1. one huge hit clamps at 75% and starts the collapse
+  const clamp=await G(page,()=>{window._sovBoot();const mx=__game.boss().ent.maxHp,want=Math.round(mx*__game.sov.thresh[0]);
+    __game.hitBossOnce(mx);const b=__game.boss().ent,s=__game.state();
+    return {mx,want,hp:b.hp,state:b.state,phase:b.sovPhase,msg:s.msg,msglen:(s.msg||'').length};});
+  check('M1.75 a huge hit stops at 75% HP and starts a collapse (no skipped phase)',clamp.hp===clamp.want&&clamp.want===Math.round(clamp.mx*.75)&&(clamp.state==='sovfall'||clamp.state==='sovdown')&&clamp.phase===1&&/IT COLLAPSES! SMASH THE PILES!/.test(clamp.msg||'')&&clamp.msglen<=42,JSON.stringify(clamp));
+
+  // 2. invulnerable as a pile
+  const inv=await G(page,()=>{const hp=__game.boss().ent.hp;__game.hitBossOnce(80);__game.hitBoss(20);const b=__game.boss().ent;
+    return {hp0:hp,hp:b.hp,state:b.state,blocks:__game.state().stats.sovBlocks||0};});
+  check('M1.75 the Sovereign cannot be hurt while it is a bone pile',inv.hp===inv.hp0&&(inv.state==='sovfall'||inv.state==='sovdown')&&inv.blocks>=1,JSON.stringify(inv));
+
+  // 3. 2-3 small piles
+  const piles=await G(page,()=>{const p=__game.state().enemies.filter(e=>e.sovPile&&e.state==='pile'&&!e.gone);
+    return {n:p.length,types:[...new Set(p.map(e=>e.type))]};});
+  check('M1.75 a collapse scatters 2-3 small bone piles',piles.n>=2&&piles.n<=3&&piles.types.join()==='skeleton',JSON.stringify(piles));
+
+  // 4. small piles rebuild into Rattlebones at 4.5 s
+  const rebuild=await G(page,()=>{const n=__game.state().enemies.filter(e=>e.sovPile&&e.state==='pile'&&!e.gone).length;
+    __game.setHearts(5);__game.advance(4.4);
+    const mid=__game.state().enemies.filter(e=>e.sovPile);
+    const midPile=mid.filter(e=>e.state==='pile'&&!e.gone).length,midLive=mid.filter(e=>e.state==='chase'&&!e.gone).length;
+    __game.setHearts(5);__game.advance(0.2);
+    const after=__game.state().enemies.filter(e=>e.sovPile);
+    const live=after.filter(e=>e.type==='skeleton'&&e.state==='chase'&&!e.gone);
+    const left=after.filter(e=>e.state==='pile'&&!e.gone);
+    return {n,midPile,midLive,live:live.length,left:left.length,reforms:live.map(e=>e.reforms)};});
+  check('M1.75 a small pile rebuilds into a Rattlebone at 4.5 s',rebuild.live===rebuild.n&&rebuild.n>=2&&rebuild.left===0&&rebuild.midPile===rebuild.n&&rebuild.midLive===0&&rebuild.reforms.every(r=>r>=1),JSON.stringify(rebuild));
+
+  // 5. a smashed pile does not rebuild
+  const smash=await G(page,()=>{window._sovBoot();__game.hitBossOnce(__game.boss().ent.maxHp);
+    const all=__game.state().enemies;const piles=all.map((e,i)=>({i,...e})).filter(e=>e.sovPile&&e.state==='pile'&&!e.gone);
+    const target=piles[0];__game.damageMob(target.i,1);
+    const afterHit=__game.state().enemies[target.i];
+    __game.setHearts(5);__game.advance(5);
+    const later=__game.state().enemies[target.i];
+    const rattle=__game.state().enemies.filter(e=>e.sovPile&&!e.gone&&e.state==='chase'&&Math.hypot(e.x-target.x,e.y-target.y)<0.2);
+    return {n:piles.length,hitState:afterHit&&afterHit.state,laterState:later&&later.state,laterGone:!!(later&&later.gone),rattle:rattle.length};});
+  check('M1.75 a smashed pile does not rebuild into a Rattlebone',(smash.hitState==='dead'||smash.laterGone)&&smash.rattle===0,JSON.stringify(smash));
+
+  // 6. reform after piles resolve
+  const reform=await G(page,()=>{window._sovBoot();const mx=__game.boss().ent.maxHp,want=Math.round(mx*__game.sov.thresh[0]);
+    __game.hitBossOnce(mx);let st=__game.boss().ent.state,wait=0;
+    for(let i=0;i<80;i++){__game.setHearts(5);__game.advance(0.1);wait+=0.1;st=__game.boss().ent.state;if(st==='chase')break;}
+    const b=__game.boss().ent;return {want,hp:b.hp,state:b.state,phase:b.sovPhase,reforms:__game.state().stats.sovReforms||0,wait};});
+  check('M1.75 the Sovereign reforms and keeps fighting after the piles are resolved',reform.state==='chase'&&reform.hp===reform.want&&reform.phase===1&&reform.reforms>=1&&reform.wait>=5&&reform.wait<=7,JSON.stringify(reform));
+
+  // 7. skulls damage the player
+  const skull=await G(page,()=>{__game.faceBoss(2.2);__game.setHearts(5);const h0=__game.state().player.hearts;
+    if(__game.bossForce)__game.bossForce('skull');
+    let kind=false,hearts=h0,t=0;
+    for(let i=0;i<50;i++){const s=__game.advance(0.1);t+=0.1;if(s.eshots.some(q=>q.kind==='sovskull'))kind=true;if(s.player.hearts<h0)return {ok:true,kind,hearts:s.player.hearts,h0,t};}
+    return {ok:false,kind,hearts:__game.state().player.hearts,h0,t,shots:(__game.state().eshots||[]).map(q=>q.kind)};});
+  check('M1.75 a skull projectile damages the player',skull.ok&&skull.kind&&skull.hearts===skull.h0-1,JSON.stringify(skull));
+
+  // 8-9. three phases then death, loot still drops
+  const end=await G(page,()=>{window._sovBoot();const mx=__game.boss().ent.maxHp,thr=__game.sov.thresh,phases=[];
+    for(let p=0;p<3;p++){__game.hitBossOnce(mx);const b=__game.boss().ent;phases.push({p,hp:b.hp,want:Math.round(mx*thr[p]),state:b.state,phase:b.sovPhase});
+      for(let i=0;i<80;i++){__game.setHearts(5);__game.advance(0.1);if(__game.boss().ent.state==='chase')break;}}
+    const after=__game.boss().ent,canDie=after.hp===Math.round(mx*.25)&&after.state==='chase'&&after.sovPhase===3;
+    const bx=after.x,by=after.y;__game.hitBossOnce(mx);const dying=__game.boss().ent;__game.advance(1.5);const s=__game.state(),b=__game.boss();
+    const coins=s.items.filter(i=>i.kind==='coin'&&i.spray).length;
+    const loot=s.items.filter(i=>i.kind==='power'||i.kind==='heart'||i.kind==='item'||i.kind==='perm');
+    return {phases,canDie,dieState:dying.state,gone:!(!b.ent||!b.ent.gone),sealed:b.sealed,coins,loot:loot.length,kills:s.stats.bossKills,msg:s.msg};});
+  check('M1.75 three collapse phases (75%, 50% and 25%) then the Sovereign can die',end.canDie&&end.phases.every(ph=>ph.hp===ph.want&&ph.phase===ph.p+1)&&end.dieState==='dead',JSON.stringify(end));
+  check('M1.75 boss loot still drops when the Rattle Sovereign falls (15 coins, a run item and a use-item)',end.coins>=15&&end.loot>=2&&end.gone&&!end.sealed&&end.kills>=1,JSON.stringify(end));
+
+  // headless screenshots: walking, shooting a skull, collapsed with small piles, a Rattlebone rebuilding, the reformed boss
+  const faceClear=()=>G(page,(dist)=>{
+    const b=__game.boss().ent;if(!b)return;
+    const others=__game.state().enemies.filter(e=>!e.gone&&e.state!=='dead'&&e.type!=='sovereign'&&e.state!=='sovfall'&&e.state!=='sovdown'&&e.state!=='sovup');
+    let best=null,bestN=99;
+    [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dx,dy])=>{
+      const L=Math.hypot(dx,dy),x=b.x+dx/L*dist,y=b.y+dy/L*dist;if(__game.solidAt(x,y))return;
+      const n=others.filter(e=>{
+        const ab=Math.hypot(e.x-b.x,e.y-b.y),ap=Math.hypot(e.x-x,e.y-y);
+        return ap<2.2&&ab<dist+0.4;
+      }).length;
+      if(n<bestN){bestN=n;best={x,y,ang:Math.atan2(b.y-y,b.x-x)};}
+    });
+    if(best)__game.teleport(best.x,best.y,best.ang);
+  });
+  await G(page,()=>{window._sovBoot();__game.setHearts(5);__game.faceBoss(3.3);__game.advance(0.7);if(__game.setMsg)__game.setMsg('',0.01);__game.render();});
+  await shot(page,'walking');
+  await G(page,()=>{__game.setHearts(5);__game.faceBoss(3.3);if(__game.bossForce)__game.bossForce('skull');
+    const dist=()=>{const b=__game.boss().ent,s=(__game.state().eshots||[]).find(q=>q.kind==='sovskull');if(!s||!b)return 0;return Math.hypot(s.x-b.x,s.y-b.y);};
+    for(let i=0;i<30;i++){__game.advance(0.05);if(dist()>=1.15)break;}
+    __game.setHearts(5);if(__game.setMsg)__game.setMsg('',0.01);__game.render();});
+  await shot(page,'shooting_skull');
+  await G(page,()=>{for(let i=0;i<20;i++){const s=__game.advance(0.1);if(!(s.eshots||[]).some(q=>q.kind==='sovskull'))break;}
+    __game.setHearts(5);__game.faceBoss(3.3);__game.hitBossOnce(__game.boss().ent.maxHp);__game.advance(0.8);__game.setHearts(5);if(__game.setMsg)__game.setMsg(__game.sov.msg,3);__game.render();});
+  await shot(page,'collapsed_piles');
+  await G(page,()=>{__game.setHearts(5);
+    for(let i=0;i<40;i++){__game.advance(0.1);const live=__game.state().enemies.filter(e=>e.sovPile&&e.state==='chase'&&!e.gone).length;if(live>=1)break;}
+    __game.setHearts(5);if(__game.setMsg)__game.setMsg('',0.01);});
+  await faceClear(3.5);
+  await G(page,()=>__game.render());
+  await shot(page,'rattlebone_rebuild');
+  await G(page,()=>{window._sovBoot();__game.setHearts(5);__game.faceBoss(3.3);__game.hitBossOnce(__game.boss().ent.maxHp);__game.advance(0.2);
+    __game.state().enemies.forEach((e,i)=>{if(e.sovPile&&e.state==='pile')__game.damageMob(i,1);});
+    for(let i=0;i<40;i++){__game.setHearts(5);__game.advance(0.1);if(__game.boss().ent.state==='chase')break;}
+    __game.setHearts(5);if(__game.setMsg)__game.setMsg('',0.01);__game.faceBoss(3.2);__game.render();});
+  await shot(page,'reformed');
+
+  await ctx.close();
+}
+
+if(V175&&want('m175')){ await m175Tests(); }
 
 async function m167Tests(){
   const M167='/workspace/labyrinth-main/m167';
@@ -5484,7 +5603,7 @@ async function m18Tests(){
     const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m18-endless'});
     let r=await G(page,()=>{__game.manual=true;localStorage.clear();__game.setSeed(777);__game.startLevel(7);__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);let s=__game.advance(0.3);const m1=s.mode;__game.advance(0.6);__game.confirm();s=__game.advance(0.05);return {m1,mode:s.mode,level:s.level,name:s.levelName,save:s.save};});
     check('M1.8 no final win: clearing level 8 starts floor 9 (deep theme) and saves it',r.m1==='clear'&&r.mode==='play'&&r.level===8&&(V168?/^LEVEL 9: (BASALT DEPTHS|ICY PRISON)/:/^LEVEL 9: BASALT DEPTHS/).test(r.name)&&r.save&&r.save.level===8,JSON.stringify(r));
-    r=await G(page,()=>{const out=[];for(const f of [50,200,1000]){__game.startLevel(f-1);if(__game.hitBoss){__game.hitBoss(9999);__game.advance(1.5);} /* M1.10: these are boss floors; the portal opens once the boss falls */__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);__game.advance(0.3);__game.advance(0.6);__game.confirm();const s=__game.advance(0.05);out.push(s.mode+':'+s.level);}return out;});
+    r=await G(page,()=>{const out=[];for(const f of [50,200,1000]){__game.startLevel(f-1);if(__game.defeatBoss){__game.defeatBoss();__game.advance(1.6);}else if(__game.hitBoss){__game.hitBoss(9999);__game.advance(1.5);} /* M1.10/M1.75: boss floors (floor 1000 is the Rattle Sovereign; hitBoss ticks cannot skip its pile phases). Advance so the death pop unseals the portal. */__game.clearMobs();const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);__game.advance(0.3);__game.advance(0.6);__game.confirm();const s=__game.advance(0.05);out.push(s.mode+':'+s.level);}return out;});
     check('M1.8 clears on floors 50, 200 and 1000 lead on to the next floor (never a win screen)',r.join()==='play:50,play:200,play:1000',r.join());
     await G(page,()=>{__game.setRun({kills:12,elites:3,coins:40,deepest:199});__game.startLevel(199,{hearts:4,coins:33,item:__game.pu.shield?'shield':'herb'});});
     const sv=await G(page,()=>__game.state().save);

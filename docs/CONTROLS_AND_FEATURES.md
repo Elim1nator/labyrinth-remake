@@ -177,7 +177,7 @@ Step off the Yellow Sign quickly, out of the dark pools, and away from the twin 
 
 ## Boss floors
 
-Every 5th floor a boss guards the portal: the Screamer King (5, 20, 35, ...; M1.26, was King Gloop), Luggernaut (10, 25, ...)
+Every 5th floor a boss guards the portal: the Screamer King (5, 20, 35, ...; M1.26, was King Gloop), the Rattle Sovereign (10, 25, ...; M1.75, was Luggernaut)
 and Coghoot (15, 30, ...). The band says "BOSS FLOOR!" at the start. The portal is barred and
 dim (also on both maps) until the boss falls; the exit door itself needs no key. The boss stays
 in its arena room and wakes when you walk in. Opening its door plays a 5-second cut scene: you are pulled

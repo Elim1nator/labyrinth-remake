@@ -48,6 +48,7 @@ const V156=atLeast('1.56'); // M1.56+: no Mounted (rider) Infernal modifier
 const V157=atLeast('1.57'); // M1.57+: Tiled Baths (Plunger, the Bather) and Slate Halls (the Slick Man)
 const V158=atLeast('1.58'); // M1.58+: guaranteed theme-mob minimum; Bather walk centred and sped up
 const V173=atLeast('1.73'); // M1.73+: 100 pit coins make the next boss floor the Broodmother
+const V1731=atLeast('1.73.1'); // M1.73.1+: paid coin-door coins stay deducted on CONTINUE; score board GET is cached for the session; a 429 falls back to the local board
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
@@ -2852,7 +2853,7 @@ async function m166Tests(){
   check('M1.66 every score POST sends {name,score,floor,seed,version} with this build\'s version (relative /api/labyrinth path)',
     hs2&&hs2.payload&&hs2.payload.name==='QAVER'&&hs2.payload.score===1234&&hs2.payload.floor===3&&hs2.payload.seed==='seed-1'&&hs2.payload.version===hs2.ver&&hs2.validOk&&hs2.postUrl&&/^\/api\/labyrinth\/scores$/.test(hs2.postUrl)&&!/https?:\/\//.test(hs2.postUrl||''),
     JSON.stringify({payload:hs2.payload,ver:hs2.ver,postUrl:hs2.postUrl,err:hs2.err}));
-  check('M1.66 a 404 or fetch error falls back to the local top-10 board',
+  if(!V1731)check('M1.66 a 404 or fetch error falls back to the local top-10 board',
     hs2&&hs2.f404&&hs2.f404.local&&/COULD NOT LOAD THE ONLINE BOARD/.test(hs2.f404.msg||'')&&hs2.f404.names.includes('LOCL')&&hs2.ferr&&hs2.ferr.local&&/COULD NOT LOAD THE ONLINE BOARD/.test(hs2.ferr.msg||''),
     JSON.stringify({f404:hs2.f404,ferr:hs2.ferr,err:hs2.err}));
   check('M1.66 the board toggle filters All versions vs This version client-side (old rows without version are unknown)',
@@ -2870,6 +2871,7 @@ if(V172&&want('m172')){ await m172Tests(); }
 if(V173&&want('m173')){ await m173Tests(); }
 if(V166&&want('m166')){ await m166FixTests(); await m166Tests(); }
 if(V167&&want('m167')){ await m167Tests(); }
+if(V1731&&want('m1731')){ await m1731Tests(); }
 
 async function m167Tests(){
   const M167='/workspace/labyrinth-main/m167';
@@ -2990,6 +2992,197 @@ async function m167Tests(){
   await ctx.close();
 }
 
+async function m1731Tests(){
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m1731'});
+
+  // ---- paid coin door: CONTINUE must not refund the first payment
+  const paid=await G(page,()=>{
+    const G=__game;G.manual=true;G.freeze=false;
+    function face(c){
+      const dirs=[[1,0,Math.PI],[-1,0,0],[0,1,-Math.PI/2],[0,-1,Math.PI/2]];
+      for(const d of dirs){
+        const x=c.x+d[0],y=c.y+d[1];
+        if(typeof G.cellType==='function'?G.cellType(x,y)===0:!G.solidAt(x+.5,y+.5)){G.teleport(x+.5,y+.5,d[2]);return true;}
+      }
+      return false;
+    }
+    function doorAt(c){return (G.doors()||[]).find(d=>d.x===c.x&&d.y===c.y)||null;}
+    const tries=[[9,5],[1,6],[1,5]];
+    let found=null;
+    for(const [sd,f] of tries){
+      G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:40,perm:{items:{}}});
+      const e=G.extras&&G.extras();
+      if(e&&e.coinDoor&&face(e.coinDoor)){found={sd,f,level:G.state().level,price:e.coinDoor.price,c:e.coinDoor};break;}
+    }
+    if(!found){
+      for(let sd=1;sd<=40&&!found;sd++)for(let f=2;f<=12&&!found;f++){
+        G.setSeed(sd);G.startLevel(f-1,{hearts:9,coins:40,perm:{items:{}}});
+        const e=G.extras&&G.extras();
+        if(e&&e.coinDoor&&face(e.coinDoor)){found={sd,f,level:G.state().level,price:e.coinDoor.price,c:e.coinDoor};}
+      }
+    }
+    if(!found)return {ok:false,err:'no coin door'};
+    G.clearMobs&&G.clearMobs();
+    G.setCoins(40);G.advance(0.05);
+    G.use();
+    for(let k=0;k<50;k++)G.advance(1/60);
+    const afterPay={
+      coins:G.state().player.coins,door:doorAt(found.c),msg:G.state().msg,
+      coinPaid:!!(G.coinPaid&&G.coinPaid()),
+      save:JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null')
+    };
+    const want=40-found.price;
+    const cycles=[];
+    for(let i=0;i<3;i++){
+      const sv=JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null');
+      if(!sv)return {ok:false,err:'no save',found,afterPay};
+      const coinsAtSave=sv.coins;
+      sv.cont=true;
+      G.startLevel(sv.level,sv);
+      for(let k=0;k<24;k++)G.advance(1/60);
+      const d0=doorAt(found.c);
+      const coins0=G.state().player.coins;
+      face(found.c);G.advance(0.05);G.use();
+      for(let k=0;k<40;k++)G.advance(1/60);
+      const d1=doorAt(found.c);
+      cycles.push({
+        i,coinsAtSave,coins0,coins1:G.state().player.coins,
+        door0:d0,door1:d1,
+        coinPaid:!!(G.coinPaid&&G.coinPaid()),
+        saveCoins:(JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null')||{}).coins,
+        savePaid:(JSON.parse(localStorage.getItem('labyrinthRemake.save.v1')||'null')||{}).coinPaid
+      });
+    }
+    G.setSeed(found.sd);G.startLevel(found.level,{hearts:9,coins:40,perm:{items:{}},cont:true});
+    for(let k=0;k<12;k++)G.advance(1/60);
+    const legacy={
+      mode:G.state().mode,level:G.state().level,
+      door:doorAt(found.c),
+      coinPaid:!!(G.coinPaid&&G.coinPaid()),
+      coins:G.state().player.coins
+    };
+    return {ok:true,found,afterPay,want,cycles,legacy};
+  });
+  const paidOk=paid.ok&&paid.afterPay.coinPaid&&paid.afterPay.coins===paid.want
+    &&paid.afterPay.save&&paid.afterPay.save.coins===paid.want
+    &&paid.afterPay.save.coinPaid===paid.found.level
+    &&paid.afterPay.door&&paid.afterPay.door.coin===0&&!paid.afterPay.door.locked;
+  const stay=paid.ok&&paid.cycles.length===3&&paid.cycles.every(c=>
+    c.coinsAtSave===paid.want&&c.coins0===paid.want&&c.coins1===paid.want
+    &&c.saveCoins===paid.want&&c.coinPaid&&c.savePaid===paid.found.level
+    &&c.door0&&c.door0.coin===0&&!c.door0.locked&&c.door0.open>0.9
+    &&c.door1&&c.door1.coin===0
+  );
+  const legacyOk=paid.ok&&paid.legacy.mode==='play'&&paid.legacy.level===paid.found.level
+    &&!paid.legacy.coinPaid&&paid.legacy.door&&paid.legacy.door.coin===paid.found.price
+    &&paid.legacy.coins===40;
+  check('M1.73.1 paying a coin door writes the post-payment coin total into the save',
+    paidOk,JSON.stringify({found:paid.found,afterPay:paid.afterPay,err:paid.err}));
+  check('M1.73.1 CONTINUE 3x keeps the paid door open, does not refund the payment, and does not charge again',
+    stay,JSON.stringify(paid.cycles));
+  check('M1.73.1 an old save without coinPaid still loads (door is priced as before)',
+    legacyOk,JSON.stringify(paid.legacy));
+
+  // ---- score board: session cache + 429 fallback (mocked fetch only; never the live API)
+  const hs=await G(page,()=>new Promise(done=>{
+    const G=__game;
+    const ver=G.version();
+    const log=[];
+    const rows=[
+      {rank:1,name:'OLDONE',score:9000,floor:9,seed:'aaa'},
+      {rank:2,name:'CURA',score:8000,floor:8,seed:'bbb',version:ver},
+      {rank:3,name:'OTHA',score:7000,floor:7,seed:'ccc',version:'M1.50'}
+    ];
+    let mode='ok';
+    window.fetch=async function(url,opts){
+      const rec={url:String(url),method:(opts&&opts.method)||'GET',body:opts&&opts.body||null};
+      log.push(rec);
+      const path=String(url);
+      await Promise.resolve();
+      if(/\/health/.test(path))return {ok:true,status:200,json:async()=>({ok:true})};
+      if(/\/scores/.test(path)&&rec.method==='GET'){
+        if(mode==='http429')return {ok:false,status:429,json:async()=>({ok:false,error:'rate limited'})};
+        if(mode==='http404')return {ok:false,status:404,json:async()=>({ok:false,error:'not found'})};
+        return {ok:true,status:200,json:async()=>({scores:rows})};
+      }
+      if(/\/scores/.test(path)&&rec.method==='POST'){
+        if(mode==='post429')return {ok:false,status:429,json:async()=>({ok:false,error:'rate limited'})};
+        return {ok:true,status:201,json:async()=>({ok:true,rank:2})};
+      }
+      return {ok:false,status:404,json:async()=>({ok:false})};
+    };
+    G.hsForceOnline=true;
+    localStorage.removeItem('labyrinthRemake.localScores.v1');
+    const wait=()=>new Promise(r=>{const t=setInterval(()=>{const h=G.hs();if(!h.loading&&!h.busy){clearInterval(t);r(h);}},20);setTimeout(()=>{clearInterval(t);r(G.hs());},3000);});
+    const gets=()=>log.filter(r=>r.method==='GET'&&/\/scores/.test(r.url));
+    const healths=()=>log.filter(r=>r.method==='GET'&&/\/health/.test(r.url));
+
+    (async()=>{
+      mode='ok';log.length=0;
+      G.toTitle();G.openScores();
+      const first=await wait();
+      const afterFirst={gets:gets().length,healths:healths().length,names:(first.shown||[]).map(e=>e.name),fetched:first.fetched,local:first.local};
+      G.openScores();
+      const second=await wait();
+      G.hsToggle('mine');
+      const mine=G.hs();
+      G.hsToggle('all');
+      G.toTitle();G.openScores();
+      const third=await wait();
+      const cache={
+        afterFirst,gets:gets().length,healths:healths().length,
+        secondNames:(second.shown||[]).map(e=>e.name),
+        mineNames:(mine.shown||[]).map(e=>e.name),
+        thirdNames:(third.shown||[]).map(e=>e.name),
+        filter:third.filter,fetched:third.fetched,local:third.local
+      };
+
+      localStorage.setItem('labyrinthRemake.localScores.v1',JSON.stringify([{name:'LOCL',score:10,floor:1,seed:'z',created_at:'2026-01-01T00:00:00Z'}]));
+      G.hsResetLoad();
+      mode='http429';log.length=0;
+      G.toTitle();G.openScores();
+      const g429=await wait();
+      const gets429a=gets().length,healths429a=healths().length;
+      G.openScores();
+      const g429b=await wait();
+      const r429={
+        local:g429.local,msg:g429.msg,names:(g429.shown||g429.list||[]).map(e=>e.name),
+        fetched:g429.fetched,gets:gets429a,healths:healths429a,
+        getsAfter:gets().length,healthsAfter:healths().length,
+        stillLocal:g429b.local,names2:(g429b.shown||g429b.list||[]).map(e=>e.name)
+      };
+
+      localStorage.removeItem('labyrinthRemake.localScores.v1');
+      mode='post429';log.length=0;
+      const postP=new Promise(res=>G.hsSubmit({name:'RATEY',score:1234,floor:3,seed:'seed-9',version:ver},res));
+      const submitted=await Promise.race([postP,new Promise(r=>setTimeout(()=>r({timeout:true}),3000))]);
+      const local=G.localScores().map(e=>e.name);
+      const posts=log.filter(r=>r.method==='POST');
+      const postGets=gets().length;
+      const rpost={submitted,local,posts:posts.length,postGets,retries:log.filter(r=>r.method==='POST').length};
+
+      done({cache,r429,rpost,ver});
+    })().catch(e=>done({err:String(e&&e.stack||e)}));
+  }));
+
+  check('M1.73.1 opening the board several times makes only one scores GET, and the All/This toggle does not re-fetch',
+    hs&&hs.cache&&hs.cache.afterFirst.gets===1&&hs.cache.afterFirst.healths===1&&hs.cache.gets===1&&hs.cache.healths===1
+    &&hs.cache.afterFirst.names.join(',')==='OLDONE,CURA,OTHA'&&hs.cache.secondNames.join(',')==='OLDONE,CURA,OTHA'
+    &&hs.cache.mineNames.join(',')==='CURA'&&hs.cache.thirdNames.join(',')==='OLDONE,CURA,OTHA'
+    &&hs.cache.local===false&&hs.cache.fetched===true,
+    JSON.stringify({cache:hs&&hs.cache,err:hs&&hs.err}));
+  check('M1.73.1 a 429 on the leaderboard GET shows the local top-10 board and does not retry on reopen',
+    hs&&hs.r429&&hs.r429.local&&/COULD NOT LOAD THE ONLINE BOARD/.test(hs.r429.msg||'')&&hs.r429.names.includes('LOCL')
+    &&hs.r429.gets===1&&hs.r429.getsAfter===1&&hs.r429.stillLocal&&hs.r429.names2.includes('LOCL'),
+    JSON.stringify({r429:hs&&hs.r429,err:hs&&hs.err}));
+  check('M1.73.1 a 429 on POST keeps the local save and does not retry',
+    hs&&hs.rpost&&hs.rpost.submitted&&hs.rpost.submitted.highlight&&hs.rpost.submitted.highlight.local===true
+    &&/BOARD UNAVAILABLE \(429\) - SAVED LOCALLY/.test(hs.rpost.submitted.msg||'')
+    &&!hs.rpost.submitted.retry&&hs.rpost.local.includes('RATEY')&&hs.rpost.posts===1&&hs.rpost.postGets===0,
+    JSON.stringify({rpost:hs&&hs.rpost,err:hs&&hs.err}));
+
+  await ctx.close();
+}
 
 check('no console errors or warnings',consoleProblems.length===0,consoleProblems.slice(0,5).join(' || '));
 check('no external network requests',badRequests.length===0,badRequests.slice(0,5).join(', '));
@@ -4576,14 +4769,21 @@ async function m18Tests(){
     const post=stub.state.posts[0];
     check('M1.8 stub online: submit POSTs {name,score,floor,seed} as JSON and gets 201 + rank, shown and highlighted',m==='name'&&st.mode==='scores'&&stub.state.posts.length===1&&post.ok&&Object.keys(post.parsed).sort().join()===(atLeast('1.66')?'floor,name,score,seed,version':'floor,name,score,seed')&&(!atLeast('1.66')||post.parsed.version===BUILD.replace(/^m/,'M'))&&post.parsed.name==='QA Stub'&&post.parsed.score===9650&&post.parsed.floor===8&&post.parsed.seed==='4242'&&/SCORE SENT! YOUR RANK: 4/.test(h.msg)&&h.hl&&h.hl.rank===4&&h.list[3].name==='QA Stub'&&/application\/json/.test(post.headers['content-type']),JSON.stringify({msg:h.msg,post:post&&post.parsed}));
     await page.screenshot({path:`${SHOTS}/m18_highscores_online_after_submit.png`});
-    // 429 -> friendly retry message, name kept; retry works once the limit clears
+    // 429: before M1.73.1 this stayed on name entry for a retry; from M1.73.1 it saves locally like other errors
     stub.fillLimit();m=await DIEP({kills:1,elites:0,coins:2,deepest:2});
     await page.keyboard.type('Retry Me');await page.keyboard.press('Enter');for(let i=0;i<40;i++){if(!(await G(page,()=>__game.hs().busy)))break;await sleep(100);}await G(page,()=>__game.advance(0.1));
     h=await G(page,()=>__game.hs());st=await G(page,()=>__game.state());
-    check('M1.8 stub 429: friendly "wait a minute, then try again" message, still on name entry with the name kept',st.mode==='name'&&/TOO MANY SCORES SENT\. WAIT A MINUTE, THEN TRY AGAIN\./.test(h.nameErr)&&h.nameBuf==='Retry Me'&&st.stats.hs429===1,JSON.stringify({mode:st.mode,err:h.nameErr}));
-    await page.screenshot({path:`${SHOTS}/m18_name_entry_429.png`});
-    stub.clearLimit();await page.keyboard.press('Enter');h=await waitHS();st=await G(page,()=>__game.state());
-    check('M1.8 after a 429, pressing Enter again submits once the limit clears',st.mode==='scores'&&/SCORE SENT/.test(h.msg)&&stub.state.posts.filter(p=>p.ok).length===2,h.msg);
+    if(!V1731){
+      check('M1.8 stub 429: friendly "wait a minute, then try again" message, still on name entry with the name kept',st.mode==='name'&&/TOO MANY SCORES SENT\. WAIT A MINUTE, THEN TRY AGAIN\./.test(h.nameErr)&&h.nameBuf==='Retry Me'&&st.stats.hs429===1,JSON.stringify({mode:st.mode,err:h.nameErr}));
+      await page.screenshot({path:`${SHOTS}/m18_name_entry_429.png`});
+      stub.clearLimit();await page.keyboard.press('Enter');h=await waitHS();st=await G(page,()=>__game.state());
+      check('M1.8 after a 429, pressing Enter again submits once the limit clears',st.mode==='scores'&&/SCORE SENT/.test(h.msg)&&stub.state.posts.filter(p=>p.ok).length===2,h.msg);
+    }else{
+      const lsl429=await G(page,()=>__game.localScores().map(e=>e.name));
+      check('M1.73.1 stub 429 on POST: saved to the local board with no retry loop',st.mode==='scores'&&/BOARD UNAVAILABLE \(429\) - SAVED LOCALLY/.test(h.msg)&&h.local===true&&lsl429.includes('Retry Me'),JSON.stringify({mode:st.mode,msg:h.msg,local:h.local,lsl:lsl429}));
+      await page.screenshot({path:`${SHOTS}/m18_name_entry_429.png`});
+      stub.clearLimit();
+    }
     // 400 from the server
     stub.state.mode.post='reject';m=await DIEP({kills:0,elites:0,coins:0,deepest:1});await page.keyboard.type('Bad Day');await page.keyboard.press('Enter');h=await waitHS();
     check('M1.8 stub 400: the error is shown gracefully ("SCORE REJECTED: ...") and the page moves on',(await G(page,()=>__game.state().mode))==='scores'&&/SCORE REJECTED: REJECTED BY STUB/.test(h.msg),h.msg);
@@ -4593,14 +4793,19 @@ async function m18Tests(){
     check('M1.8 stub 503 on submit: saved to the local board with a clear message',/BOARD UNAVAILABLE \(503\) - SAVED LOCALLY/.test(h.msg)&&lsl.includes('Fallback'),h.msg);
     stub.state.mode.post='ok';
     // unreachable: health down / connection dropped -> local, labelled
+    // M1.73.1 caches the first leaderboard GET for the page session, so start a fresh load for these fallbacks
+    if(V1731){await page.reload();await page.waitForFunction(()=>!!window.__game);await G(page,()=>{__game.manual=true;});}
     stub.state.mode.health='down';await G(page,()=>{__game.toTitle();__game.openScores();});h=await waitHS();await G(page,()=>__game.advance(0.4));
     check('M1.8 health 503: falls back to the LOCAL board, labelled as local',h.online===false&&h.local===true&&h.list.some(e=>e.name==='Fallback'),JSON.stringify({online:h.online,local:h.local}));
+    if(V1731)await G(page,()=>{if(__game.hsResetLoad)__game.hsResetLoad();});
     stub.state.mode.health='drop';await G(page,()=>{__game.toTitle();__game.openScores();});h=await waitHS();
     check('M1.8 connection dropped: falls back to the LOCAL board',h.online===false&&h.local===true);
+    if(V1731)await G(page,()=>{if(__game.hsResetLoad)__game.hsResetLoad();});
     stub.state.mode.health='ok';stub.state.mode.scores='error';await G(page,()=>{__game.toTitle();__game.openScores();});h=await waitHS();
     check('M1.8 list request 500: local board with a note',h.local===true&&/COULD NOT LOAD THE ONLINE BOARD/.test(h.msg),h.msg);
     stub.state.mode.scores='ok';
     // offline browser
+    if(V1731)await G(page,()=>{if(__game.hsResetLoad)__game.hsResetLoad();});
     await ctx.setOffline(true);await G(page,()=>{__game.toTitle();__game.openScores();});h=await waitHS();await ctx.setOffline(false);
     check('M1.8 browser offline: local board, no request attempted',h.local===true&&h.online===false);
     // request hygiene

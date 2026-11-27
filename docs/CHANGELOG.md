@@ -3,6 +3,9 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.75.2: Moss wall tile wraps seamlessly
+- The Basalt Depths moss wall tile (`assets/walls.png`, the vine-covered stone) now tiles left to right without a cut-off block, a doubled joint or a sheared vine at the wrap. Block joints sit at even spacing, with one mortar line at the tile edge. The look, palette and 128×128 size are unchanged. Other wall tiles were checked for the same kind of horizontal seam; none were clearly broken.
+
 ## M1.75.1: Sovereign small piles use the regular Rattlebone pile; wall textures tile once per cell
 - The Sovereign's scattered small piles now use the regular Rattlebone `bonePile` sprite and scale. Smash and 4.5 s rebuild behaviour is unchanged. `sovpile.png` stays in the repo but is no longer packed.
 - Wall textures already mapped `u` in 0–1 per cell; a regression test now fails if a long wall face stretches one copy of a tile across several cells, and it checks all 20 wall styles (not just Basalt Depths moss).

@@ -52,6 +52,7 @@ const V1731=atLeast('1.73.1'); // M1.73.1+: paid coin-door coins stay deducted o
 const V174=atLeast('1.74'); // M1.74+: Snowball, Ferryman's Coin, Master Key, Turned Face
 const V1741=atLeast('1.74.1'); // M1.74.1+: the save keeps floor-start coins plus kept coin changes (no double coins on CONTINUE); score board retries; ice spikes keep off you
 const V175=atLeast('1.75'); // M1.75+: The Rattle Sovereign replaces the Luggernaut
+const V1751=atLeast('1.75.1'); // M1.75.1+: Sovereign small piles use bonePile; wall textures tile once per cell
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
 const V170=atLeast('1.70'); // M1.70+: the Snowman (Icy Prison)
@@ -3704,6 +3705,17 @@ async function m175Tests(){
     return {n:p.length,types:[...new Set(p.map(e=>e.type))]};});
   check('M1.75 a collapse scatters 2-3 small bone piles',piles.n>=2&&piles.n<=3&&piles.types.join()==='skeleton',JSON.stringify(piles));
 
+  if(V1751){
+    const pileArt=await G(page,()=>{
+      const st=__game.assetState();
+      return {sheets:__game.mobSheets,sovpile:st.sovpile||null,bone:st.bonePile,
+        sig0:__game.frameSig('bonePile',0),sig1:__game.frameSig('bonePile',1)};
+    });
+    check('M1.75.1 small piles use the regular Rattlebone bone-pile art (sovpile is not packed)',
+      !pileArt.sheets.includes('sovpile')&&!pileArt.sovpile&&!!pileArt.bone&&!!pileArt.sig0&&!!pileArt.sig1,
+      JSON.stringify(pileArt));
+  }
+
   // 4. small piles rebuild into Rattlebones at 4.5 s
   const rebuild=await G(page,()=>{const n=__game.state().enemies.filter(e=>e.sovPile&&e.state==='pile'&&!e.gone).length;
     __game.setHearts(5);__game.advance(4.4);
@@ -3795,6 +3807,103 @@ async function m175Tests(){
 }
 
 if(V175&&want('m175')){ await m175Tests(); }
+
+async function m1751Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m1751',noFog:true});
+  const r=await G(page,()=>{
+    const G=__game;
+    if(typeof G.setCell!=='function')return {ok:false,err:'no setCell'};
+    const skip=new Set(['door','locked','fence']);
+    const styles=G.texNames.map((name,i)=>({name,i})).filter(t=>!skip.has(t.name));
+    const info=styles.map(t=>({...t,...G.texInfo(t.i)}));
+    const sizeOk=info.length===20&&info.every(t=>t.w===128&&t.h===128);
+    G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    G.setSeed(1);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{try{G.damageMob(i,99);}catch(err){}});
+    if(G.seeAll)G.seeAll();
+    const W=480,PLANE=0.66,TS=128;
+    function trace(){
+      const p=G.state().player;
+      const dx=Math.cos(p.ang),dy=Math.sin(p.ang);
+      const ppx=-dy*PLANE,ppy=dx*PLANE;
+      const hits=[];
+      for(let x=0;x<W;x++){
+        const camX=2*x/W-1,rdx=dx+ppx*camX,rdy=dy+ppy*camX;
+        let mx=Math.floor(p.x),my=Math.floor(p.y);
+        const ddx=rdx===0?1e30:Math.abs(1/rdx),ddy=rdy===0?1e30:Math.abs(1/rdy);
+        let stx,sty,sdx,sdy;
+        if(rdx<0){stx=-1;sdx=(p.x-mx)*ddx;}else{stx=1;sdx=(mx+1-p.x)*ddx;}
+        if(rdy<0){sty=-1;sdy=(p.y-my)*ddy;}else{sty=1;sdy=(my+1-p.y)*ddy;}
+        for(let n=0;n<80;n++){
+          let tEnter,side;
+          if(sdx<sdy){tEnter=sdx;sdx+=ddx;mx+=stx;side=0;}
+          else{tEnter=sdy;sdy+=ddy;my+=sty;side=1;}
+          if(mx<0||my<0||G.cellType(mx,my)<0)break;
+          if(G.cellType(mx,my)===1){
+            const wx=side===0?p.y+tEnter*rdy:p.x+tEnter*rdx;
+            let u=wx-Math.floor(wx);
+            const flp=(side===0&&rdx>0)||(side===1&&rdy<0);
+            if(flp)u=1-u;
+            const tx=Math.min(TS-1,Math.max(0,(u*TS)|0));
+            hits.push({x,mx,my,side,u,tx});
+            break;
+          }
+        }
+      }
+      return hits;
+    }
+    function summarize(hits){
+      const by={};
+      for(const h of hits){
+        const k=h.mx+','+h.my;
+        const c=by[k]||(by[k]={mx:h.mx,my:h.my,n:0,umin:1,umax:0,txmin:999,txmax:-1,x0:9999,x1:-1});
+        c.n++;c.umin=Math.min(c.umin,h.u);c.umax=Math.max(c.umax,h.u);
+        c.txmin=Math.min(c.txmin,h.tx);c.txmax=Math.max(c.txmax,h.tx);
+        c.x0=Math.min(c.x0,h.x);c.x1=Math.max(c.x1,h.x);
+      }
+      return Object.values(by).map(c=>({...c,uSpan:c.umax-c.umin})).sort((a,b)=>a.x0-b.x0);
+    }
+    const wx=8,wy=6,len=8;
+    const results=[];
+    let painted=0;
+    for(const st of info){
+      let okPaint=true;
+      for(let x=wx;x<wx+len;x++)if(!G.setCell(x,wy,{t:1,tex:st.i,v:0}))okPaint=false;
+      for(let x=wx;x<wx+len;x++)for(let y=wy+1;y<=wy+5;y++)if(!G.setCell(x,y,{t:0,v:0}))okPaint=false;
+      if(okPaint)painted++;
+      G.teleport(wx+len/2,wy+3.5,-Math.PI/2);
+      G.advance(0.05);G.render();
+      const cells=summarize(trace()).filter(c=>c.my===wy&&c.x0>0&&c.x1<W-1);
+      const tiled=cells.length>=2&&cells.every(c=>c.uSpan>=0.85&&c.txmin<=4&&c.txmax>=123);
+      // A stretch across the whole run would give each cell only a slice of U (well under 0.45).
+      const stretched=cells.length>=2&&cells.every(c=>c.uSpan<0.45);
+      results.push({name:st.name,i:st.i,nFull:cells.length,spans:cells.map(c=>+c.uSpan.toFixed(3)),tx:cells.map(c=>[c.txmin,c.txmax]),tiled,stretched,okPaint});
+    }
+    // Jacob's case: the natural 6-cell moss run on Basalt Depths seed 1, floor 10 (y=22, x=6..11)
+    G.setSeed(1);G.startLevel(9,{hearts:9,coins:0});
+    (G.state().enemies||[]).forEach((e,i)=>{try{G.damageMob(i,99);}catch(err){}});
+    G.teleport(9.0,25.5,-Math.PI/2);G.advance(0.05);G.render();
+    const moss=summarize(trace()).filter(c=>c.my===22&&c.x0>0&&c.x1<W-1);
+    const mossTiled=moss.length>=2&&moss.every(c=>c.uSpan>=0.85&&c.txmin<=4&&c.txmax>=123);
+    const mossStretched=moss.length>=2&&moss.every(c=>c.uSpan<0.45);
+    return {
+      setCell:true,sizeOk,nStyles:info.length,painted,results,
+      allTiled:results.every(q=>q.tiled&&!q.stretched&&q.okPaint),
+      anyStretched:results.some(q=>q.stretched),
+      moss:{nFull:moss.length,spans:moss.map(c=>+c.uSpan.toFixed(3)),tiled:mossTiled,stretched:mossStretched,cells:moss.map(c=>c.mx)}
+    };
+  });
+  check('M1.75.1 all 20 wall textures are 128x128',r.sizeOk&&r.nStyles===20,JSON.stringify({n:r.nStyles,err:r.err,sizeOk:r.sizeOk}));
+  check('M1.75.1 every wall texture repeats once per cell on a long straight wall (not stretched across the face)',
+    r.allTiled&&r.painted===20&&!r.anyStretched,JSON.stringify(r.results));
+  check('M1.75.1 the Basalt Depths moss wall (Jacob\'s Level 10 case) tiles once per cell, not stretched',
+    r.moss&&r.moss.tiled&&!r.moss.stretched,JSON.stringify(r.moss));
+  await ctx.close();
+}
+
+if(V1751&&want('m1751')){ await m1751Tests(); }
+
 
 async function m167Tests(){
   const M167='/workspace/labyrinth-main/m167';

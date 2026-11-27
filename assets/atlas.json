@@ -530,11 +530,6 @@
       "frames": 4,
       "k": 1.5
     },
-    "sovpile": {
-      "file": "mobs/sovpile.png",
-      "frames": 1,
-      "k": 1.5
-    },
     "shot_sovskull": {
       "file": "boss/shot_sovskull.png",
       "frames": 1,

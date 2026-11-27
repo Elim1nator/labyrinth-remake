@@ -315,11 +315,6 @@
       "frames": 8,
       "k": 1.5
     },
-    "lugg": {
-      "file": "mobs/lugg.png",
-      "frames": 6,
-      "k": 1.5
-    },
     "owl": {
       "file": "mobs/owl.png",
       "frames": 4,
@@ -519,6 +514,31 @@
       "file": "mobs/turnedface.png",
       "frames": 1,
       "k": 1.5
+    },
+    "sovereign": {
+      "file": "mobs/sovereign.png",
+      "frames": 5,
+      "k": 1.5
+    },
+    "sovereign_idle": {
+      "file": "mobs/sovereign_idle.png",
+      "frames": 1,
+      "k": 1.5
+    },
+    "sovereign_fall": {
+      "file": "mobs/sovereign_fall.png",
+      "frames": 4,
+      "k": 1.5
+    },
+    "sovpile": {
+      "file": "mobs/sovpile.png",
+      "frames": 1,
+      "k": 1.5
+    },
+    "shot_sovskull": {
+      "file": "boss/shot_sovskull.png",
+      "frames": 1,
+      "k": 1
     }
   }
 }

@@ -3,6 +3,14 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.75: The Rattle Sovereign
+- The **Rattle Sovereign** replaces the Luggernaut in the same boss slot (floors 10, 25, …, map letter J). It is a crowned skeleton boss that walks and shoots skulls.
+- Three phases at **75%, 50% and 25%** HP. A hit that would pass a threshold **clamps** there, so a huge hit cannot skip a phase.
+- At each threshold it collapses into a big bone pile (invulnerable, no bite) and scatters **2–3 smaller piles**. A small pile rebuilds into a Rattlebone after **4.5 s** unless you smash it first. Then the Sovereign reforms (**0.6 s** collapse, wait until the piles are done, **1.0 s** reform; about **5.5 s** if you leave the piles alone) and keeps fighting.
+- "IT COLLAPSES! SMASH THE PILES!" appears in the top message band, clear of the touch buttons.
+- Base HP **48** (Luggernaut was 45), walk speed **1.05**, skull every **2.2 / 1.9 / 1.6 / 1.4 s** by phase after a **0.4 s** tell, skull speed **4.2**. Boss loot, arena lock, the sealed portal and the other boss hooks are unchanged. The Luggernaut is retired (its PNG is left on disk, no longer packed).
+- Art: Jacob's green-screen walk, collapse, front pose and skull sheets, keyed, nearest-neighbour scaled and feet-centred, packed through `assets/atlas.json`.
+
 ## M1.74.1: CONTINUE coin fixes, score board retry, ice spikes
 Playtest fixes for M1.73.1 (built on M1.74, which includes M1.73.1).
 - **Double coins on CONTINUE (blocker).** M1.73.1 wrote your current coin total into the floor save when you paid a coin door. CONTINUE replays the floor with every coin back on the ground, so the coins you had already picked up came back on top of that total (Playtest: 67 instead of 36). The save now keeps the floor-start coins and, separately, the coin changes that CONTINUE keeps (`coinAdj`): a paid coin door, a Ferryman's Coin payout, a permanent shop buy, a run item from the shop, a Mystery Box, claimed coin-room loot and a revive. CONTINUE gives you floor-start coins plus that change. The Ferryman, Music Box and Master Key saves from M1.74 wrote the current total too, and use the same change now.

@@ -241,10 +241,19 @@ A boss guards the portal on every 5th floor (5, 10, 15, ...), in turn:
 | Boss | Base HP | Moves | Attacks | Phases |
 |---|---|---|---|---|
 | The Screamer King (M1.26; was King Gloop) | 36 | Flies; hovers 2.2–3.4 cells from you (0.9 cells/s) | Every 3 s (0.6–0.8 s tell, mouth open): one huge purple orb (2.6 cells/s, 2 damage, wider hit) or a fan of 5 small purple orbs (7 when furious) | Calls plain Screamers only: a wave of 3 at 2/3 and 1/3 health, one more every 13 s while fewer than 3 are left |
-| Luggernaut | 45 | Walks at you (1.0 cells/s) | Sock fan (3, 5, then 2 fast ones) or a charge (4.6 cells/s, stunned 0.7 s on a wall) every 2.4 s | A suitcase bursts at 2/3 and 1/3 HP: ring of 10 socks + 3 coins; speed ×1.35, then ×1.75; shorter target |
+| The Rattle Sovereign (M1.75; was Luggernaut) | 48 | Walks at you (1.05 cells/s) | One skull projectile (4.2 cells/s, 1 heart, no wither) after a 0.4 s telegraph. Fire cadence 2.2 / 1.9 / 1.6 / 1.4 s in phases 0–3 (times `cdMul`) | At 75%, 50% and 25% HP it collapses into a big bone pile (invulnerable). A hit that would pass a threshold stops at that threshold, so overkill cannot skip a phase. It scatters 2–3 smaller piles that rebuild as Rattlebones after 4.5 s (`BONES.reform`) unless a balloon smashes them first. After every small pile is smashed or rebuilt it plays a 1.0 s reform (`SOV.riseT`; collapse anim 0.6 s overlaps the wait). Unsmashed, about 5.5 s down in total. Then it keeps fighting. A message (`IT COLLAPSES! SMASH THE PILES!`, 30 characters) shows in the top HUD band, clear of the touch buttons. |
 | Coghoot | 40 | Flies circles about 3 cells from you (1.7 cells/s) | 3 homing gears or a swoop (5 cells/s) every 2.6 s | Furious at 1/2: rings of 8 gears, ×1.25 speed |
 
 - Contact and every shot cost 1 heart. A boss never leaves its arena. It wakes when you step into the arena, or see it from within 7 cells.
+
+**The Rattle Sovereign (M1.75)** replaces the Luggernaut in the same boss slot (floors 10, 25, …; map letter `J`). Base HP 48 (the Luggernaut was 45); floor and tier HP scale the same way (`ceil(base × hpMul) + 5 × (floor − 1)`). Constants live in `SOV` (`src/index.html`) and are repeated here:
+
+- Thresholds: 75%, 50%, 25% of `maxHp`, rounded (`Math.round`). `hitBossOnce` / a single balloon cannot jump past the next one.
+- Big pile: states `sovfall` (0.6 s), `sovdown` (until every small pile is smashed or has rebuilt), `sovup` (1.0 s, collapse frames in reverse). No damage and no contact bite in those states.
+- Small piles: 2 or 3 (`SOV.pilesMin` / `pilesMax`), using a smaller copy of the big-pile frame. They are Rattlebone (`skeleton`) ents in `state='pile'`, so they use the existing 4.5 s rebuild / smash rules.
+- Skulls: kind `sovskull` (new art, not the Infernal wither `skull`). 4.2 cells/s, 1 heart, 3.6 s life.
+- Loot, arena lock, wake, the sealed portal and `BOSS_LOOT` (15 coins + a run item + a use-item) are unchanged. The Luggernaut is retired (`assets/mobs/lugg.png` is left on disk, no longer packed).
+
 - Boss HP = ceil(base × round bonus) + 5 × (floor − 1) (M1.13.1). Each full round of three adds a tier: HP +40% (max ×3, from floor 80), attacks 8% more often (max 1/0.6), speed +6% (max ×1.3). Floor 20's King Gloop has 51 HP; floor 80's has 108.
 - At 0.8 s per throw, a floor-5 Screamer King takes at least 29 s of hits.
 - Loot: 15 coins spray out, plus a run item (a heart once all are maxed) and a use-item (M1.23). The boss counts as a kill and an elite (+150 score). The score formula is unchanged.

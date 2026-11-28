@@ -3,6 +3,12 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.79.7: Treasure Knight idle, walk, attack and guard art
+- The Treasure Knight uses Jacob's new idle (2 frames), walk (8-frame cycle, row-major), attack (sword raised, wind-up, swing, ground slam, recovery) and guard (crouched behind the shield) sheets, packed 1:1 at native size into one 16-frame strip (1376x77, 86x77 per frame, k 1.5). Every figure shares a foot baseline (row 65) and is feet-centred, so switching states does not jitter. The slam frame's debris sits below the feet. Under-50% alpha fringe was dropped; the red plume, cross and gold were left untouched. The M1.79.1 green-spill scan still passes (only the bone pile stays on the whitelist).
+- Idle is a slow 2-frame loop (frames 0-1). Walk is 2-9 at a cadence matched to his 1.15 speed; during a charge he uses a faster walk, and the charge telegraph uses the sword-raised pose. The ground slam still has a 1.2 s tell: sword raised, then wind-up, then swing, with the shockwave on the slam frame and a short recovery after. His existing shield-up state (no damage, cannot move) now uses the guard frame (15).
+- World height stays 0.965, so on-screen size stays close. A foot offset (11/77 of the cell) keeps the shared baseline on the floor, so slam debris can draw below his feet without the other poses floating.
+- Official suite on the frozen QA build: 796/796 passed. The pre-M1.79.7 "legs in the bottom 8 px" check is retired on this build (cells have pad and slam debris below the shared baseline); alignment is covered by the new M1.79.7 checks.
+
 ## M1.79.6: new Rattlebone and bone-pile art
 - The Rattlebone and its bone pile use Jacob's new sheets, packed at native pixel size (no rescaling). A 23-pixel near-transparent blue fringe and 146 opaque blue-spill outline pixels were cleaned off the skeleton; cream bone colours were left untouched. The bone pile's mid-alpha bone antialiasing and lime-green eyes were left as drawn.
 - The skeleton sheet is now 5 equal frames (210x100, 42x100 per frame, k 1.5): frame 0 is the planted idle pose, frames 1-4 are the walk cycle. Each figure is feet-centred on a shared baseline with at least 2 px of pad. Idle uses frame 0; walk is 1-2-3-4 at the same cadence as the old 4-frame cycle. World height stays 0.62, so on-screen size stays close (the new figure is naturally slimmer).

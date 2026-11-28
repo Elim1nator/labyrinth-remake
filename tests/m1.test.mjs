@@ -63,6 +63,7 @@ const V1793=atLeast('1.79.3'); // M1.79.3+: Wax Wings (and lev) float over inter
 const V1794=atLeast('1.79.4'); // M1.79.4+: map-edge Heights pits and the view past the map edge no longer smear a stretched wall texture
 const V1795=atLeast('1.79.5'); // M1.79.5+: Icy Prison minimap walls are solid icy blue; the Ice Wizard is a real boss
 const V1796=atLeast('1.79.6'); // M1.79.6+: new 5-frame Rattlebone (idle + walk) and 2-frame bone-pile art, packed 1:1
+const V1797=atLeast('1.79.7'); // M1.79.7+: Treasure Knight 16-frame idle/walk/attack/guard art
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -541,7 +542,7 @@ async function m111Tests(){
     __game.teleport(k0.x-2,k0.y,0);if(__game.solidAt(k0.x-2,k0.y))__game.teleport(k0.x+2,k0.y,Math.PI);__game.advance(0.1);__game.knightSet({woke:true,state:'chase',shieldT:1.5,chargeCD:9,tele:0,slamT:0,slamCD:9});
     const a=__game.knight();__game.damageMob(a.i,5);__game.advance(1.0);const b=__game.knight();__game.knightSet({shieldT:0,shieldCD:9});__game.damageMob(a.i,2);const c=__game.knight();
     return {hp0:a.hp,afterShield:b.hp,moved:Math.hypot(b.x-a.x,b.y-a.y),frame:a.frame,afterOpen:c.hp};});
-  check('M1.11 with his shield up the knight takes no damage and does not move; shield down, hits land',kb.afterShield===kb.hp0&&kb.moved<0.02&&kb.frame===2&&kb.afterOpen===kb.hp0-2,JSON.stringify(kb));
+  check('M1.11 with his shield up the knight takes no damage and does not move; shield down, hits land',kb.afterShield===kb.hp0&&kb.moved<0.02&&kb.frame===(V1797?15:2)&&kb.afterOpen===kb.hp0-2,JSON.stringify(kb));
   const kc=await G(page,(V136)=>{let k0,best=null;const pitFree=(x0,y0,dx,dy,n)=>{if(!V136)return true;for(let t=0;t<=n;t+=.25){const c=__game.cellAt(Math.floor(x0+dx*t),Math.floor(y0+dy*t));if(!c||c.t===6||__game.solidAt(x0+dx*t,y0+dy*t))return false;}return true;}; const toWall=(x0,y0,dx,dy)=>{if(!V136)return true;for(let t=0;t<40;t+=.25){const x=x0+dx*t,y=y0+dy*t,c=__game.cellAt(Math.floor(x),Math.floor(y));if(!c)return false;if(c.t===1)return true;if(c.t!==0)return false;}return false;}; /* M1.36: never stand on (or charge over) a pit, and the charge ends on a real wall; try more seeds for a clear setup */
     for(const sd of V136?[777,778,779,780,781,782,783,784,785,786,787,788]:[777]){__game.setSeed(sd);__game.startLevel(3);__game.state().enemies.forEach((e,i)=>{if(e.type!=='knight')__game.damageMob(i,99);});__game.advance(0.2);k0=__game.knight();if(!k0)continue;for(const [dx,dy,a] of [[3,0,Math.PI],[-3,0,0],[0,3,-Math.PI/2],[0,-3,Math.PI/2]]){const x=k0.x+dx,y=k0.y+dy;if(!__game.solidAt(x,y)&&__game.clearPath(k0.x,k0.y,x,y)&&pitFree(k0.x,k0.y,dx/3,dy/3,3)&&toWall(k0.x,k0.y,dx/3,dy/3)){best=[x,y,a];break;}}if(best)break;}if(!best)return {skip:true};
     __game.teleport(best[0],best[1],best[2]);__game.knightSet({woke:true,state:'chase',chargeCD:0,shieldCD:9});let tele=false,charge=false,maxSp=0,daze=false,prev=__game.knight();
@@ -549,7 +550,7 @@ async function m111Tests(){
     return {tele,charge,maxSp,daze,dents:__game.dents(),slams:__game.state().stats.knightSlams};},V136);
   check('M1.11 the knight telegraphs, charges straight and fast (about 6.5 cells/s), slams into the wall (round crack) and is dazed',kc.skip||(kc.tele&&kc.charge&&kc.maxSp>5&&kc.daze&&kc.slams>=1&&kc.dents>=1),JSON.stringify(kc));
   if(atLeast('1.14.2')){const sl=await G(page,(V136)=>{const G=__game;let k,best=null;for(const sd of V136?[777,778,779,780,781,782,783,784,785,786,787,788]:[777]){G.setSeed(sd);G.startLevel(3);G.state().enemies.forEach((e,i)=>{if(e.type!=='knight')G.damageMob(i,99);});G.advance(0.3);k=G.knight();if(!k)continue;const pitFree=(x0,y0,dx,dy,n)=>{if(!V136)return true;for(let t=0;t<=n;t+=.25){const c=G.cellAt(Math.floor(x0+dx*t),Math.floor(y0+dy*t));if(!c||c.t===6||G.solidAt(x0+dx*t,y0+dy*t))return false;}return true;}; /* M1.36: room to be knocked back, no pit in the way; more seeds for a clear setup */for(const [dx,dy,a] of [[1.4,0,Math.PI],[-1.4,0,0],[0,1.4,-Math.PI/2],[0,-1.4,Math.PI/2]]){if(!G.solidAt(k.x+dx,k.y+dy)&&G.clearPath(k.x,k.y,k.x+dx*2.2,k.y+dy*2.2)&&!G.solidAt(k.x+dx*2.2,k.y+dy*2.2)&&pitFree(k.x,k.y,dx/1.4,dy/1.4,3.4)){best=[k.x+dx,k.y+dy,a];break;}}if(best)break;}if(!best)return {skip:true};
-      G.teleport(best[0],best[1],best[2]);G.knightSet({woke:true,state:'chase',slamCD:0,chargeCD:9,shieldCD:9,atkT:9});G.setHearts(5);let tell=false,ring=0,s;const p0=G.state().player;const TF=G.rings?4:2;for(let i=0;i<60;i++){s=G.advance(0.05);if(G.knight().frame===TF)tell=true;if(G.rings)ring=Math.max(ring,G.rings().length);if(s.player.hearts<5)break;}
+      G.teleport(best[0],best[1],best[2]);G.knightSet({woke:true,state:'chase',slamCD:0,chargeCD:9,shieldCD:9,atkT:9});G.setHearts(5);let tell=false,ring=0,s;const p0=G.state().player;const TF=(G.knightCfg&&G.knightCfg.slamRec)?10:(G.rings?4:2); /* M1.79.7: sword-raised is frame 10 */for(let i=0;i<60;i++){s=G.advance(0.05);if(G.knight().frame===TF)tell=true;if(G.rings)ring=Math.max(ring,G.rings().length);if(s.player.hearts<5)break;}
       const p1=s.player;return {tell,ring,hearts:s.player.hearts,push:Math.hypot(p1.x-p0.x,p1.y-p0.y),cracks:G.cracks(),n:s.stats.knightSlamHits};},V136);
     check(atLeast('1.19')?'M1.14.2/M1.19 up close the knight raises his sword overhead (flashing, 1.2 s) and slams: a ring of dust rolls out and hits for 2 + knockback':'M1.14.2 up close the knight raises his shield and slams it down: a ring of cracks, 2 damage and a knockback',sl.skip||(!atLeast('1.19')||sl.ring>=1)&&sl.tell&&sl.hearts===3&&sl.push>1&&sl.cracks>=1&&sl.n>=1,JSON.stringify(sl));}
   await G(page,()=>{const k=__game.knight();const s=__game.state();__game.teleport(s.player.x,s.player.y,Math.atan2(k.y-s.player.y,k.x-s.player.x));__game.advance(0.05);});await shot(page,'knight');
@@ -1465,8 +1466,8 @@ async function m118Tests(){
   const mu=await G(page,()=>{const G=__game,songs=[],modes=new Set(),boss=[];for(let f=1;f<=30;f++){const sg=G.song(777,f,f%5===0);songs.push(JSON.stringify(sg));if(f%5===0)boss.push(sg.mode);else modes.add(sg.mode);}
     return {uniq:new Set(songs).size,same:JSON.stringify(G.song(777,7,false))===JSON.stringify(G.song(777,7,false)),modes:[...modes],boss,bpm:G.song(777,3,false).bpm};});
   check('M1.18 every floor gets its own song (same seed + floor = same song), slow and in minor modes; boss floors use darker modes',mu.uniq===30&&mu.same&&mu.modes.every(m=>['aeolian','phrygian','harmonic','dorian'].includes(m))&&mu.boss.every(m=>['phrygian','locrian','harmonic'].includes(m))&&mu.bpm<=82,JSON.stringify(mu));
-  if(atLeast('1.19.2')){const kf=await G(page,()=>[0,1,2,3,4].map(f=>{const d=__game.spriteData('knight',f);let low=0;for(let y=d.h-8;y<d.h;y++)for(let x=0;x<d.w;x++)if(d.px[y*d.w+x]>>>24)low++;return low;}));
-    check('M1.19.2 every Treasure Knight frame (including the overhead sword raise) has legs and feet',kf.every(n=>n>40),JSON.stringify(kf));}
+  if(atLeast('1.19.2')&&!V1797){const kf=await G(page,()=>[0,1,2,3,4].map(f=>{const d=__game.spriteData('knight',f);let low=0;for(let y=d.h-8;y<d.h;y++)for(let x=0;x<d.w;x++)if(d.px[y*d.w+x]>>>24)low++;return low;}));
+    check('M1.19.2 every Treasure Knight frame (including the overhead sword raise) has legs and feet',kf.every(n=>n>40),JSON.stringify(kf));} /* M1.79.7: cells have pad and slam debris below the shared foot baseline; alignment is checked in m179.7 */
   if(atLeast('1.19')){const sc=await G(page,()=>{const G=__game;G.manual=true;G.setSeed(777);G.startLevel(6,{hearts:5,coins:0});G.clearMobs();let best=null;const s0=G.state();for(let y=1;y<s0.mapH-1;y++)for(let x=1;x<s0.mapW-1;x++){if(G.solidAt(x+.5,y+.5))continue;for(const [dx,dy,an] of [[1,0,0],[-1,0,Math.PI],[0,1,Math.PI/2],[0,-1,-Math.PI/2]]){let n=0;while(n<10&&!G.solidAt(x+.5+dx*(n+1),y+.5+dy*(n+1)))n++;if(!best||n>best.n)best={x,y,dx,dy,an,n};}}G.teleport(best.x+.5,best.y+.5,best.an);const p=G.state().player;const i=G.spawn('screamer',p.x+best.dx*6,p.y+best.dy*6,true,[]); /* down the longest straight corridor */let shots=0,tele=false;for(let k=0;k<70;k++){G.setHearts(5);const s=G.advance(0.1);if(s.enemies[i].tele>0)tele=true;shots=Math.max(shots,s.stats.eshotsFired);}G.render();return {mods:G.state().enemies[i].mods.length,shots,tele};});
     check('M1.19 every Screamer shoots its sonic ring (with the usual tell) without being an elite (no aura)',sc.mods===0&&sc.shots>=1&&sc.tele,JSON.stringify(sc));}
   if(atLeast('1.19')){const ts=await G(page,()=>__game.titleSong());check('M1.19 a hand-written 16-bar title theme (108 BPM, pulse lead, bass, arpeggio, drums) plays on the menus',ts.bars===16&&ts.bpm===108&&ts.notes>100,JSON.stringify(ts));}
@@ -6459,6 +6460,195 @@ async function m1796Tests(){
 }
 
 if(V1796&&want('m179.6')){ await m1796Tests(); }
+
+
+async function m1797Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M1797='/workspace/labyrinth-main/m179.7';
+  fs.mkdirSync(M1797,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m1797_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M1797}/m1797_${name}.png`);
+  };
+  const save=(name,url)=>{
+    const dest=`${S}/m1797_${name}.png`;
+    fs.writeFileSync(dest,Buffer.from(url.split(',')[1],'base64'));
+    fs.copyFileSync(dest,`${M1797}/m1797_${name}.png`);
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m179.7',noFog:true});
+
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{
+    const G=__game;
+    const boxes=name=>{
+      const frames=[];
+      for(let i=0;i<20;i++){
+        try{const d=G.spriteData(name,i);if(!d||!d.w)break;frames.push(d);}catch(e){break;}
+      }
+      const b=frames.map((d,i)=>{
+        let x0=1e9,y0=1e9,x1=-1,y1=-1,green=0;
+        for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++){
+          const p=d.px[y*d.w+x],a=p>>>24,r=p&255,g=(p>>>8)&255,bl=(p>>>16)&255;
+          if(!a)continue;
+          if(x<x0)x0=x;if(y<y0)y0=y;if(x>x1)x1=x;if(y>y1)y1=y;
+          if(a>=24&&g>r+25&&g>bl+25)green++;
+        }
+        const BASE=65,xs=[];
+        if(y1>=BASE){
+          for(let x=0;x<d.w;x++) if((d.px[BASE*d.w+x]>>>24)>0) xs.push(x);
+        }
+        return {w:d.w,h:d.h,x0,y0,x1,y1,cx:(x0+x1)/2,foot:y1,baseCx:xs.length?xs.reduce((s,v)=>s+v,0)/xs.length:null,baseN:xs.length,edgeL:x0,edgeR:d.w-1-x1,edgeT:y0,edgeB:d.h-1-y1,green};
+      });
+      const sigs=frames.map((_,i)=>G.frameSig(name,i));
+      return {n:frames.length,boxes:b,sigs,uniq:new Set(sigs).size,st:G.assetState()[name]};
+    };
+    const cfg=G.knightCfg, mob=G.knightMob||G.mobs.knight;
+    const idle=[0,0.8,1.6].map(ph=>G.animFrame({type:'knight',ph,woke:false,daze:0,slamT:0,slamRec:0,shieldT:0,tele:0,chargeT:0}));
+    const walk=[0,1,2,3,4,5,6,7].map(n=>G.animFrame({type:'knight',ph:n/10,woke:true,daze:0,slamT:0,slamRec:0,shieldT:0,tele:0,chargeT:0,state:'chase'}));
+    const raised=G.animFrame({type:'knight',ph:0,woke:true,slamT:cfg.slamTele,slamRec:0,shieldT:0,tele:0,chargeT:0});
+    const wind=G.animFrame({type:'knight',ph:0,woke:true,slamT:cfg.slamTele-cfg.atkRaised-0.01,slamRec:0,shieldT:0,tele:0,chargeT:0});
+    const swing=G.animFrame({type:'knight',ph:0,woke:true,slamT:cfg.atkSwing-0.01,slamRec:0,shieldT:0,tele:0,chargeT:0});
+    const slam=G.animFrame({type:'knight',ph:0,woke:true,slamT:0,slamRec:cfg.slamRec-0.01,shieldT:0,tele:0,chargeT:0});
+    const rec=G.animFrame({type:'knight',ph:0,woke:true,slamT:0,slamRec:cfg.slamRec-cfg.slamHold-0.01,shieldT:0,tele:0,chargeT:0});
+    const guard=G.animFrame({type:'knight',ph:0,woke:true,slamT:0,slamRec:0,shieldT:1,tele:0,chargeT:0});
+    const tel=G.animFrame({type:'knight',ph:0,woke:true,slamT:0,slamRec:0,shieldT:0,tele:0.5,chargeT:0});
+    return {knight:boxes('knight'),m:mob,cfg,idle,walk,raised,wind,swing,slam,rec,guard,tel};
+  });
+
+  const kb=art.knight.boxes;
+  const same=kb.length===16&&kb.every(b=>b.w===kb[0].w&&b.h===kb[0].h);
+  const mid=same&&kb[0].w/2;
+  const BASE=65, CW=86, CH=77, SLAM=13;
+  // Non-slam frames: lowest opaque pixel is the shared foot baseline, feet-centred on mid.
+  // Slam (frame 13): that row still has pixels (the boots), and debris may go below them.
+  const footOk=same&&kb.every((b,i)=>i===SLAM?(b.baseN>0&&b.foot>BASE):b.foot===BASE);
+  const cenOk=same&&kb.every((b,i)=>i===SLAM?b.baseN>0:Math.abs(b.baseCx-mid)<=1+1e-9);
+  const edges=same&&kb.every(b=>b.edgeL>=2&&b.edgeR>=2&&b.edgeT>=2&&b.edgeB>=2);
+  const slamBelow=same&&kb[SLAM].foot>BASE;
+
+  check('M1.79.7 the Treasure Knight sheet is 16 equal 86x77 frames with unique art (idle, walk, attack, guard)',
+    art.knight.st==='png'&&atlas.knight&&atlas.knight.file==='mobs/knight.png'&&atlas.knight.frames===16&&atlas.knight.k===1.5
+    &&art.knight.n===16&&same&&kb[0].w===CW&&kb[0].h===CH&&art.knight.uniq===16&&art.m&&art.m.name==='TREASURE KNIGHT'&&art.m.h===.965,
+    JSON.stringify({n:art.knight.n,box:{w:kb[0]&&kb[0].w,h:kb[0]&&kb[0].h},uniq:art.knight.uniq,st:art.knight.st,atlas:atlas.knight,m:art.m}));
+  check('M1.79.7 each packed frame shares a foot baseline (row 65) and is feet-centred within 1 px; slam debris may sit below',
+    footOk&&cenOk&&slamBelow,JSON.stringify(kb.map((b,i)=>({i,foot:b.foot,baseCx:b.baseCx,baseN:b.baseN,edgeB:b.edgeB}))));
+  check('M1.79.7 no packed Treasure Knight frame touches its cell edges',
+    edges,JSON.stringify(kb.map((b,i)=>({i,L:b.edgeL,R:b.edgeR,T:b.edgeT,B:b.edgeB}))));
+  check('M1.79.7 idle is a slow 2-frame loop, walk is 2-9, attack is 10-14 timed to the slam, and shield-up uses the guard frame',
+    art.idle[0]===0&&art.idle[1]===1&&art.idle[2]===0
+    &&art.walk.join()==='2,3,4,5,6,7,8,9'
+    &&art.raised===10&&art.wind===11&&art.swing===12&&art.slam===13&&art.rec===14
+    &&art.guard===15&&art.tel===10
+    &&art.cfg.slamTele===1.2&&Math.abs((art.cfg.atkRaised+ (art.cfg.slamTele-art.cfg.atkRaised-art.cfg.atkSwing) +art.cfg.atkSwing)-art.cfg.slamTele)<1e-9,
+    JSON.stringify({idle:art.idle,walk:art.walk,raised:art.raised,wind:art.wind,swing:art.swing,slam:art.slam,rec:art.rec,guard:art.guard,tel:art.tel,cfg:{tele:art.cfg.slamTele,raised:art.cfg.atkRaised,swing:art.cfg.atkSwing,rec:art.cfg.slamRec,hold:art.cfg.slamHold}}));
+  check('M1.79.7 the Treasure Knight sheet has no green-dominant pixels',
+    kb.every(b=>b.green===0),JSON.stringify(kb.map(b=>b.green)));
+
+  const sheetUrl=await G(page,()=>{
+    const G=__game,scale=3,pad=10,gap=8,name='knight';
+    const fr=[];
+    for(let i=0;i<20;i++){
+      try{const d=G.spriteData(name,i);if(!d||!d.w)break;fr.push(d);}catch(e){break;}
+    }
+    const fw=fr[0].w,fh=fr[0].h,n=fr.length,BASE=65;
+    const w=pad*2+n*fw*scale+(n-1)*gap;
+    const h=pad*2+fh*scale+18;
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const x=c.getContext('2d');const cs=6;
+    for(let y=0;y<h;y++)for(let q=0;q<w;q++){
+      x.fillStyle=(((q/cs)|0)+((y/cs)|0))%2===0?'#c8c8c8':'#505050';
+      x.fillRect(q,y,1,1);
+    }
+    fr.forEach((d,i)=>{
+      const id=x.createImageData(d.w*scale,d.h*scale);
+      const u=new Uint32Array(id.data.buffer);
+      for(let y=0;y<d.h*scale;y++)for(let q=0;q<d.w*scale;q++)u[y*d.w*scale+q]=d.px[((y/scale)|0)*d.w+((q/scale)|0)];
+      const t=document.createElement('canvas');t.width=d.w*scale;t.height=d.h*scale;
+      t.getContext('2d').putImageData(id,0,0);
+      const ox=pad+i*(fw*scale+gap);
+      x.drawImage(t,ox,pad);
+      x.fillStyle='#00ff00';
+      x.fillRect(ox,pad+BASE*scale,fw*scale,1);
+    });
+    return c.toDataURL('image/png');
+  });
+  save('frames_checker',sheetUrl);
+
+  const boot=await G(page,()=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(2,{hearts:9,coins:0}); // floor 3, a Treasure Knight floor
+    G.clearMobs();
+    const s=G.state();let spot=null;
+    const pit=(x,y)=>!!(G.pitUnder&&G.pitUnder(x,y,0));
+    const clear=(x,y)=>!G.solidAt(x,y)&&!pit(x,y);
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){
+      if(clear(x+.5,y+.5)&&clear(x+1.5,y+.5)&&clear(x+2.5,y+.5)&&clear(x+3.5,y+.5))spot={x:x+1.2,y:y+.5};
+    }
+    G.teleport(spot.x,spot.y,0);
+    const i=G.spawn('knight',spot.x+1.7,spot.y,false,[]);
+    if(G.seeAll)G.seeAll();
+    G.placeEnemy(i,spot.x+1.7,spot.y);
+    G.knightSet({woke:false,state:'idle',shieldT:0,chargeT:0,tele:0,slamT:0,slamRec:0,daze:0,ph:0});
+    // placeEnemy may overwrite; set again then render
+    G.ents_dbg=0;
+    G.knightSet({woke:false,state:'idle',shieldT:0,chargeT:0,tele:0,slamT:0,slamRec:0,daze:0,ph:0});
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+    const e=G.state().enemies[i],m=G.knightMob||G.mobs.knight;
+    return {spot,i,type:e.type,state:e.state,fr:e.frame,h:m.h,foot:m.foot};
+  });
+  check('M1.79.7 a Treasure Knight can be posed in the idle loop (frame 0 or 1)',
+    boot.type==='knight'&&(boot.fr===0||boot.fr===1)&&boot.h===.965&&Math.abs(boot.foot-11/77)<1e-9,JSON.stringify(boot));
+  await shot(page,'knight_idle');
+
+  const walk=await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.manual=true;
+    G.placeEnemy(i,p.x+1.7,p.y);
+    G.knightSet({woke:true,state:'chase',shieldT:0,chargeT:0,tele:0,slamT:0,slamRec:0,daze:0,chargeCD:99,slamCD:99,shieldCD:99,ph:4/10});
+    // step until mid-walk frame 6 (2+4)
+    let fr=G.state().enemies[i].frame,steps=0;
+    while(fr!==6&&steps<40){G.knightSet({ph:(4+steps)*0.1,woke:true,state:'chase',shieldT:0,chargeT:0,tele:0,slamT:0,slamRec:0,daze:0,chargeCD:99,slamCD:99});G.advance(0);fr=G.knight().frame;steps++;}
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+    return {fr:G.knight().frame,steps,woke:G.knight().woke};
+  },boot.i);
+  check('M1.79.7 a Treasure Knight can be posed mid-walk on frame 6',
+    walk.fr===6,JSON.stringify(walk));
+  await shot(page,'knight_walk');
+
+  const atk=await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.manual=true;
+    G.placeEnemy(i,p.x+1.7,p.y);
+    G.setHearts(9);
+    G.knightSet({woke:true,state:'chase',shieldT:0,chargeT:0,tele:0,slamT:0.02,slamRec:0,daze:0,chargeCD:99,slamCD:99,shieldCD:99});
+    let k=G.knight(),steps=0;
+    while(!(k.slamRec>0)&&steps<12){G.advance(0.05);k=G.knight();steps++;} // slamT counts down across ticks, then the shockwave and frame 13
+    G.setMsg&&G.setMsg('',0.01);G.render();
+    return {fr:k.frame,slamRec:k.slamRec,rings:G.rings?G.rings().length:0,cracks:G.cracks(),steps,slamT:k.slamT};
+  },boot.i);
+  check('M1.79.7 the ground-slam pose (frame 13) plays as the dust ring is released',
+    atk.fr===13&&atk.slamRec>0&&atk.rings>=1&&atk.cracks>=1,JSON.stringify(atk));
+  await shot(page,'knight_slam');
+
+  const grd=await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.manual=true;
+    G.placeEnemy(i,p.x+1.7,p.y);
+    G.knightSet({woke:true,state:'chase',shieldT:1.5,chargeT:0,tele:0,slamT:0,slamRec:0,daze:0,chargeCD:99,slamCD:99});
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+    const k=G.knight();
+    return {fr:k.frame,shieldT:k.shieldT};
+  },boot.i);
+  check('M1.79.7 with his shield up the Treasure Knight uses the guard frame (15)',
+    grd.fr===15&&grd.shieldT>0,JSON.stringify(grd));
+  await shot(page,'knight_guard');
+
+  await ctx.close();
+}
+
+if(V1797&&want('m179.7')){ await m1797Tests(); }
 
 
 async function m176Tests(){

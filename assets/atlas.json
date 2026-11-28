@@ -283,7 +283,7 @@
     },
     "knight": {
       "file": "mobs/knight.png",
-      "frames": 5,
+      "frames": 16,
       "k": 1.5
     },
     "skitter": {

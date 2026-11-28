@@ -102,7 +102,7 @@ Each `mobs/*.png` is a strip of animation frames, left to right, all the same wi
 | `hexeye.png` | the Hexeye (open, half-blink, closed, red stare) | 4 |
 | `zapfly.png`, `zapflyC.png` | Tragedy mask, Comedy mask | 4 |
 | `bonePile.png` | Rattlebone's collapsed pile (resting, rattling) | 2 |
-| `knight.png` | Treasure Knight (stand/walk, walk, shield up, charge, sword raised) | 5 |
+| `knight.png` | Treasure Knight (idle 0-1, walk 2-9, attack 10-14, guard 15) | 16 |
 | `skitter.png`, `bigspider.png` | pit spiders (walk cycle) | 4 |
 | `eggsac.png` | egg sac, growing until it hatches | 4 |
 | `worm.png` | googly worm, drawn in pink `#ff5a8a` (see below) | 4 |

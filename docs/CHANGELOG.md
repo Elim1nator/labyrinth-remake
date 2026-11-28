@@ -3,6 +3,15 @@
 All builds are single HTML files in `builds/<milestone>/`; checksums in `builds/SHA256SUMS`.
 Test counts are the number of passing checks in `tests/m1.test.mjs` for that build.
 
+## M1.79.6: new Rattlebone and bone-pile art
+- The Rattlebone and its bone pile use Jacob's new sheets, packed at native pixel size (no rescaling). A 23-pixel near-transparent blue fringe and 146 opaque blue-spill outline pixels were cleaned off the skeleton; cream bone colours were left untouched. The bone pile's mid-alpha bone antialiasing and lime-green eyes were left as drawn.
+- The skeleton sheet is now 5 equal frames (210x100, 42x100 per frame, k 1.5): frame 0 is the planted idle pose, frames 1-4 are the walk cycle. Each figure is feet-centred on a shared baseline with at least 2 px of pad. Idle uses frame 0; walk is 1-2-3-4 at the same cadence as the old 4-frame cycle. World height stays 0.62, so on-screen size stays close (the new figure is naturally slimmer).
+- The bone pile is still 2 frames (154x36, 77x36 per frame, k 1.5): frame 0 is the plain skull-and-crossbones, frame 1 has glowing green eyes. Those still map to the pile's dormant state and the 3-second "about to rise" tell. World height stays 0.2.
+- The M1.79.1 green-spill scan still passes. Only the bone pile still needs the whitelist (its green eyes are intentional). The new skeleton has dark sockets and no lime-green pixels.
+- The M1.9 check that the bone pile shares a palette with the pile-of-bones decoration is relaxed from this build: the new pile is a different illustration (a skull and crossed bones). The decoration is unchanged. On older builds the shared-palette check still runs.
+- The M1.8 / A5 checks that finishing floor 8 leads on to floor 9 now always skip and unseal an Ice Wizard intro if floor 9 is Icy Prison, instead of only skipping when the first 0.05 s tick already shows intro mode.
+- Official suite on the frozen QA build: 788/788 passed.
+
 ## M1.79.5: Icy Prison minimap walls, and the Ice Wizard is a real boss
 - Icy Prison minimap (and full-map) walls were not a colour of their own. The three ice wall textures (`icetile`, `frostwall`, `icebrick`, tex 20-22) were added in M1.68, but `MAPCOL` stopped at ironbound (tex 19). Drawing `MAPCOL[c.tex]` wrote an empty pixel, so the 3D view showed through the wall cells. They now use a solid pale icy blue, and every other theme's wall letters were checked for the same gap (none had one). A missing colour also falls back to icy blue so a hole cannot open again.
 - The Ice Wizard is no longer a regular mob in a far room on Icy Prison floors. Every Icy Prison floor is now his boss floor: a large 13x11 arena, a VS intro, a boss HP bar, and stairs that stay sealed until he falls (`ICE WIZARD DEFEATED! THE STAIRS APPEAR!`). He keeps his name, art, orbs, blizzard and Frozen Wand drop. He is not in the normal mob pools and does not replace the every-5th-floor bosses (King, Sovereign, Coghoot) or the Yellow, Masque, Brood or Awakened Basalt fights. Icy Prison still never overlays those floors.

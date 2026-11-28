@@ -273,7 +273,7 @@
     },
     "skeleton": {
       "file": "mobs/skeleton.png",
-      "frames": 4,
+      "frames": 5,
       "k": 1.5
     },
     "bonePile": {

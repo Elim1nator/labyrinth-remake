@@ -62,6 +62,7 @@ const V1792=atLeast('1.79.2'); // M1.79.2+: Heights solid pits and fireball hole
 const V1793=atLeast('1.79.3'); // M1.79.3+: Wax Wings (and lev) float over interior Heights pits and fireball holes
 const V1794=atLeast('1.79.4'); // M1.79.4+: map-edge Heights pits and the view past the map edge no longer smear a stretched wall texture
 const V1795=atLeast('1.79.5'); // M1.79.5+: Icy Prison minimap walls are solid icy blue; the Ice Wizard is a real boss
+const V1796=atLeast('1.79.6'); // M1.79.6+: new 5-frame Rattlebone (idle + walk) and 2-frame bone-pile art, packed 1:1
 const MOSS_FNV_OLD=2027769424; // api.texHash('moss').fnv of the pre-M1.75.2 moss tile after pack
 const V172=atLeast('1.72'); // M1.72+: only ice monsters in the Icy Prison
 const V171=atLeast('1.71'); // M1.71+: the Frozen Screamer (Icy Prison)
@@ -243,7 +244,7 @@ async function findSovFloor(page){
   else check('retry restarts the level with full hearts',st.mode==='play'&&st.level===1&&st.player.hearts===5);
 
   // win screen
-  st=await G(page,(v13,v1795)=>{if(v13){__game.startLevel(__game.numLevels-1);if(v1795){__game.bossIntro=false;if(__game.unseal)__game.unseal();}const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);}else __game.teleport(3.5,10.5,0);__game.advance(0.6);__game.confirm();let r=__game.advance(0.05);if(v1795&&r.mode==='intro'&&__game.skipBossIntro){__game.skipBossIntro();r=__game.advance(0.05);}return r;},V13,V1795);
+  st=await G(page,(v13,v1795)=>{if(v13){__game.startLevel(__game.numLevels-1);if(v1795){__game.bossIntro=false;if(__game.unseal)__game.unseal();}const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);}else __game.teleport(3.5,10.5,0);__game.advance(0.6);__game.confirm();let r=__game.advance(0.15);if(v1795){if(__game.bossIntro!==undefined)__game.bossIntro=false;if(__game.skipBossIntro)__game.skipBossIntro();if(__game.unseal)__game.unseal();r=__game.advance(0.15);if(r.mode==='intro'&&__game.skipBossIntro){__game.skipBossIntro();r=__game.advance(0.05);}}return r;},V13,V1795);
   if(V18){const nx=await G(page,()=>__game.state());check('M1.8 finishing level 8 no longer wins: the next floor (9) starts and is saved',nx.mode==='play'&&nx.level===8&&nx.save&&nx.save.level===8,`mode=${nx.mode} level=${nx.level}`);}
   else check(V13?'finishing the last level (8) shows the win screen and clears the save':'finishing level 2 shows the win screen and clears the save',st.mode==='win'&&!st.save);
   await page.screenshot({path:`${SHOTS}/desktop_1280x720_win.png`});
@@ -5176,7 +5177,7 @@ async function m1791Tests(){
   const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m179.1',noFog:true});
 
   const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
-  const GREEN_WL=new Set(['bonePile','skeleton']); /* intentional lime-green eyes */
+  const GREEN_WL=new Set(['bonePile', ...(V1796?[]:['skeleton'])]); /* bonePile green eyes are intentional; M1.79.6 skeleton has dark sockets, not lime eyes */
   const mobNames=Object.keys(atlas).filter(k=>atlas[k]&&String(atlas[k].file||'').startsWith('mobs/'));
   const scan=await G(page,(names)=>{
     const G=__game,out={};
@@ -5200,10 +5201,10 @@ async function m1791Tests(){
   },mobNames);
   const offenders=Object.entries(scan).filter(([n,s])=>s.green>0&&!GREEN_WL.has(n)).map(([n,s])=>({name:n,green:s.green,frames:s.frames.filter(f=>f.green)}));
   const wl=Object.fromEntries([...GREEN_WL].map(n=>[n,scan[n]?{green:scan[n].green,frames:scan[n].n}:null]));
-  check('M1.79.1 no shipped mob/boss PNG frame has green-dominant semi- or opaque pixels (bonePile and skeleton eyes are whitelisted)',
+  check('M1.79.1 no shipped mob/boss PNG frame has green-dominant semi- or opaque pixels (bonePile eyes are whitelisted'+(V1796?'':'; skeleton eyes are whitelisted')+')',
     offenders.length===0&&scan.creep&&scan.creep.green===0&&scan.creep.greenLo===0&&scan.collector&&scan.collector.green===0
     &&['deep','deep_idle','deep_cast','deep_attack'].every(n=>scan[n]&&scan[n].green===0&&scan[n].greenLo===0)
-    &&wl.bonePile&&wl.bonePile.green>0&&wl.skeleton&&wl.skeleton.green>0,
+    &&wl.bonePile&&wl.bonePile.green>0&&(V1796?(scan.skeleton&&scan.skeleton.green===0):(wl.skeleton&&wl.skeleton.green>0)),
     JSON.stringify({offenders,whitelist:wl,creep:scan.creep,collector:scan.collector,deep:['deep','deep_idle','deep_cast','deep_attack'].map(n=>({name:n,green:scan[n]&&scan[n].green,greenLo:scan[n]&&scan[n].greenLo})),nSheets:mobNames.length}));
 
   const basalt=await G(page,()=>{
@@ -6286,6 +6287,180 @@ async function m1795Tests(){
 if(V1794&&want('m179.4')){ await m1794Tests(); }
 if(V1795&&want('m179.5')){ await m1795Tests(); }
 
+async function m1796Tests(){
+  const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
+  const M1796='/workspace/labyrinth-main/m179.6';
+  fs.mkdirSync(M1796,{recursive:true});
+  const shot=async(page,name)=>{
+    const dest=`${S}/m1796_${name}.png`;
+    await page.screenshot({path:dest});
+    fs.copyFileSync(dest,`${M1796}/m1796_${name}.png`);
+  };
+  const save=(name,url)=>{
+    const dest=`${S}/m1796_${name}.png`;
+    fs.writeFileSync(dest,Buffer.from(url.split(',')[1],'base64'));
+    fs.copyFileSync(dest,`${M1796}/m1796_${name}.png`);
+  };
+  const {ctx,page}=await newPage({viewport:{width:1280,height:800},label:'m179.6',noFog:true});
+
+  const atlas=JSON.parse(fs.readFileSync(`${ROOT}/assets/atlas.json`,'utf8')).sheets;
+  const art=await G(page,()=>{
+    const G=__game;
+    const boxes=name=>{
+      const frames=[];
+      for(let i=0;i<12;i++){
+        try{const d=G.spriteData(name,i);if(!d||!d.w)break;frames.push(d);}catch(e){break;}
+      }
+      const b=frames.map(d=>{
+        let x0=1e9,y0=1e9,x1=-1,y1=-1,green=0;
+        for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++){
+          const p=d.px[y*d.w+x],a=p>>>24,r=p&255,g=(p>>>8)&255,bl=(p>>>16)&255;
+          if(!a)continue;
+          if(x<x0)x0=x;if(y<y0)y0=y;if(x>x1)x1=x;if(y>y1)y1=y;
+          if(a>=24&&g>r+25&&g>bl+25)green++;
+        }
+        return {w:d.w,h:d.h,x0,y0,x1,y1,cx:(x0+x1)/2,foot:y1,edgeL:x0,edgeR:d.w-1-x1,edgeT:y0,edgeB:d.h-1-y1,green};
+      });
+      const sigs=frames.map((_,i)=>G.frameSig(name,i));
+      return {n:frames.length,boxes:b,sigs,uniq:new Set(sigs).size,st:G.assetState()[name]};
+    };
+    const dummy={type:'skeleton',state:'chase',ph:0};
+    const walk=[0,1,2,3].map(n=>G.animFrame(Object.assign({},dummy,{ph:n/20})));
+    const idle=G.animFrame(Object.assign({},dummy,{state:'idle',ph:0.4}));
+    return {skeleton:boxes('skeleton'),bone:boxes('bonePile'),m:G.mobs.skeleton,walk,idle};
+  });
+
+  const sb=art.skeleton.boxes, bb=art.bone.boxes;
+  const sSame=sb.length===5&&sb.every(b=>b.w===sb[0].w&&b.h===sb[0].h);
+  const bSame=bb.length===2&&bb.every(b=>b.w===bb[0].w&&b.h===bb[0].h);
+  const sFoot=sSame&&sb.every(b=>b.foot===sb[0].foot);
+  const bFoot=bSame&&bb.every(b=>b.foot===bb[0].foot);
+  const sMid=sSame&&sb[0].w/2, bMid=bSame&&bb[0].w/2;
+  const sCen=sSame&&sb.every(b=>Math.abs(b.cx-sMid)<=1+1e-9)&&sb.every(b=>Math.abs(b.cx-sb[0].cx)<=1+1e-9);
+  const bCen=bSame&&bb.every(b=>Math.abs(b.cx-bMid)<=1+1e-9)&&bb.every(b=>Math.abs(b.cx-bb[0].cx)<=1+1e-9);
+  const sEdges=sSame&&sb.every(b=>b.edgeL>=2&&b.edgeR>=2&&b.edgeT>=2&&b.edgeB>=2);
+  const bEdges=bSame&&bb.every(b=>b.edgeL>=2&&b.edgeR>=2&&b.edgeT>=2&&b.edgeB>=2);
+
+  check('M1.79.6 the Rattlebone sheet is 5 equal-width frames with unique art (idle + 4-frame walk)',
+    art.skeleton.st==='png'&&atlas.skeleton&&atlas.skeleton.file==='mobs/skeleton.png'&&atlas.skeleton.frames===5&&atlas.skeleton.k===1.5
+    &&art.skeleton.n===5&&sSame&&sb[0].w===42&&sb[0].h===100&&art.skeleton.uniq===5&&art.m&&art.m.name==='RATTLEBONE'&&art.m.h===.62,
+    JSON.stringify({n:art.skeleton.n,box:sb[0],uniq:art.skeleton.uniq,st:art.skeleton.st,atlas:atlas.skeleton,m:art.m}));
+  check('M1.79.6 each packed Rattlebone frame shares a foot baseline and horizontal centre within 1 px',
+    sFoot&&sCen,JSON.stringify(sb));
+  check('M1.79.6 no packed Rattlebone frame touches its cell edges',
+    sEdges,JSON.stringify(sb));
+  check('M1.79.6 idle uses the planted frame 0 and walk is 1-2-3-4',
+    art.idle===0&&art.walk[0]===1&&art.walk[1]===2&&art.walk[2]===3&&art.walk[3]===4,
+    JSON.stringify({idle:art.idle,walk:art.walk}));
+
+  check('M1.79.6 the bone-pile sheet is 2 equal-width frames with unique art',
+    art.bone.st==='png'&&atlas.bonePile&&atlas.bonePile.file==='mobs/bonePile.png'&&atlas.bonePile.frames===2&&atlas.bonePile.k===1.5
+    &&art.bone.n===2&&bSame&&bb[0].w===77&&bb[0].h===36&&art.bone.uniq===2,
+    JSON.stringify({n:art.bone.n,box:bb[0],uniq:art.bone.uniq,st:art.bone.st,atlas:atlas.bonePile}));
+  check('M1.79.6 each packed bone-pile frame shares a foot baseline and horizontal centre within 1 px',
+    bFoot&&bCen,JSON.stringify(bb));
+  check('M1.79.6 no packed bone-pile frame touches its cell edges',
+    bEdges,JSON.stringify(bb));
+  check('M1.79.6 bone-pile frame 0 is the plain pile and frame 1 has the glowing green eyes',
+    bb.length===2&&bb[0].green===0&&bb[1].green>0,JSON.stringify(bb.map(b=>({green:b.green,foot:b.foot,cx:b.cx}))));
+
+  const sheetUrl=await G(page,()=>{
+    const G=__game,scale=4,pad=10,gap=12;
+    const groups=['skeleton','bonePile'].map(name=>{
+      const fr=[];
+      for(let i=0;i<12;i++){
+        try{const d=G.spriteData(name,i);if(!d||!d.w)break;fr.push(d);}catch(e){break;}
+      }
+      return {name,fr};
+    });
+    const fw=Math.max(...groups.flatMap(g=>g.fr.map(d=>d.w)));
+    const rows=groups.map(g=>({name:g.name,fr:g.fr,fh:g.fr[0].h,n:g.fr.length}));
+    const w=pad*2+Math.max(...rows.map(r=>r.n))*fw*scale+(Math.max(...rows.map(r=>r.n))-1)*gap;
+    const h=pad*2+rows.reduce((s,r)=>s+r.fh*scale,0)+(rows.length-1)*gap;
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const x=c.getContext('2d');const cs=8;
+    for(let y=0;y<h;y++)for(let q=0;q<w;q++){
+      x.fillStyle=(((q/cs)|0)+((y/cs)|0))%2===0?'#c8c8c8':'#505050';
+      x.fillRect(q,y,1,1);
+    }
+    let oy=pad;
+    rows.forEach(row=>{
+      row.fr.forEach((d,i)=>{
+        const id=x.createImageData(d.w*scale,d.h*scale);
+        const u=new Uint32Array(id.data.buffer);
+        for(let y=0;y<d.h*scale;y++)for(let q=0;q<d.w*scale;q++)u[y*d.w*scale+q]=d.px[((y/scale)|0)*d.w+((q/scale)|0)];
+        const t=document.createElement('canvas');t.width=d.w*scale;t.height=d.h*scale;
+        t.getContext('2d').putImageData(id,0,0);
+        x.drawImage(t,pad+i*(fw*scale+gap),oy);
+      });
+      oy+=row.fh*scale+gap;
+    });
+    return c.toDataURL('image/png');
+  });
+  save('frames_checker',sheetUrl);
+
+  const boot=await G(page,()=>{
+    const G=__game;G.manual=true;if('bossIntro' in G)G.bossIntro=false;
+    try{localStorage.clear();}catch(e){}
+    G.setSeed(777);G.startLevel(5,{hearts:9,coins:0}); // floor 6, where Rattlebones appear
+    G.clearMobs();
+    const s=G.state();let spot=null;
+    const pit=(x,y)=>!!(G.pitUnder&&G.pitUnder(x,y,0));
+    const clear=(x,y)=>!G.solidAt(x,y)&&!pit(x,y);
+    // A short straight hallway, no pits, so the player cannot fall while we step the walk/tell timers.
+    for(let y=2;y<s.mapH-2&&!spot;y++)for(let x=2;x<s.mapW-6&&!spot;x++){
+      if(clear(x+.5,y+.5)&&clear(x+1.5,y+.5)&&clear(x+2.5,y+.5)&&clear(x+3.5,y+.5))spot={x:x+1.2,y:y+.5};
+    }
+    G.teleport(spot.x,spot.y,0);
+    const i=G.spawn('skeleton',spot.x+1.55,spot.y,false,[]);
+    if(G.seeAll)G.seeAll();
+    G.placeEnemy(i,spot.x+1.55,spot.y);
+    // state() returns copies, so e.ph cannot be set that way; step until the live walk frame is 3
+    let fr=G.state().enemies[i].frame,steps=0;
+    while(fr!==3&&steps<40){G.advance(0.05);fr=G.state().enemies[i].frame;steps++;}
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+    const e=G.state().enemies[i];
+    return {spot,i,type:e.type,state:e.state,fr:e.frame,steps,h:G.mobs.skeleton.h};
+  });
+  check('M1.79.6 a Rattlebone can be posed mid-walk on frame 3',
+    boot.type==='skeleton'&&boot.fr===3&&boot.h===.62,JSON.stringify(boot));
+  await shot(page,'skeleton_walk');
+
+  const pile0=await G(page,(i)=>{
+    const G=__game,p=G.state().player;
+    G.manual=true;
+    G.placeEnemy(i,p.x+1.35,p.y); // placeEnemy resets state to chase; collapse afterwards
+    const hp=G.state().enemies[i].hp;
+    G.damageMob(i,hp); // one hit per remaining HP so the pile is not then smashed
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);
+    G.advance(0.7); // let the collapse puffs and -1 numbers fade; still well before the 3 s tell
+    G.setMsg&&G.setMsg('',0.01);G.render();
+    const e=G.state().enemies[i];
+    return {state:e.state,told:!!e.told,pileT:e.pileT,hp:e.hp,hurtT:e.hurtT};
+  },boot.i);
+  check('M1.79.6 knocking a Rattlebone down shows the plain bone-pile frame',
+    pile0.state==='pile'&&pile0.told===false,JSON.stringify(pile0));
+  await shot(page,'bonepile_plain');
+
+  const pile1=await G(page,(i)=>{
+    const G=__game;
+    G.manual=true;
+    // Step only as far as the tell (3 s). A long single advance plus any leftover pileT can overshoot reform at 4.5 s.
+    let e=G.state().enemies[i],steps=0;
+    while(e.state==='pile'&&!e.told&&e.pileT<4.2&&steps<80){G.advance(0.05);e=G.state().enemies[i];steps++;}
+    G.setHearts(9);G.setMsg&&G.setMsg('',0.01);G.render();
+    return {state:e.state,told:!!e.told,pileT:e.pileT,steps,tell:G.bones&&G.bones.tell,reform:G.bones&&G.bones.reform};
+  },boot.i);
+  check('M1.79.6 after the 3 s tell the bone pile uses the green-eye frame and is about to rise',
+    pile1.state==='pile'&&pile1.told===true&&pile1.pileT<4.5,JSON.stringify(pile1));
+  await shot(page,'bonepile_eyes');
+
+  await ctx.close();
+}
+
+if(V1796&&want('m179.6')){ await m1796Tests(); }
+
+
 async function m176Tests(){
   const S=`${OUT}/screens`;fs.mkdirSync(S,{recursive:true});
   const M176='/workspace/labyrinth-main/m176';
@@ -7188,7 +7363,7 @@ async function regressionTests(){
     const touch=await cdpTouch(ctx,page);
     await sleep(500);
     // A5: low tap on the win screen goes to the title, not a new game
-    await G(page,(v13,v1795)=>{__game.manual=true;if(v13){__game.startLevel(__game.numLevels-1);if(v1795){__game.bossIntro=false;if(__game.unseal)__game.unseal();}const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);}else{__game.startLevel(1);__game.teleport(3.5,10.5,0);}__game.advance(0.6);__game.confirm();__game.advance(0.05);if(v1795&&__game.state().mode==='intro'&&__game.skipBossIntro)__game.skipBossIntro();__game.manual=false;},V13,V1795);
+    await G(page,(v13,v1795)=>{__game.manual=true;if(v13){__game.startLevel(__game.numLevels-1);if(v1795){__game.bossIntro=false;if(__game.unseal)__game.unseal();}const ex=__game.state().exit;__game.teleport(ex.x+.5,ex.y+.5,0);}else{__game.startLevel(1);__game.teleport(3.5,10.5,0);}__game.advance(0.6);__game.confirm();__game.advance(0.15);if(v1795){if(__game.bossIntro!==undefined)__game.bossIntro=false;if(__game.skipBossIntro)__game.skipBossIntro();if(__game.unseal)__game.unseal();__game.advance(0.15);if(__game.state().mode==='intro'&&__game.skipBossIntro)__game.skipBossIntro();}__game.manual=false;},V13,V1795);
     await sleep(700);
     let st=await G(page,()=>__game.state());const wasWin=st.mode==='win',was9=st.mode==='play'&&st.level===8;
     await page.touchscreen.tap(422,300);await sleep(450);
@@ -9028,7 +9203,8 @@ async function m19Tests(){
       __game.setPitch(-60);__game.throwOnce();for(let j=0;j<40;j++)__game.advance(1/60);__game.advance(0.3);const s=__game.state();return {st:s.enemies[i].state,gone:s.enemies[i].gone,kills:s.run.kills,dScore:s.score-sc0,coins:s.items.filter(t=>t.kind==='coin'&&!t.taken).length,smashed:s.stats.pilesSmashed};});
     check('M1.9 a balloon on the bone pile smashes it for good: kill counted (+50 score), coin dropped; no score for knock-downs (no farming)',(sm.gone||sm.st==='dead')&&sm.kills===1&&sm.dScore===50&&sm.coins>=1&&sm.smashed===1,JSON.stringify(sm));
     const look=await G(page,()=>{const a=__game.spriteCols('bonePile',0),b=__game.spriteCols('deco','bones');const ka=Object.keys(a),kb=new Set(Object.keys(b));const shared=ka.filter(c=>kb.has(c));return {shared:shared.length,na:ka.length,nb:kb.size};});
-    check('M1.9 the bone pile looks like the pile-of-bones decoration (shared palette)',look.shared>=Math.min(look.na,look.nb)*0.5,JSON.stringify(look));
+    check(V1796?'M1.9/M1.79.6 the new bone pile is packed as its own 2-frame art (the deco bones pile is unchanged)':'M1.9 the bone pile looks like the pile-of-bones decoration (shared palette)',
+      V1796?(look.na>0&&look.nb>0):(look.shared>=Math.min(look.na,look.nb)*0.5),JSON.stringify(look));
     if(!V164){ /* retired in M1.64 */
     const dots=await G(page,()=>{const o={};for(const k of Object.keys(__game.mobs))o[k]=__game.mobs[k].dot;return o;});
     const hx=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)),dd=(a,b)=>Math.hypot(...hx(a).map((v,i)=>v-hx(b)[i]));
